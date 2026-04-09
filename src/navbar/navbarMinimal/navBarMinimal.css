@@ -60,7 +60,7 @@
 }
 
 .dark .kaleida-header {
-    background-color: black;
+    background-color: rgb(0, 0, 0);
 }
 
 .light .kaleida-header {

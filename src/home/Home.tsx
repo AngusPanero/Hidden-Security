@@ -13,8 +13,9 @@ const Home = () => {
   const containerRef = useRef(null);
   const textRef = useRef(null);
   const canvasRef = useRef(null);
+  const welcomeTextRef = useRef(null); // Ref para el nuevo texto interno
 
-  // --- LÓGICA MATRIX (Fondo) ---
+  // --- LÓGICA MATRIX (Tus colores y opacidades originales) ---
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -33,10 +34,10 @@ const Home = () => {
     const drops = Array(columns).fill(1);
 
     const draw = () => {
-      ctx.fillStyle = theme === "dark" ? "rgba(229, 229, 229, 0.1)" : "rgba(0, 0, 0, 0.69)";
+      ctx.fillStyle = theme === "dark" ? "rgba(13, 13, 13, 0.41)" : "rgba(223, 223, 223, 0.69)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.font = `${fontSize}px 'JetBrains Mono'`;
-      ctx.fillStyle = theme === "dark" ? "#ff5500" : "#ccff00";
+      ctx.fillStyle = theme === "dark" ? "#ccff00" : "#ff5500";
       
       for (let i = 0; i < drops.length; i++) {
         const text = charArray[Math.floor(Math.random() * charArray.length)];
@@ -53,12 +54,10 @@ const Home = () => {
     };
   }, [theme]);
 
-  // --- ANIMACIÓN GSAP (Escala) ---
+  // --- ANIMACIÓN GSAP (Escala + Revelado al final) ---
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.to(textRef.current, {
-        scale: width > 768 ? 150 : 200,
-        ease: "power2.in",
+      const tl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top top",
@@ -67,6 +66,30 @@ const Home = () => {
           pin: true,
         },
       });
+
+      // 1. Escala de la máscara
+      tl.to(textRef.current, {
+        scale: width > 768 ? 100 : 200,
+        ease: "power2.in",
+        
+      }, 0);
+
+      // 2. Revelado del texto central (Inicia al 70% del scroll)
+      tl.fromTo(welcomeTextRef.current, 
+        { 
+          opacity: 0, 
+          scale: 0.8,
+          filter: "blur(10px)" 
+        }, 
+        { 
+          opacity: 1, 
+          scale: 1, 
+          filter: "blur(0px)",
+          ease: "power2.out"
+        }, 
+        0.3 // Punto de inserción en el timeline (de 0 a 1)
+      );
+
     }, containerRef);
     return () => ctx.revert();
   }, [width]);
@@ -75,19 +98,23 @@ const Home = () => {
     <div className="mask-page">
       <div className={`container ${theme}`} ref={containerRef}>
         
-        {/* EL CANVA ACTÚA COMO EL VIDEO (Z-INDEX 1) */}
         <div className="matrix-underlay">
           <canvas ref={canvasRef} />
+          
+          {/* TÍTULO QUE SE REVELA AL FINAL */}
+          <div className="matrix-content-overlay">
+            <h2 ref={welcomeTextRef} className="matrix-welcome-title">
+              ¿PREPARADO PARA DOMINAR <br /> LA CIBERSEGURIDAD?
+            </h2>
+          </div>
         </div>
 
-        {/* LA MÁSCARA (Z-INDEX 2) */}
         <div className="mask">
           <h2 className="home-title-mask" ref={textRef}>
             Hidden Security
           </h2>
         </div>
 
-        {/* INFO FLOTANTE (Z-INDEX 10) */}
         <div className="hero-floating-info">
           <div className="info-badge">EST. 2026</div>
           <p className="info-desc">Defensa Digital Avanzada.</p>
