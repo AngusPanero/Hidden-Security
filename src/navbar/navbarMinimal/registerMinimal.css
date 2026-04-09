@@ -1,0 +1,310 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=JetBrains+Mono:wght@400&display=swap');
+
+/* --- OVERLAY INDEPENDIENTE --- */
+.k-reg-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(20px);
+    z-index: 6000;
+    display: flex;
+    justify-content: flex-end;
+    animation: kRegFadeIn 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes kRegFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.k-reg-fade-out {
+    animation: kRegFadeOut 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes kRegFadeOut {
+    to { opacity: 0; }
+}
+
+/* --- PANEL --- */
+.k-reg-panel {
+    width: 520px;
+    height: 100vh;
+    background: #ffffff;
+    color: #000000;
+    position: relative;
+    font-family: 'Inter', sans-serif;
+    transform: translateX(100%);
+    animation: kRegSlideIn 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes kRegSlideIn {
+    to { transform: translateX(0); }
+}
+
+.k-reg-panel-exit {
+    animation: kRegSlideOut 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes kRegSlideOut {
+    to { transform: translateX(100%); }
+}
+
+/* --- DARK MODE --- */
+.k-reg-panel.dark {
+    background: #080808;
+    color: #ffffff;
+}
+
+/* --- ESTRUCTURA --- */
+.k-reg-top-bar {
+    height: 3px;
+    width: 100%;
+    background: #ff5500; /* Azul en Light */
+}
+.dark .k-reg-top-bar { background: #ccff00; } /* Amarillo en Dark */
+
+.k-reg-wrapper {
+    padding: 60px 50px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- HEADER --- */
+.k-reg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 70px;
+}
+
+.k-reg-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    opacity: 0.5;
+}
+
+.k-reg-path {
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin-top: 5px;
+}
+
+/* Colores dinámicos para el path activo */
+.k-reg-path :not(.path-muted) { color: #ff5500; }
+.dark .k-reg-path :not(.path-muted) { color: #ccff00; }
+
+.path-muted { opacity: 0.3; color: currentColor; }
+
+.k-reg-close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 25px;
+    height: 25px;
+    position: relative;
+}
+
+.close-line {
+    position: absolute;
+    width: 100%;
+    height: 1.5px;
+    background: currentColor;
+    top: 50%;
+}
+.l1 { transform: rotate(45deg); }
+.l2 { transform: rotate(-45deg); }
+
+/* --- CONTENIDO --- */
+.k-reg-title {
+    font-size: 46px;
+    font-weight: 300;
+    letter-spacing: -2px;
+    text-transform: uppercase;
+    line-height: 0.9;
+    margin-bottom: 12px;
+}
+
+.k-reg-sub {
+    font-size: 11px;
+    letter-spacing: 5px;
+    opacity: 0.4;
+    text-transform: uppercase;
+    margin-bottom: 60px;
+    cursor: pointer;
+}
+
+/* --- INPUTS --- */
+.k-reg-group {
+    margin-bottom: 35px;
+}
+
+.k-reg-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.k-reg-label-row label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Color de labels */
+.k-reg-label-row label { color: #ff5500; }
+.dark .k-reg-label-row label { color: #ccff00; }
+
+.row-id {
+    font-family: 'JetBrains Mono';
+    font-size: 10px;
+    opacity: 0.2;
+}
+
+.k-reg-input-box {
+    position: relative;
+}
+
+.k-reg-input-box input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding: 12px 0;
+    font-size: 17px;
+    font-weight: 300;
+    color: currentColor;
+    outline: none;
+    transition: 0.4s;
+}
+
+.dark .k-reg-input-box input { border-bottom-color: rgba(255,255,255,0.1); }
+
+.box-focus {
+    position: absolute;
+    bottom: -1px; left: 0; width: 100%; height: 1.5px;
+    background: #ff5500; /* Azul en Light */
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.dark .box-focus { background: #ccff00; } /* Amarillo en Dark */
+
+.k-reg-input-box input:focus ~ .box-focus { transform: scaleX(1); }
+
+.k-reg-eye {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    background: transparent; border: none; cursor: pointer; opacity: 0.3;
+}
+
+/* --- REQUISITOS --- */
+.k-reg-req-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 15px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: 0.5s ease;
+}
+
+.k-reg-req-grid.active {
+    max-height: 80px;
+    opacity: 1;
+}
+
+.k-reg-req-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.25;
+}
+
+/* Iconos de requisitos cumplidos */
+.k-reg-req-item.met { opacity: 1; color: #ff5500; }
+.dark .k-reg-req-item.met { color: #ccff00; }
+
+.req-icon { font-size: 9px; }
+.req-text { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: currentColor; }
+
+/* --- FEEDBACK & BOTÓN --- */
+.k-reg-feedback {
+    min-height: 25px;
+    margin-bottom: 10px;
+}
+
+.k-reg-error {
+    color: #ff3b3b;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.k-reg-submit {
+    width: 100%;
+    height: 75px;
+    background: #ff5500; /* Azul en Light */
+    color: #fff;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 35px;
+    cursor: pointer;
+    transition: 0.4s;
+}
+
+.dark .k-reg-submit { background: #ccff00; color: #000; } /* Amarillo en Dark */
+
+.k-reg-btn-text { font-weight: 700; letter-spacing: 4px; font-size: 12px; text-transform: uppercase; }
+.k-reg-btn-icon { font-size: 24px; transition: transform 0.3s ease; }
+
+.k-reg-submit:hover .k-reg-btn-icon { transform: translateX(8px); }
+.k-reg-submit:disabled { opacity: 0.1; cursor: not-allowed; }
+
+/* --- FOOTER --- */
+.k-reg-footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.k-reg-switch {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: currentColor;
+    padding: 10px;
+}
+
+.switch-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.4;
+    transition: 0.3s;
+}
+
+.switch-line {
+    height: 1px; width: 100%; background: currentColor;
+    transform: scaleX(0.15);
+    transition: 0.4s;
+    margin-top: 5px;
+}
+
+/* Hover del switch inferior */
+.k-reg-switch:hover .switch-label { opacity: 1; color: #ff5500; }
+.dark .k-reg-switch:hover .switch-label { opacity: 1; color: #ccff00; }
+.k-reg-switch:hover .switch-line { transform: scaleX(1); background: currentColor; }
+
+/* --- RESPONSIVE --- */
+@media (max-width: 600px) {
+    .k-reg-panel { width: 100%; }
+    .k-reg-wrapper { padding: 40px 25px; }
+}

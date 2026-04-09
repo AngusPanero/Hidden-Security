@@ -1,0 +1,263 @@
+/* --- OVERLAY PRINCIPAL --- */
+.kaleida-mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: #000000; 
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 40px;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+    animation: kaleidaFadeIn 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes kaleidaFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- HEADER --- */
+.kaleida-mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(204, 255, 0, 0.15); /* Borde amarillo sutil */
+}
+
+.header-meta {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.meta-index {
+    font-family: serif;
+    font-style: italic;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.meta-tag {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #ccff00; /* Acento Amarillo */
+    text-transform: uppercase;
+}
+
+.kaleida-close-trigger {
+    background: transparent;
+    border: none;
+    width: 40px;
+    height: 40px;
+    position: relative;
+    cursor: pointer;
+}
+
+.close-line {
+    position: absolute;
+    width: 24px;
+    height: 1px;
+    background: #fff;
+    top: 50%;
+    left: 50%;
+}
+
+.close-line:nth-child(1) { transform: translate(-50%, -50%) rotate(45deg); }
+.close-line:nth-child(2) { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/* --- NAVIGATION --- */
+.kaleida-mobile-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 30px;
+}
+
+.kaleida-mobile-item {
+    text-decoration: none;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    position: relative;
+    padding: 10px 15px;
+    transition: 0.3s;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.kaleida-mobile-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80%;
+    height: 100%;
+    background: #ccff00; /* Fondo Amarillo en Dark Mode */
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: -1;
+}
+
+.kaleida-mobile-item:hover::before,
+.kaleida-mobile-item:active::before {
+    transform: scaleX(1);
+}
+
+.item-index {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: serif;
+    transition: color 0.3s;
+}
+
+.item-label {
+    font-size: 24px;
+    font-weight: 200;
+    letter-spacing: 4px;
+    color: #fff;
+    text-transform: uppercase;
+    transition: color 0.3s, transform 0.3s;
+}
+
+.kaleida-mobile-item:hover .item-label,
+.kaleida-mobile-item:hover .item-index {
+    color: #000; /* Texto negro sobre fondo amarillo */
+}
+
+/* --- FOOTER & BOTONES --- */
+.kaleida-mobile-footer {
+    padding-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.footer-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(204, 255, 0, 0.15);
+    padding-top: 20px;
+}
+
+.kaleida-lang-wrap select {
+    background: transparent;
+    color: #fff;
+    border: none;
+    font-size: 12px;
+    letter-spacing: 2px;
+    outline: none;
+}
+
+.btn-mobile-auth {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(204, 255, 0, 0.3);
+    color: #fff;
+    padding: 15px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    transition: color 0.4s, border-color 0.4s;
+}
+
+.btn-mobile-auth::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #ccff00;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: -1;
+}
+
+.btn-mobile-auth:hover {
+    color: #000;
+    border-color: #ccff00;
+}
+
+.btn-mobile-auth:hover::before {
+    transform: scaleX(1);
+}
+
+/* --- LIGHT MODE CONFIG --- */
+.kaleida-mobile-overlay.light {
+    background: #ffffff;
+}
+
+.light .kaleida-mobile-header {
+    border-bottom: 1px solid rgba(37, 37, 255, 0.1);
+}
+
+.light .meta-tag {
+    color: #ff5500; /* Acento Azul en Light */
+}
+
+.light .kaleida-mobile-item::before {
+    background: #ff5500; /* Fondo Azul en Light */
+}
+
+.light .item-label, .light .btn-mobile-auth {
+    color: #000;
+}
+
+.light .kaleida-mobile-item:hover .item-label,
+.light .kaleida-mobile-item:hover .item-index {
+    color: #fff; /* Texto blanco sobre azul */
+}
+
+.light .close-line { background: #000; }
+.light .item-index, .light .meta-index { color: rgba(0, 0, 0, 0.3); }
+.light .kaleida-lang-wrap select { color: #000; }
+
+.light .btn-mobile-auth { 
+    border-color: rgba(37, 37, 255, 0.3); 
+}
+
+.light .btn-mobile-auth::before {
+    background: #ff5500;
+}
+
+.light .btn-mobile-auth:hover {
+    color: #fff;
+    border-color: #ff5500;
+}
+
+.light .footer-controls {
+    border-top: 1px solid rgba(37, 37, 255, 0.1);
+}
+
+/* Ajuste del Toggle Tema */
+.kaleida-theme-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kaleida-theme-toggle img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    display: block;
+}

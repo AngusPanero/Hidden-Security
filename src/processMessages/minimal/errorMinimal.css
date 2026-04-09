@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Inter:wght@200;400&display=swap');
+
+.error-container {
+    --bg-dark: #050505;
+    --bg-light: #f5f5f7;
+    --accent: #0062FF;
+    
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    transition: background-color 0.6s ease;
+}
+
+.error-container.dark { background-color: var(--bg-dark); color: #fff; }
+.error-container.light { background-color: var(--bg-light); color: #000; }
+
+/* WATERMARK DE FONDO ESTILO KALEIDA */
+.error-bg-watermark {
+    position: absolute;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 40vw;
+    font-weight: 900;
+    line-height: 1;
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
+    left: -5%;
+    bottom: -10%;
+}
+
+.error-wrapper {
+    position: relative;
+    z-index: 10;
+    width: 85%;
+    max-width: 1400px;
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* HEADER DEL COMPONENTE */
+.error-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.error-logo-img {
+    width: auto;
+    height: 60px;
+    object-fit: cover;
+    border: 1px solid currentColor;
+}
+
+.error-division-line {
+    width: 40px;
+    height: 1px;
+    background-color: currentColor;
+    opacity: 0.3;
+}
+
+.error-system-tag {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    opacity: 0.6;
+}
+
+/* TITULO PRINCIPAL MONTSERRAT */
+.error-main-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(3rem, 10vw, 8rem);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* TEXTO CON STROKE - LOOK PREMIUM */
+.error-stroke-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(2rem, 6vw, 5rem);
+    font-weight: 900;
+    color: transparent;
+    -webkit-text-stroke: 1px currentColor;
+    opacity: 0.2;
+    margin-top: -10px;
+    text-transform: uppercase;
+}
+
+.error-description-group {
+    margin-top: 30px;
+}
+
+.error-subtext {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(14px, 1.2vw, 18px);
+    font-weight: 200;
+    max-width: 500px;
+    line-height: 1.6;
+    opacity: 0.7;
+}
+
+/* FOOTER Y BARRA DE PROGRESO */
+.error-footer-bar {
+    width: 100%;
+}
+
+.error-nav-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+.error-progress-wrapper {
+    width: 100%;
+    max-width: 400px;
+    height: 1px;
+    background-color: rgba(128, 128, 128, 0.2);
+}
+
+.error-progress-fill {
+    height: 100%;
+    background-color: currentColor;
+    transform-origin: left;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .error-wrapper { height: 80vh; justify-content: center; gap: 60px; }
+    .error-bg-watermark { display: none; }
+    .error-brand-header { margin-bottom: 20px; }
+    .error-subtext{ font-size: 18px;}
+    .error-main-title { font-size: 8vw; }
+}

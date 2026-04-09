@@ -1,0 +1,276 @@
+/* --- VARIABLES & DESIGN SYSTEM (KALEIDA STYLE) --- */
+:root {
+    --k-bg-dark: #000000;
+    --k-text-main: #ffffff;
+    --k-text-muted: rgba(255, 255, 255, 0.5);
+    --k-accent: #ccff00; /* AMARILLO ELÉCTRICO (DARK) */
+    --k-transition: all 0.7s cubic-bezier(0.19, 1, 0.22, 1);
+    --k-border: rgba(204, 255, 0, 0.15); /* Borde sutil amarillo */
+}
+
+/* --- LIGHT MODE OVERRIDE --- */
+.light.kaleida-nav-wrapper {
+    --k-bg-dark: #ffffff;
+    --k-text-main: #000000;
+    --k-text-muted: rgba(0, 0, 0, 0.6);
+    --k-accent: #ff5500; /* AZUL VIBRANTE (LIGHT) */
+    --k-border: rgba(37, 37, 255, 0.1); /* Borde sutil azul */
+}
+
+/* --- WRAPPER & LAYOUT --- */
+.kaleida-nav-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    font-family: 'Inter', sans-serif;
+    transition: var(--k-transition);
+}
+
+/* --- PROMO STRIP --- */
+.kaleida-promo-strip {
+    background: var(--k-bg-dark);
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.5s ease, opacity 0.5s ease;
+    overflow: hidden;
+}
+
+.promo-off .kaleida-promo-strip {
+    transform: translateY(-100%);
+    opacity: 0;
+    height: 0;
+}
+
+.promo-text {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--k-text-muted);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+/* --- HEADER & CONTAINER --- */
+.kaleida-header {
+    padding: 15px 60px;
+    transition: var(--k-transition);
+}
+
+.dark .kaleida-header {
+    background-color: black;
+}
+
+.light .kaleida-header {
+    background-color: white;
+}
+
+.promo-off .kaleida-header {
+    padding: 20px 60px;
+    background: var(--k-bg-dark); /* Usamos la variable para el color de fondo */
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--k-border);
+}
+
+.kaleida-container {
+    max-width: 1800px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* --- LOGO --- */
+/* .kaleida-logo-img {
+    height: 32px;
+    width: auto;
+    transition: opacity 0.3s ease;
+}
+
+.kaleida-logo-img:hover {
+    opacity: 0.7;
+} */
+.logo-title.dark{ font-family: "Montserrat"; margin: 0; padding: 0; font-size: 1.1rem; color: white; }
+.logo-title.light{ font-family: "Montserrat"; margin: 0; padding: 0; font-size: 1.1rem; color: black; }
+.logo-title.light:hover{ color: #ff5500; transition: color 0.3s ease; }
+.logo-title.dark:hover{ color:#ccff00; transition: color 0.3s ease; }
+
+/* --- NAVIGATION DESKTOP --- */
+.nav-list {
+    display: flex;
+    gap: 45px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-list span{
+   font-size: 10px;
+}
+
+.nav-list a {
+    text-decoration: none;
+    color: var(--k-text-main);
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: var(--k-transition);
+}
+
+.index {
+    font-size: 8px;
+    color: var(--k-text-muted);
+    font-family: serif;
+    font-style: italic;
+}
+
+.nav-list a:hover {
+    letter-spacing: 4px;
+    color: var(--k-accent); /* Cambia dinámicamente según el tema */
+}
+
+/* --- CONTROLES (THEME & LANG) --- */
+.interface-controls {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.control-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: var(--k-transition);
+}
+
+.control-btn img {
+    width: 18px; 
+    height: 18px;
+    object-fit: contain;
+    transition: transform 0.4s ease;
+}
+
+.control-btn:hover img {
+    transform: rotate(20deg) scale(1.1);
+}
+
+.lang-select-minimal {
+    background: transparent;
+    color: var(--k-text-main);
+    border: none;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    text-transform: uppercase;
+}
+
+.lang-selector-wrap {
+    border-bottom: 1px solid transparent;
+    transition: 0.3s;
+    padding-bottom: 2px;
+}
+
+.lang-selector-wrap:hover {
+    border-bottom: 1px solid var(--k-accent); /* Hover del selector de idioma */
+}
+
+/* --- BOTONES AUTH --- */
+.btn-kaleida {
+    background: transparent;
+    color: var(--k-text-main);
+    border: 1px solid var(--k-border);
+    padding: 10px 24px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.4s ease;
+}
+
+.btn-kaleida:hover {
+    background: var(--k-accent);
+    color: #000; /* Texto siempre oscuro sobre el acento en hover */
+    border-color: var(--k-accent);
+}
+
+/* --- HAMBURGER --- */
+.kaleida-hamburger {
+    display: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.hamburger-box {
+    width: 28px;
+    height: 14px;
+    position: relative;
+}
+
+.h-line {
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background: var(--k-text-main);
+    transition: var(--k-transition);
+}
+
+.line-1 { top: 0; }
+.line-2 { bottom: 0; width: 65%; right: 0; }
+
+.kaleida-hamburger.open .line-1 { transform: translateY(7px) rotate(45deg); background: var(--k-accent); }
+.kaleida-hamburger.open .line-2 { transform: translateY(-6px) rotate(-45deg); width: 100%; background: var(--k-accent); }
+
+/* --- AJUSTES ESPECÍFICOS LIGHT MODE --- */
+.light .control-btn { 
+    filter: none; 
+}
+
+.light .nav-list a {
+    font-weight: 500; 
+}
+
+.light .lang-select-minimal option {
+    background: #fff;
+    color: #000;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 1100px) {
+    .nav-main-desktop, 
+    .interface-controls { 
+        display: none !important; 
+    }
+    .kaleida-hamburger { 
+        display: block !important; 
+    }
+    .kaleida-header { 
+        padding: 20px 25px; 
+    }
+}
+
+/* --- ANIMACIÓN DE TRANSICIÓN DE TEMA --- */
+::view-transition-new(root) {
+  clip-path: circle(0% at var(--x, 50%) var(--y, 50%));
+  animation: round-morph-in 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 9999;
+}
+
+@keyframes round-morph-in {
+  from { clip-path: circle(0% at var(--x) var(--y)); }
+  to { clip-path: circle(150% at var(--x) var(--y)); }
+}
