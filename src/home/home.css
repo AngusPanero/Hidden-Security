@@ -1,0 +1,176 @@
+.mask-page {
+    width: 100%;
+    background-color: #000000;
+}
+
+.container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* --- CAPA 1: EL FONDO (MATRIX) --- */
+.matrix-underlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.matrix-underlay canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* --- CAPA 2: LA MÁSCARA (LA CLAVE) --- */
+.mask {
+    position: absolute;
+    inset: 0;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+}
+
+/* LIGHT MODE: Fondo crema, letras negras se vuelven transparentes */
+.container.light .mask {
+    background-color: #f8f8f8; 
+    mix-blend-mode: screen; 
+}
+
+.container.light .home-title-mask {
+    color: #000000; 
+}
+
+/* DARK MODE: Fondo negro, letras blancas se vuelven transparentes */
+.container.dark .mask {
+    background-color: #000000;
+    mix-blend-mode: darken; 
+}
+
+.container.dark .home-title-mask {
+    color: #ffffff;
+}
+
+/* --- TIPOGRAFÍA --- */
+.home-title-mask {
+    font-family: 'Montserrat', sans-serif; /* O la Serif que prefieras */
+    font-weight: 700;
+    font-size: 9vw;
+    text-align: center;
+    letter-spacing: -2px;
+    line-height: 0.9;
+    text-transform: uppercase;
+}
+
+/* --- INFO FLOTANTE CON INVERSIÓN AUTOMÁTICA --- */
+.hero-floating-info {
+    position: absolute;
+    bottom: 10%;
+    left: 6%;
+    z-index: 10;
+    max-width: 450px;
+    pointer-events: none;
+
+    /* LA CLAVE: El texto reaccionará al color de fondo */
+    mix-blend-mode: difference;
+    color: white; /* Diferencia sobre negro = Blanco / Diferencia sobre blanco = Negro */
+}
+
+/* Eliminamos las definiciones manuales de color para que no interfieran con la mezcla */
+.dark .hero-floating-info,
+.light .hero-floating-info { 
+    color: white; 
+}
+
+.info-badge {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.info-desc {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
+    font-weight: 200;
+    letter-spacing: 2px;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
+/* --- AJUSTE DEL SCROLL INDICATOR PARA LA MEZCLA --- */
+.scroll-indicator span {
+    font-family: 'Montserrat', sans-serif;
+    color: white; /* Forzamos blanco para que mix-blend-mode trabaje bien */
+}
+
+.scroll-indicator .line {
+    width: 50px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.3); /* Línea base semitransparente */
+}
+
+.scroll-indicator .line::after {
+    background: white; /* El brillo será blanco pero cambiará de color al pasar sobre el Matrix */
+}
+
+/* --- INDICADOR DE SCROLL CORREGIDO --- */
+.scroll-indicator .line {
+    width: 50px;
+    height: 1px;
+    /* Color de la vía (fondo de la línea) */
+    background: rgba(128, 128, 128, 0.2); 
+    position: relative;
+    overflow: hidden;
+}
+
+.scroll-indicator .line::after {
+    content: "";
+    position: absolute;
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    /* Definimos un color por defecto */
+    background: #ffffff; 
+    animation: scrollLineAnim 2s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+}
+
+/* Color de la línea según el tema */
+.container.dark .scroll-indicator .line::after {
+    background: #ccff00; /* Tu verde Matrix */
+}
+
+.container.light .scroll-indicator .line::after {
+    background: #ff5500; /* Tu naranja/rojo de acento */
+}
+
+/* Ajuste para el texto del indicador según el tema */
+.container.dark .scroll-indicator span {
+    color: #ffffff;
+}
+
+.container.light .scroll-indicator span {
+    color: #000000;
+}
+
+@keyframes scrollLineAnim {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@media (max-width: 768px) {
+    .home-title-mask {
+        font-size: 45px;
+    }
+}

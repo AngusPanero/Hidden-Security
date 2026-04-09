@@ -91,7 +91,7 @@ const NavBarMinimal = () => {
                 <div className="kaleida-container">
                     
                     <div className="nav-left">
-                        <a href="/"><h4 className={`logo-title ${theme}`}>Hidden Security.</h4></a>
+                        <a href="/"><h2 className={`logo-title ${theme}`}>Hidden Security.</h2></a>
                     </div>
 
                     <nav className="nav-main-desktop">

@@ -159,7 +159,7 @@
 .btn-mobile-auth {
     width: 100%;
     background: transparent;
-    border: 1px solid rgba(204, 255, 0, 0.3);
+    border: 1px solid rgba(255, 187, 0, 0.3);
     color: #fff;
     padding: 15px;
     font-size: 11px;
@@ -226,7 +226,7 @@
 .light .kaleida-lang-wrap select { color: #000; }
 
 .light .btn-mobile-auth { 
-    border-color: rgba(37, 37, 255, 0.3); 
+    border-color: #ff5500; 
 }
 
 .light .btn-mobile-auth::before {
