@@ -64,7 +64,6 @@ const FloatingCardSection: React.FC = () => {
   });
 
   // Animaciones para el Título: Se mueve hacia arriba y desaparece
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
   const titleY = useTransform(scrollYProgress, [0, 0.15], [0, -50]);
 
   return (
@@ -75,7 +74,7 @@ const FloatingCardSection: React.FC = () => {
           {/* --- NUEVA SECCIÓN DE TÍTULO --- */}
           <motion.div 
             className="hc-header-content"
-            style={{ opacity: titleOpacity, y: titleY }}
+            style={{ y: titleY }}
           >
             <motion.span 
               className="hc-pre-title"

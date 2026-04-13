@@ -1,7 +1,7 @@
 /* mission.css */
 
 .hc-mission-section {
-    padding: 120px 20px;
+    padding: 120px 20px 0px 20px;
     font-family: 'Montserrat', sans-serif;
     transition: background-color 0.4s ease;
     overflow: hidden;

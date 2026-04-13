@@ -14,7 +14,7 @@
 
 .hc-sticky-container {
   position: sticky;
-  top: 50px;
+  top: 60px;
   height: 100vh;
   width: 100%;
   display: flex;
@@ -34,6 +34,7 @@
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+  margin-top: 50px;
 }
 
 .hc-carta-wrap {
@@ -235,7 +236,7 @@
 /* --- HEADER & TITULOS --- */
 .hc-header-content {
   position: absolute;
-  top: 15%; /* Posicionado arriba de las cartas */
+  top: 10%; /* Posicionado arriba de las cartas */
   text-align: center;
   z-index: 10;
   pointer-events: none; /* Para que no bloquee el scroll */
@@ -285,11 +286,6 @@
 .hc-scroll-wrapper.light .hc-main-title { color: #000000; }
 .hc-scroll-wrapper.light .hc-intro-text { color: #444444; }
 
-/* Ajuste del contenedor de cartas para que no se pegue al título al inicio */
-.hc-cartas-container {
-  margin-top: 100px; /* Da espacio al título */
-}
-
 @media (max-width: 1024px) {
   .hc-header-content {
     top: 10%; /* Subimos un poco el título */
@@ -310,37 +306,29 @@
   .hc-carta-wrap:nth-child(2) { transform: translateX(-120px) rotate(-3deg) translateY(5px); }
   .hc-carta-wrap:nth-child(3) { transform: translateX(120px) rotate(3deg) translateY(5px); }
   .hc-carta-wrap:nth-child(4) { transform: translateX(350px) rotate(8deg) translateY(20px); }
-
-  .hc-cartas-container {
-    margin-top: 180px;
-  }
 }
 
-/* MOBILE STYLES (768px) */
+/* MOBILE STYLES TITULOS (768px) */
 @media (max-width: 768px) {
-  /* 1. Liberamos el alto para que se vea todo el contenido */
-  .hc-scroll-area {
-    height: auto !important; /* Quitamos los 400vh */
-    padding-bottom: 100px;
-    overflow-x: hidden;
+  .hc-touch{
+    font-family: "Montserrat";
+    font-size: 1.3rem;
   }
 
-  .hc-sticky-container {
-    position: relative !important; /* Quitamos el sticky en móvil */
-    top: 0 !important;
-    height: auto !important;
-    display: flex !important; /* Cambiamos flex por block para flujo natural */
-    overflow: visible !important;
-    flex-direction: column;
+  .light .hc-touch{
+    color: white;
   }
-
-  /* 2. Ajuste de Títulos en Móvil */
+  
+  .hc-scroll-wrapper{
+    padding: 0;
+  }
+  
   .hc-header-content {
-    position: relative !important; /* Ya no flota sobre las cartas */
+    position: relative !important; 
     top: 0 !important;
     padding: 60px 20px 40px 20px;
-    opacity: 1 !important; /* Aseguramos que se vea */
-    transform: none !important; /* Quitamos el movimiento de scroll */
+    opacity: 1 !important; 
+    transform: none !important; 
   }
 
   .hc-pre-title {
@@ -349,62 +337,89 @@
   }
 
   .hc-main-title {
-    font-size: 2.2rem !important; /* Más pequeño para que no rompa */
+    font-size: 2.2rem !important; 
     line-height: 1.2;
     margin-bottom: 15px;
   }
 
   .hc-intro-text {
     font-size: 0.95rem !important;
-    margin-bottom: 2rem !important; /* Reducimos el margen exagerado */
+    margin-bottom: 2rem !important; 
     line-height: 1.5;
     padding: 0 10px;
   }
+}
 
-  /* 3. Contenedor de Cartas en Columna */
-  .hc-cartas-container {
+
+
+/* MOBILE STYLES CONSOLIDADO (768px) */
+@media (max-width: 768px) {
+  .hc-scroll-wrapper {
+  
+    padding-top: 0; 
+  
+    height: 500vh !important; 
+    position: relative;
+  }
+
+  .hc-scroll-area {
+    height: 100% !important;
+    padding-bottom: 0;
+  }
+
+  .hc-sticky-container {
+    position: sticky !important;
+    top: 40px;
+  
+    height: 100vh !important; 
     display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 25px !important; /* Espacio entre cartas achicadas */
-    margin-top: 0 !important;
-    height: auto !important;
-    padding-bottom: 50px;
-    gap: 80px !important;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    overflow: hidden !important;
   }
 
-  /* 4. Achicamos las cartas manualmente en 768px */
-  .hc-card-hitbox {
+
+  .hc-header-content {
     position: relative !important;
-    left: 0 !important;
     top: 0 !important;
-    margin: 0 auto !important; /* Centrado horizontal */
-    width: 260px !important; /* Carta más pequeña */
-    height: 380px !important;
-    transform: none !important; /* Limpiamos el translateX del abanico */
+    padding: 40px 20px 20px 20px;
+    margin-bottom: 20px;
   }
 
-  /* Ajustes internos para cartas pequeñas */
-  .hc-face {
-    padding: 20px !important;
+  .hc-main-title {
+    font-size: 2rem !important;
+    margin-bottom: 10px;
   }
 
-  .hc-titulo-reverso {
-    font-size: 1rem !important;
-    margin-bottom: 10px !important;
+  .hc-intro-text {
+    font-size: 0.9rem !important;
+    margin-bottom: 0 !important;
+    line-height: 1.4;
   }
 
-  .hc-subtitulo-reverso {
-    font-size: 0.8rem !important;
-    margin-bottom: 15px !important;
+
+  .hc-cartas-container {
+    flex: 1;
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    margin-top: -170px;
   }
 
-  .hc-lista-cursos li {
-    font-size: 0.75rem !important;
-    padding: 6px 0 !important;
+
+  .hc-card-hitbox {
+    width: 250px !important;
+    height: 350px !important;
+    top: auto !important;
   }
 
-  .hc-logo-card {
-    width: 60% !important;
+  .hc-touch {
+    font-family: "Montserrat";
+    font-size: 1rem;
+    margin-top: 15px;
+    opacity: 0.8;
   }
 }

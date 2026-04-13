@@ -4,6 +4,7 @@ import FooterMinimal from "../footer/minimalFooter/FooterMinimal";
 import CookiesCube from "../cookiesCube/CookiesCube";
 import NavBarMinimal from "../navbar/navbarMinimal/NavBarMinimal";
 import Home from "../home/Home";
+import CompanyInfo from "../companyInfo/CompanyInfoMinimal";
 
 const AppRouter = () => {
     return (
@@ -16,6 +17,7 @@ const AppRouter = () => {
                             <NavBarMinimal />
                             <Routes>
                                 <Route path="/" element={<Home />} />
+                                <Route path="/company" element={<CompanyInfo />} />
                                 {/* <Route path="/products" element={<ProductsMinimal />} />
                                 <Route path="/sales" element={<Sales />} />
                                 <Route path="/raffles" element={<SorteoDevMinimal />} />

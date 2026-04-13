@@ -97,7 +97,7 @@ const NavBarMinimal = () => {
                     <nav className="nav-main-desktop">
                         <ul className="nav-list">
                             <li><a href="/products"><span className="index">01</span> Productos</a></li>
-                            <li><a href="/company"><span className="index">02</span> Compañía</a></li>
+                            <li><a href="/company"><span className="index">02</span> Empresa</a></li>
                             <li><a href="/raffles"><span className="index">03</span> Sorteos</a></li>
                             <li><a href="/contact"><span className="index">04</span> Contacto</a></li>
                             {user && (
