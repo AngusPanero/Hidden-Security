@@ -4,7 +4,7 @@ import sun from "/logos/sun.svg";
 import { UseSession } from "../../contexts/SessionContext";
 import "./navBarMobileMinimal.css";
 
-const NavBarMobileMinimal = forwardRef(({ closeMenu, texts, language, theme, handleTheme, handleLanguage, openLogin }: any, ref: any) => {
+const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ theme, handleTheme, /* handleLanguage, */ openLogin }: any, ref: any) => {
     const { user, handleLogout } = UseSession();
 
     // Lógica para Round Morph
@@ -40,7 +40,7 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, texts, language, theme, han
             <nav className="kaleida-mobile-nav">
                 {[
                     { label: "Inicio", href: "/", index: "01" },
-                    { label: "Productos", href: "/products", index: "02" },
+                    { label: "Cursos", href: "/courses", index: "02" },
                     { label: "Empresa", href: "/company", index: "03" },
                     { label: "Sorteos", href: "/raffles", index: "04" },
                     { label: "Contacto", href: "/contact", index: "05" }
@@ -61,12 +61,12 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, texts, language, theme, han
 
             <div className="kaleida-mobile-footer">
                 <div className="footer-controls">
-                    <div className="kaleida-lang-wrap">
+                    {/* <div className="kaleida-lang-wrap">
                         <select value={language} onChange={(e) => handleLanguage(e.target.value)}>
                             <option value="es">ES</option> 
                             <option value="en">EN</option>
                         </select>
-                    </div>
+                    </div> */}
                     
                     <button className="kaleida-theme-toggle" onClick={toggleThemeWithAnimation}>
                         <img src={theme === "dark" ? sun : moon} alt="theme icon" />
@@ -80,7 +80,7 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, texts, language, theme, han
                         </button>
                     ) : (
                         <button onClick={() => { openLogin(); closeMenu(); }} className="btn-mobile-auth primary">
-                            {texts[language].nav.login}
+                            Iniciar Sesión
                         </button>
                     )}
                 </div>

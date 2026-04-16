@@ -159,7 +159,7 @@
 .btn-mobile-auth {
     width: 100%;
     background: transparent;
-    border: 1px solid rgba(255, 187, 0, 0.3);
+    border: 1px solid #ccff00;
     color: #fff;
     padding: 15px;
     font-size: 11px;

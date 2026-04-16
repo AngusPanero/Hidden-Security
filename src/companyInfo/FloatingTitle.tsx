@@ -53,7 +53,8 @@ const FloatingTitle = ({ text }: { text: string }) => {
         perspective: "1200px", 
         transformStyle: "preserve-3d",
         zIndex: 10,
-        position: "relative"
+        position: "relative",
+        fontFamily: "Montserrat"
       }}
     >
       {letters.map((char, i) => (

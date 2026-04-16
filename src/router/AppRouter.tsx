@@ -5,6 +5,9 @@ import CookiesCube from "../cookiesCube/CookiesCube";
 import NavBarMinimal from "../navbar/navbarMinimal/NavBarMinimal";
 import Home from "../home/Home";
 import CompanyInfo from "../companyInfo/CompanyInfoMinimal";
+import SorteoDevMinimal from "../sorteo/SorteoDevMinimal";
+import Courses from "../courses/Courses";
+import CursosParams from "../courses/CursosParams";
 
 const AppRouter = () => {
     return (
@@ -18,10 +21,10 @@ const AppRouter = () => {
                             <Routes>
                                 <Route path="/" element={<Home />} />
                                 <Route path="/company" element={<CompanyInfo />} />
+                                <Route path="/raffles" element={<SorteoDevMinimal />} />
+                                <Route path="/courses" element={<CursosParams />} />
                                 {/* <Route path="/products" element={<ProductsMinimal />} />
                                 <Route path="/sales" element={<Sales />} />
-                                <Route path="/raffles" element={<SorteoDevMinimal />} />
-                                <Route path="/company" element={<CompanyInfoMinimal />} />
                                 <Route path="/contact" element={<ContactMinimal />} />
                                 <Route path="/policy" element={<PoliticaCookiesCube />} />
                                 <Route path="/raffle-terms" element={<RaffleTermsCube />} />

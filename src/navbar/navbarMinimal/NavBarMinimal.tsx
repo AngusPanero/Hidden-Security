@@ -3,7 +3,7 @@ import "./navBarMinimal.css";
 import moon from "/logos/moon2.svg";
 import sun from "/logos/sun.svg";
 import { UseSession } from "../../contexts/SessionContext";
-import { UseLanguage } from "../../contexts/LanguageContext";
+/* import { UseLanguage } from "../../contexts/LanguageContext"; */
 import { UseTheme } from "../../contexts/ThemeContext";
 import LoginMinimal from "./LoginMinimal";
 import RegisterMinimal from "./RegisterMinimal";
@@ -20,7 +20,7 @@ const NavBarMinimal = () => {
     const menuRef = useRef<HTMLDivElement>(null);
     const { user, handleLogout } = UseSession();
 
-    const { language, handleLanguage, texts } = UseLanguage();
+    /* const { language, handleLanguage, texts } = UseLanguage(); */
     const { theme, handleTheme } = UseTheme();
 
     // --- LÓGICA ROUND MORPH PROPIA DE ESCRITORIO ---
@@ -96,7 +96,7 @@ const NavBarMinimal = () => {
 
                     <nav className="nav-main-desktop">
                         <ul className="nav-list">
-                            <li><a href="/products"><span className="index">01</span> Productos</a></li>
+                            <li><a href="/courses"><span className="index">01</span> Cursos</a></li>
                             <li><a href="/company"><span className="index">02</span> Empresa</a></li>
                             <li><a href="/raffles"><span className="index">03</span> Sorteos</a></li>
                             <li><a href="/contact"><span className="index">04</span> Contacto</a></li>
@@ -122,7 +122,7 @@ const NavBarMinimal = () => {
                                 <img src={theme === "dark" ? sun : moon} alt="theme icon" />
                             </button>
                                 
-                            <div className="lang-selector-wrap">
+                            {/* <div className="lang-selector-wrap">
                                 <select 
                                     className="lang-select-minimal" 
                                     value={language} 
@@ -132,16 +132,16 @@ const NavBarMinimal = () => {
                                     <option value="en">EN</option>
                                 </select>
                                 <span className="select-arrow"></span>
-                            </div>
+                            </div> */}
 
                             <div className="auth-wrap">
                                 {user ? (
                                     <button onClick={() => handleLogout()} className="btn-kaleida logout">
-                                        LOGOUT
+                                        Cerar
                                     </button>
                                 ) : (
                                     <button onClick={() => setLoginOpen(true)} className="btn-kaleida login">
-                                        {texts[language].nav.login}
+                                        Iniciar Sesión
                                     </button>
                                 )}
                             </div>
@@ -166,11 +166,11 @@ const NavBarMinimal = () => {
                 <NavBarMobileMinimal
                     ref={menuRef}
                     closeMenu={() => setMenuOpen(false)}
-                    texts={texts}
-                    language={language}
+                    /* texts={texts}
+                    language={language} */
                     theme={theme}
                     handleTheme={() => handleTheme(theme === "dark" ? "light" : "dark")}
-                    handleLanguage={handleLanguage}
+                    /* handleLanguage={handleLanguage} */
                     openLogin={() => setLoginOpen(true)}
                 />
             )}

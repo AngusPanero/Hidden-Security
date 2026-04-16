@@ -73,7 +73,7 @@
 .loader-info {
     display: flex;
     justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace; /* Cambio a Mono */
+    font-family: 'Montserrat', monospace; /* Cambio a Mono */
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -120,7 +120,7 @@
 /* Meta data inferior */
 .loader-footer-meta {
     margin-top: 40px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Montserrat', monospace;
     font-size: 9px;
     opacity: 0.3;
     letter-spacing: 1px;

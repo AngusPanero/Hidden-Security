@@ -60,7 +60,7 @@
 }
 
 .cookies-tag {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Montserrat', monospace;
     font-size: 11px;
     color: var(--accent);
     letter-spacing: 3px;
@@ -88,7 +88,7 @@
 }
 
 h3 {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Montserrat', monospace;
     font-size: 1.2rem;
     color: var(--accent);
     margin-bottom: 1.5rem;
@@ -112,7 +112,7 @@ h3::before {
 }
 
 .cookies-list li {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Montserrat', monospace;
     font-size: 0.9rem;
     padding: 1.2rem;
     background: rgba(128, 128, 128, 0.05);
