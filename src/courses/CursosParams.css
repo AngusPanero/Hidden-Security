@@ -245,6 +245,12 @@
 
 @media (max-width: 768px) {
     .h-massive-title{ font-size: 2.5rem; }
+
+    .h-outline {
+        color: transparent;
+        -webkit-text-stroke: 1px var(--h-text);
+    }
+
     .h-tactic-header {
         padding: 40px 6% 30px;
     }
