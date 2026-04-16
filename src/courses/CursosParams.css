@@ -1,7 +1,7 @@
 .h-tactic-root {
     --h-bg: #000000;
     --h-text: #ffffff;
-    --h-accent: #ccff00; /* Neon Lime para Dark */
+    --h-accent: #ccff00;
     --h-border: rgba(255, 255, 255, 0.1);
     --h-card-bg: #050505;
     
@@ -16,12 +16,11 @@
 .h-tactic-root.light {
     --h-bg: #f5f5f5;
     --h-text: white;
-    --h-accent: #ff5500; /* Vivid Orange para Light */
+    --h-accent: #ff5500;
     --h-border: rgba(0, 0, 0, 0.1);
     --h-card-bg: #e0e0e0;
 }
 
-/* --- HEADER & INTRO SECTION --- */
 .h-tactic-header {
     max-width: 1400px;
     margin: 0 auto;
@@ -94,7 +93,6 @@
 
 .light .h-intro-p{ color: black; }
 
-/* --- HORIZON ACORDEÓN --- */
 .h-tactic-horizon {
     height: 75vh;
     width: 100%;
@@ -135,7 +133,7 @@
 .h-strip-overlay {
     position: absolute;
     inset: 0;
-    /* Gradiente para legibilidad del texto blanco sobre las fotos */
+
     background: linear-gradient(
         to top, 
         rgba(0, 0, 0, 0.95) 10%, 
@@ -144,7 +142,6 @@
     );
 }
 
-/* --- ESTADOS COLAPSADOS --- */
 .h-strip-collapsed {
     position: absolute;
     top: 40px;
@@ -166,7 +163,7 @@
 .h-strip-vertical-title {
     writing-mode: vertical-lr;
     text-transform: uppercase;
-    color: #ffffff; /* Se mantiene blanco por el overlay oscuro */
+    color: #ffffff;
     font-size: 24px;
     font-weight: 500;
     letter-spacing: 4px;
@@ -175,11 +172,10 @@
 }
 
 .h-tactic-root.light .h-strip-vertical-title {
-    color: var(--h-text); /* En light, si la tarjeta no es activa, el texto es oscuro */
+    color: var(--h-text);
     opacity: 0.4;
 }
 
-/* --- ESTADOS EXPANDIDOS --- */
 .h-strip-expanded {
     position: relative;
     z-index: 10;
@@ -191,7 +187,7 @@
     text-transform: uppercase;
     line-height: 1;
     margin: 15px 0;
-    color: #ffffff; /* Siempre blanco para contraste */
+    color: #ffffff;
     font-weight: 900;
 }
 
@@ -202,7 +198,36 @@
     font-weight: 400;
 }
 
-/* --- RESPONSIVE 1024px (Tablets / Laptops) --- */
+.h-nav-button {
+    margin-top: 2rem;
+    background: var(--h-accent);
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 900;
+    font-size: 0.9rem;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0% 30%);
+}
+
+.h-nav-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(204, 255, 0, 0.4);
+    filter: brightness(1.1);
+}
+
+.h-tactic-strip.is-locked {
+    cursor: default;
+}
+
+   y no sobre toda la franja expandida: */
+.h-tactic-strip.is-active {
+    cursor: default; 
+}
+
 @media (max-width: 1200px) {
     .h-title-logo-flex {
         flex-direction: column;
@@ -211,14 +236,13 @@
     }
     .hidden-logo-cursos {
         width: 160px;
-        order: -1; /* El logo sube arriba del título */
+        order: -1;
     }
     .h-massive-title {
         font-size: 4rem;
     }
 }
 
-/* --- RESPONSIVE 768px (Mobile) --- */
 @media (max-width: 768px) {
     .h-massive-title{ font-size: 2.5rem; }
     .h-tactic-header {

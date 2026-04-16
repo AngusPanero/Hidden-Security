@@ -40,7 +40,7 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ them
             <nav className="kaleida-mobile-nav">
                 {[
                     { label: "Inicio", href: "/", index: "01" },
-                    { label: "Cursos", href: "/courses", index: "02" },
+                    { label: "Cursos", href: "/courses-info", index: "02" },
                     { label: "Empresa", href: "/company", index: "03" },
                     { label: "Sorteos", href: "/raffles", index: "04" },
                     { label: "Contacto", href: "/contact", index: "05" }

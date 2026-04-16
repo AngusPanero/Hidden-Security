@@ -6,8 +6,8 @@ import NavBarMinimal from "../navbar/navbarMinimal/NavBarMinimal";
 import Home from "../home/Home";
 import CompanyInfo from "../companyInfo/CompanyInfoMinimal";
 import SorteoDevMinimal from "../sorteo/SorteoDevMinimal";
-import Courses from "../courses/Courses";
 import CursosParams from "../courses/CursosParams";
+import Courses from "../courses/relativeRoutes/Courses";
 
 const AppRouter = () => {
     return (
@@ -22,7 +22,8 @@ const AppRouter = () => {
                                 <Route path="/" element={<Home />} />
                                 <Route path="/company" element={<CompanyInfo />} />
                                 <Route path="/raffles" element={<SorteoDevMinimal />} />
-                                <Route path="/courses" element={<CursosParams />} />
+                                <Route path="/courses-info" element={<CursosParams />} />
+                                <Route path="/courses-info/:courseSlug" element={<Courses />} />
                                 {/* <Route path="/products" element={<ProductsMinimal />} />
                                 <Route path="/sales" element={<Sales />} />
                                 <Route path="/contact" element={<ContactMinimal />} />
