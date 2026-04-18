@@ -198,11 +198,12 @@
         margin-top: 1rem;
     }
 
-    .h-intro-box{ height: 100px; }
+    .h-intro-box{ height: 100px; margin-top: 2rem; }
 
     .h-massive-title { 
         font-size: 2.8rem;
         letter-spacing: -2px;
+        margin-bottom: 1rem;
     }
 
     .h-quick-stats { 

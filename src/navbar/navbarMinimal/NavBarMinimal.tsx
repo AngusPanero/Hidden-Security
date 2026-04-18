@@ -98,7 +98,8 @@ const NavBarMinimal = () => {
                         <ul className="nav-list">
                             <li><a href="/courses-info"><span className="index">01</span> Cursos</a></li>
                             <li><a href="/company"><span className="index">02</span> Empresa</a></li>
-                            <li><a href="/raffles"><span className="index">03</span> Sorteos</a></li>
+                            <li><a href="/pricing"><span className="index">03</span> Precios</a></li>
+                            {/* <li><a href="/raffles"><span className="index">03</span> Sorteos</a></li> */}
                             <li><a href="/contact"><span className="index">04</span> Contacto</a></li>
                             {user && (
                                 <li>

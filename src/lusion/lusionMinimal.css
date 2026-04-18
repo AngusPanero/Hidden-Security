@@ -1,0 +1,29 @@
+.lusion-sticky-wrapper {
+  position: relative;
+  width: 100%;
+  /* background opcional para debug: background: red; */
+  overflow: hidden;
+}
+
+.lusion-sticky-content {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 60vh; /* La altura que quieres que ocupe el juego en pantalla */
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* Ajuste específico para el Canvas */
+canvas {
+  overflow: hidden;
+  touch-action: none; /* Crucial: permite que el touch mueva los objetos y no la página */
+}
+
+/* El estilo que pediste para el Grid dentro del Canvas */
+.lusion-canvas-style {
+  background-size: 50px 50px;
+  background-position: center center;
+  overflow: hidden;
+  
+}

@@ -1,0 +1,208 @@
+.pricing-root {
+    --h-bg: #000000;
+    --h-text: #ffffff;
+    --h-accent: #ccff00;
+    --h-border: rgba(255, 255, 255, 0.15);
+    
+    background: var(--h-bg);
+    min-height: 100vh;
+    padding: 140px 5% 100px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.pricing-root.light {
+    --h-bg: #f5f5f5;
+    --h-text: #000000;
+    --h-accent: #ff5500;
+    --h-border: rgba(0, 0, 0, 0.2);
+}
+
+.pricing-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.pricing-header {
+    margin-bottom: 80px;
+}
+
+.pricing-intro-p {
+    max-width: 600px;
+    margin-top: 20px;
+    color: var(--h-text);
+    opacity: 0.8;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    border-left: 2px solid var(--h-accent);
+    padding-left: 20px;
+    height: 80px; /* Para que el LiveTyping no mueva el contenido */
+}
+
+/* TOGGLE DESIGN CORPORATIVO */
+.pricing-selector-container {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 50px;
+}
+
+.pricing-toggle-wrapper {
+    position: relative;
+    display: flex;
+    width: 380px;
+    height: 55px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--h-border);
+    padding: 4px;
+    clip-path: polygon(0 0, 95% 0, 100% 25%, 100% 100%, 5% 100%, 0 75%);
+}
+
+.toggle-btn {
+    flex: 1;
+    z-index: 2;
+    background: none;
+    border: none;
+    color: var(--h-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.4s;
+}
+
+.toggle-btn.active {
+    color: #000;
+}
+
+.pricing-root.light .toggle-btn.active { color: #fff; }
+
+.toggle-slider {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc(50% - 4px);
+    height: calc(100% - 8px);
+    background: var(--h-accent);
+    z-index: 1;
+    clip-path: polygon(0 0, 92% 0, 100% 25%, 100% 100%, 8% 100%, 0 75%);
+}
+
+/* GRID & CARDS HUD STYLE */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+}
+
+.pricing-card {
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--h-border);
+    padding: 45px 35px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.pricing-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 4px;
+    background: var(--h-border);
+    transition: background 0.3s;
+}
+
+.pricing-card:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--h-accent);
+    transform: translateY(-8px);
+}
+
+.pricing-card:hover::before {
+    background: var(--h-accent);
+}
+
+.pricing-card.highlight {
+    border-color: var(--h-accent);
+}
+
+.card-header {
+    margin-bottom: 30px;
+}
+
+.plan-title {
+    font-size: 2.2rem;
+    margin: 5px 0 0;
+    color: var(--h-text);
+    letter-spacing: -1px;
+}
+
+.price-block {
+    margin-bottom: 40px;
+}
+
+.plan-price {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.currency { font-size: 1.1rem; color: var(--h-accent); font-weight: 900; }
+.amount { font-size: 2.8rem; color: var(--h-text); font-weight: 900; }
+.plan-period { font-size: 0.9rem; opacity: 0.6; color: var(--h-text); }
+
+.plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 50px 0;
+    flex-grow: 1;
+}
+
+.plan-features li {
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+    color: var(--h-text);
+    opacity: 0.7;
+    display: flex;
+    align-items: flex-start;
+}
+
+.bullet { color: var(--h-accent); margin-right: 12px; font-weight: 900; }
+
+.plan-cta {
+    width: 100%;
+    background: none;
+    border: 1px solid var(--h-accent);
+    color: var(--h-accent);
+    padding: 18px;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 92% 100%, 0 100%);
+}
+
+.plan-cta:hover {
+    background: var(--h-accent);
+    color: #000;
+}
+
+.highlight-glow {
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, var(--h-accent) 0%, transparent 60%);
+    opacity: 0.03;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .pricing-root { padding-top: 120px; }
+    .pricing-intro-p { height: 150px; margin-bottom: 40px; }
+    .pricing-selector-container { justify-content: center; }
+    .pricing-toggle-wrapper { width: 100%; }
+    .h-massive-title { font-size: 2.5rem; }
+    .pricing-grid { grid-template-columns: 1fr; }
+}

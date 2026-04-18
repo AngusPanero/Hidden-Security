@@ -75,7 +75,7 @@ const Courses: React.FC = () => {
                             </p>
                             
                             <div className="h-cronograma">
-                                <h3 className="h-sub Montserrat-900">CRONOGRAMA_DE_ESTUDIO</h3>
+                                <h3 className="h-sub Montserrat-900">CRONOGRAMA DE ESTUDIO</h3>
                                 <p className="h-p-small" dangerouslySetInnerHTML={{ __html: data.curriculum }} />
                             </div>
 
@@ -101,7 +101,7 @@ const Courses: React.FC = () => {
 
                     <div className="h-bolsa-trabajo">
                         <div className="h-bolsa-text">
-                            <h2 className="Montserrat-900">BOLSA DE TRABAJO <span className="h-accent-text">HIDDEN_NET</span></h2>
+                            <h2 className="Montserrat-900">BOLSA DE TRABAJO <span className="h-accent-text">HIDDEN_NETWORK</span></h2>
                             <p className="h-p-text">
                                 Al finalizar el programa, tendrás la posibilidad de adquirir el <strong>Examen Final de Certificación</strong>. Al aprobar, accederás automáticamente a nuestra <strong>Bolsa de Trabajo Exclusiva</strong>.
                             </p>

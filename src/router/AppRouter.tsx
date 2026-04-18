@@ -8,6 +8,9 @@ import CompanyInfo from "../companyInfo/CompanyInfoMinimal";
 import SorteoDevMinimal from "../sorteo/SorteoDevMinimal";
 import CursosParams from "../courses/CursosParams";
 import Courses from "../courses/relativeRoutes/Courses";
+import Contact from "../contact/Contact";
+import Pricing from "../pricing/Pricing";
+import { LusionMinimal } from "../lusion/LusionMinimal";
 
 const AppRouter = () => {
     return (
@@ -24,6 +27,8 @@ const AppRouter = () => {
                                 <Route path="/raffles" element={<SorteoDevMinimal />} />
                                 <Route path="/courses-info" element={<CursosParams />} />
                                 <Route path="/courses-info/:courseSlug" element={<Courses />} />
+                                <Route path="/contact" element={<Contact />} />
+                                <Route path="/pricing" element={<Pricing />} />
                                 {/* <Route path="/products" element={<ProductsMinimal />} />
                                 <Route path="/sales" element={<Sales />} />
                                 <Route path="/contact" element={<ContactMinimal />} />
