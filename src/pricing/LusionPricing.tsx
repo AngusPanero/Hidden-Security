@@ -18,8 +18,6 @@ const PALETTES = {
   light: ['#ff5500', '#000000', '#ffffff']
 }
 
-const TOTAL_ITEMS = 40; 
-
 // --- COMPONENTE PRINCIPAL ---
 export default function LusionPricing() {
   const { width } = UseWidth()
@@ -27,20 +25,16 @@ export default function LusionPricing() {
   const isMobile = width <= 768
   const [view, setView] = useState<"students" | "business">("students")
   
-  // Lógica de captura de velocidad de scroll
   const scrollRef = useRef(0)
   const [scrollVelocity, setScrollVelocity] = useState(0)
 
   useEffect(() => {
-    window.scrollTo(0, 0)
-    
     const handleScroll = () => {
       const currentScroll = window.scrollY
       const velocity = currentScroll - scrollRef.current
       setScrollVelocity(velocity)
       scrollRef.current = currentScroll
       
-      // Limpiar la velocidad después de un breve momento de inactividad
       const timeout = setTimeout(() => setScrollVelocity(0), 100)
       return () => clearTimeout(timeout)
     }
@@ -54,7 +48,7 @@ export default function LusionPricing() {
   return (
     <div className={`lusion-pricing-wrapper ${theme}`} style={{ position: 'relative', minHeight: '100vh', width: '100%' }}>
       
-      {/* CAPA 3D DE FONDO (FIJA) */}
+      {/* CAPA 3D DE FONDO */}
       <div style={{ 
         position: 'fixed', 
         top: 0, left: 0, 
@@ -63,7 +57,11 @@ export default function LusionPricing() {
         backgroundColor: bgColor,
         pointerEvents: 'none' 
       }}>
-        <Canvas shadows camera={{ position: [0, 0, 25], fov: 35 }}>
+        <Canvas 
+          shadows={!isMobile} // Desactivar sombras en móvil para rendimiento
+          dpr={[1, 2]} // Limitar resolución en pantallas retina
+          camera={{ position: [0, 0, 25], fov: isMobile ? 45 : 35 }}
+        >
           <color attach="background" args={[bgColor]} />
           <LusionScene theme={theme} isMobile={isMobile} scrollVelocity={scrollVelocity} />
         </Canvas>
@@ -82,38 +80,43 @@ function LusionScene({ theme, isMobile, scrollVelocity }: any) {
   const currentPalette = theme === 'dark' ? PALETTES.dark : PALETTES.light
   const { viewport } = useThree()
 
+  // Reducimos cantidad de ítems en móvil para fluidez
+  const TOTAL_ITEMS = isMobile ? 30 : 52; 
+
   const itemData = useMemo(() => 
     Array.from({ length: TOTAL_ITEMS }, (_, i) => ({
       id: i,
       position: [
         THREE.MathUtils.randFloatSpread(viewport.width * 0.8), 
         THREE.MathUtils.randFloat(viewport.height / 2, viewport.height), 
-        THREE.MathUtils.randFloatSpread(5)
+        THREE.MathUtils.randFloatSpread(isMobile ? 2 : 5) 
       ] as [number, number, number],
       colorIndex: i % currentPalette.length,
       rotation: [Math.random() * Math.PI, Math.random() * Math.PI, 0] as [number, number, number]
-    })), [viewport.width, viewport.height, currentPalette])
+    })), [viewport.width, viewport.height, currentPalette, isMobile])
 
   return (
     <>
-      <ambientLight intensity={theme === "dark" ? 0.4 : 1.2} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
+      <ambientLight intensity={theme === "dark" ? 0.05 : 1.2} />
+      <pointLight position={[10, 10, 10]} intensity={isMobile ? 0.5 : 1} />
       
-      <Physics gravity={[0, -5, 0]} colliders={false}>
-        <MouseStriker isMobile={isMobile} />
-        <GlassCage />
+      <Physics gravity={[0, -10, 0]} colliders={false}>
+        {/* Solo mostrar MouseStriker en Desktop */}
+        {!isMobile && <MouseStriker />}
+        <GlassCage isMobile={isMobile} />
 
         {itemData.map((data) => (
           <CandyConnector 
             key={data.id} 
             {...data} 
+            isMobile={isMobile}
             color={currentPalette[data.colorIndex]} 
             scrollVelocity={scrollVelocity}
           />
         ))}
       </Physics>
 
-      <Environment resolution={256} preset="apartment">
+      <Environment resolution={isMobile ? 64 : 256} preset="apartment">
         <Lightformer form="rect" intensity={2} position={[2, 5, -10]} scale={[10, 1, 1]} />
       </Environment>
     </>
@@ -121,60 +124,61 @@ function LusionScene({ theme, isMobile, scrollVelocity }: any) {
 }
 
 // --- ELEMENTO FÍSICO (CONECTOR) ---
-function CandyConnector({ position, color, rotation, scrollVelocity }: any) {
+function CandyConnector({ position, color, rotation, scrollVelocity, isMobile }: any) {
   const api = useRef<RigidBodyApi>(null!)
   const meshRef = useRef<THREE.Mesh>(null!)
-  const [hovered, setHover] = useState(false)
 
   useFrame((_state, delta) => {
     if (!api.current || !meshRef.current) return
     
-    // Aplicar impulso basado en el scroll
     if (Math.abs(scrollVelocity) > 1) {
-      api.current.applyImpulse({ 
-        x: 0, 
-        y: -scrollVelocity * 0.12, // Fuerza proporcional al scroll
-        z: 0 
-      }, true)
+      // Impulso suavizado para móvil
+      const power = isMobile ? 0.08 : 0.12;
+      api.current.applyImpulse({ x: 0, y: -scrollVelocity * power, z: 0 }, true)
       
       api.current.applyTorqueImpulse({
-        x: (Math.random() - 0.5) * 0.05,
-        y: (Math.random() - 0.5) * 0.05,
-        z: (Math.random() - 0.5) * 0.05
+        x: (Math.random() - 0.5) * 0.02,
+        y: (Math.random() - 0.5) * 0.02,
+        z: (Math.random() - 0.5) * 0.02
       }, true)
     }
 
-    const targetColor = new THREE.Color(hovered ? '#ffffff' : color)
     // @ts-ignore
-    easing.dampC(meshRef.current.material.color, targetColor, 0.2, delta)
+    easing.dampC(meshRef.current.material.color, new THREE.Color(color), 0.2, delta)
   })
+
+  // Escala y colisionadores ajustados para móvil
+  const scale = isMobile ? 6 : 10;
+  const colliderArgs: [number, number, number] = isMobile ? [0.23, 0.76, 0.23] : [0.38, 1.27, 0.38];
+  const colliderLong: [number, number, number] = isMobile ? [0.76, 0.23, 0.23] : [1.27, 0.38, 0.38];
+  const colliderDepth: [number, number, number] = isMobile ? [0.23, 0.23, 0.76] : [0.38, 0.38, 1.27];
 
   return (
     <RigidBody 
       ref={api} position={position} rotation={rotation} colliders={false} 
-      linearDamping={0.7} angularDamping={0.5} restitution={0.8}
-      onPointerOver={() => setHover(true)}
-      onPointerOut={() => setHover(false)}
+      linearDamping={isMobile ? 0.8 : 0.7} 
+      angularDamping={0.5} 
+      restitution={0.6}
     >
-      <CuboidCollider args={[0.38, 1.27, 0.38]} />
-      <CuboidCollider args={[1.27, 0.38, 0.38]} />
-      <CuboidCollider args={[0.38, 0.38, 1.27]} />
-      <Model ref={meshRef} />
+      <CuboidCollider args={colliderArgs} />
+      <CuboidCollider args={colliderLong} />
+      <CuboidCollider args={colliderDepth} />
+      <Model ref={meshRef} scale={scale} />
     </RigidBody>
   )
 }
 
-const Model = React.forwardRef<THREE.Mesh>((_props, ref) => {
+const Model = React.forwardRef<THREE.Mesh, { scale: number }>((props, ref) => {
   const { nodes } = useGLTF('/c-transformed.glb') as any
   return (
-    <mesh ref={ref} scale={10} geometry={nodes.connector.geometry} castShadow receiveShadow>
+    <mesh ref={ref} scale={props.scale} geometry={nodes.connector.geometry} castShadow receiveShadow>
       <meshStandardMaterial roughness={0.1} metalness={0.2} />
     </mesh>
   )
 })
 
 // --- LÍMITES FÍSICOS ---
-function GlassCage() {
+function GlassCage({ isMobile }: { isMobile: boolean }) {
   const { viewport } = useThree()
   const thickness = 2
   return (
@@ -183,13 +187,14 @@ function GlassCage() {
       <CuboidCollider args={[viewport.width, thickness, 10]} position={[0, viewport.height / 2 + 15, 0]} />
       <CuboidCollider args={[thickness, viewport.height * 2, 10]} position={[-viewport.width / 2 - thickness, 0, 0]} />
       <CuboidCollider args={[thickness, viewport.height * 2, 10]} position={[viewport.width / 2 + thickness, 0, 0]} />
-      <CuboidCollider args={[viewport.width, viewport.height, thickness]} position={[0, 0, -5]} />
-      <CuboidCollider args={[viewport.width, viewport.height, thickness]} position={[0, 0, 5]} />
+      {/* Paredes Z más estrechas en móvil */}
+      <CuboidCollider args={[viewport.width, viewport.height, thickness]} position={[0, 0, isMobile ? -3 : -5]} />
+      <CuboidCollider args={[viewport.width, viewport.height, thickness]} position={[0, 0, isMobile ? 3 : 5]} />
     </RigidBody>
   )
 }
 
-function MouseStriker({ isMobile }: any) {
+function MouseStriker() {
   const ref = useRef<RigidBodyApi>(null!)
   const vec = new THREE.Vector3()
   useFrame(({ mouse, viewport }) => {
@@ -198,7 +203,7 @@ function MouseStriker({ isMobile }: any) {
   })
   return (
     <RigidBody ref={ref} type="kinematicPosition" colliders={false}>
-      <BallCollider args={[isMobile ? 1.5 : 2.5]} />
+      <BallCollider args={[2.5]} />
     </RigidBody>
   )
 }
@@ -207,8 +212,8 @@ function MouseStriker({ isMobile }: any) {
 function PricingContent({ view, setView, theme }: any) {
     const studentPlans = [
         { title: "STARTER", price: "80.000", period: "3 MESES DISPONIBLES", features: ["Acceso completo al curso", "Material descargable", "Certificado de cursada"], label: "01 - TRAINING" },
-        { title: "PRO", price: "250.000", period: "6 MESES DISPONIBLES", features: ["1 Voucher de examen incluido", "Acceso a laboratorios", "Soporte prioritario"], label: "02 - BEST_SELLER", highlight: true },
-        { title: "ELITE", price: "350.000", period: "12 MESES DISPONIBLES", features: ["Beneficio de Re-intento", "Mentorship 1-to-1", "Acceso a Red de Empleo"], label: "03 - FULL_STACK" },
+        { title: "PRO", price: "250.000", period: "6 MESES DISPONIBLES", features: ["1 Voucher de examen incluido", "Acceso a laboratorios", "Soporte prioritario"], label: "02 - BEST SELLER", highlight: true },
+        { title: "ELITE", price: "350.000", period: "12 MESES DISPONIBLES", features: ["Beneficio de Re-intento", "Mentorship 1-to-1", "Acceso a Red de Empleo"], label: "03 - FULL STACK" },
         { title: "VOUCHER", price: "180.000", period: "UNICO USO", features: ["Derecho a examen final", "Certificación oficial", "Validez internacional"], label: "04 - CERTIFICATION" }
     ];
 
@@ -257,7 +262,7 @@ function PricingContent({ view, setView, theme }: any) {
                                 </div>
                                 <div className="price-block">
                                     <div className="plan-price">
-                                        <span className="currency">ARS</span>
+                                        <span className="currency">ARS $</span>
                                         <span className="amount">{plan.price}</span>
                                     </div>
                                     <span className="plan-period Montserrat-700">// {plan.period}</span>

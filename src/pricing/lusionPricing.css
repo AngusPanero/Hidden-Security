@@ -1,6 +1,6 @@
 .pricing-root {
     --h-bg: transparent; /* El fondo real está en el div del Canvas */
-    --h-card-bg: #050505; /* Fondo SÓLIDO de la tarjeta en Dark */
+    --h-card-bg: #000000d5; /* Fondo SÓLIDO de la tarjeta en Dark */
     --h-text: #ffffff;
     --h-accent: #ccff00;
     --h-border: rgba(255, 255, 255, 0.15);
@@ -10,11 +10,12 @@
     font-family: 'Montserrat', sans-serif;
     position: relative;
     z-index: 1; /* Por encima del canvas fixed */
+    margin-top: 2rem;
 }
 
 .pricing-root.light {
     --h-bg: transparent;
-    --h-card-bg: #ffffff; /* Fondo SÓLIDO de la tarjeta en Light */
+    --h-card-bg: #ffffffda; /* Fondo SÓLIDO de la tarjeta en Light */
     --h-text: #000000;
     --h-accent: #ff5500;
     --h-border: rgba(0, 0, 0, 0.2);
@@ -32,6 +33,7 @@
 }
 
 .pricing-intro-p {
+    background-color: #000000;
     max-width: 600px;
     margin-top: 20px;
     color: var(--h-text);
@@ -39,8 +41,12 @@
     font-size: 1.1rem;
     line-height: 1.6;
     border-left: 2px solid var(--h-accent);
-    padding-left: 20px;
+    padding: 20px;
     height: 80px;
+}
+
+.light .pricing-intro-p{
+    background-color: white;
 }
 
 /* TOGGLE DESIGN CORPORATIVO */
@@ -55,7 +61,7 @@
     display: flex;
     width: 450px;
     height: 55px;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.08);
     border: 1px solid var(--h-border);
     padding: 4px;
     clip-path: polygon(0 0, 95% 0, 100% 25%, 100% 100%, 5% 100%, 0 75%);
