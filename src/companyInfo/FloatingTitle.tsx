@@ -34,7 +34,7 @@ const FloatingTitle = ({ text }: { text: string }) => {
       rotateX: 0, rotateY: 0, rotateZ: 0,
       filter: "blur(0px) brightness(1)",
       transition: {
-        duration: 2.2, // Un toque más ágil para la carga inicial
+        duration: 1.5, // Un toque más ágil para la carga inicial
         ease: [0.16, 1, 0.3, 1], // Easeout ultra fluido
       },
     },

@@ -87,7 +87,7 @@ const Pricing = () => {
                                 
                                 <div className="price-block">
                                     <div className="plan-price">
-                                        <span className="currency">ARS</span>
+                                        <span className="currency">ARS $</span>
                                         <span className="amount">{plan.price}</span>
                                     </div>
                                     <span className="plan-period Montserrat-700">// {plan.period}</span>

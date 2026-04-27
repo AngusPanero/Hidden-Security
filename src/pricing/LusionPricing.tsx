@@ -100,7 +100,7 @@ function LusionScene({ theme, isMobile, scrollVelocity }: any) {
       <ambientLight intensity={theme === "dark" ? 0.05 : 1.2} />
       <pointLight position={[10, 10, 10]} intensity={isMobile ? 0.5 : 1} />
       
-      <Physics gravity={[0, -10, 0]} colliders={false}>
+      <Physics gravity={[0, -15, 0]} colliders={false}>
         {/* Solo mostrar MouseStriker en Desktop */}
         {!isMobile && <MouseStriker />}
         <GlassCage isMobile={isMobile} />

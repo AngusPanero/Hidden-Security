@@ -97,12 +97,20 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         const response = await axios.post(`${import.meta.env.VITE_API_URL}/login`, { email, password }, { withCredentials: true });
 
         if (response.status === 200) {
-            const { user, isAdmin } = response.data;
-            
-            setUser(user);
+            const { user, isAdmin, isEnterprise } = response.data;
+
+            const mergedUser = { 
+                ...user, 
+                isEnterprise: isEnterprise, 
+                admin: isAdmin 
+            };
+
+            setUser(mergedUser);
 
             if (isAdmin) {
                 navigate("/admin");
+            } else if (isEnterprise === true) { 
+                navigate("/enterprise");               
             } else {
                 navigate("/dashboard");
             }
@@ -147,9 +155,12 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         try {
             setError(false)
             setLoading(true);
-            const idToken = await auth.currentUser?.getIdToken();
-
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/logout`, { idToken }, { withCredentials: true });
+            /* console.log("CURRENT USER", auth.currentUser);
+            
+            const idToken = await auth.currentUser?.getIdToken(true);
+            console.log("LOGOUT", idToken); */
+            
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/logout`, { }, { withCredentials: true });
 
             if (response.status === 200) {
                 await auth.signOut()
@@ -257,8 +268,15 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/check-auth`, { withCredentials: true });
 
                 if (data.authenticated) {
-                    setUser(data.user);
-                } else {
+                    setUser({ 
+                        ...data.user, 
+                        isEnterprise: data.isEnterprise, 
+                        admin: data.isAdmin               
+                    });
+                    console.log("USER AUTENTIADO REFRESH", data);
+                    
+                }
+                else {
                     setUser(null);
                 }
             } catch (error) {

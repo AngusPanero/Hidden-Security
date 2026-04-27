@@ -38,7 +38,7 @@ const LiveTypingText = ({ text, className }: { text: string; className?: string 
       setDisplayed(text.slice(0, i));
       i++;
       if (i > text.length) clearInterval(interval);
-    }, 15);
+    }, 10);
 
     return () => clearInterval(interval);
   }, [text, isIntersecting]);

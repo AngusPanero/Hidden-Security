@@ -1,0 +1,200 @@
+/* --- CONTENEDOR PRINCIPAL --- */
+.user-list-container {
+  --sec-bg: transparent;
+  --sec-surface: #0a0a0a;
+  --sec-border: rgba(204, 255, 0, 0.1);
+  --sec-accent: #ccff00; /* Neon Lime */
+  --sec-text: #ffffff;
+  --sec-text-dim: rgba(255, 255, 255, 0.5);
+  --sec-danger: #ff3333;
+  --sec-safe: #00ff88;
+  --sec-font-mono: 'Montserrat', monospace;
+
+  padding: 40px;
+  width: 100%;
+  overflow-x: auto; /* Scroll horizontal en móviles */
+}
+
+.user-list-container.light {
+    background-color: #f5f5f5;
+  --sec-surface: #f5f5f5;
+  --sec-border: rgba(0, 0, 0, 0.1);
+  --sec-accent: #ff5500; /* International Orange */
+  --sec-text: #000000;
+  --sec-text-dim: rgba(0, 0, 0, 0.6);
+  --sec-danger: #d90000;
+  --sec-safe: #00a85d;
+}
+
+/* --- ESTILO DE LA TABLA HUD --- */
+.sec-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* Espaciado entre filas para efecto de tarjetas */
+  color: var(--sec-text);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.sec-table thead tr {
+  background: transparent;
+}
+
+.sec-table th {
+  font-family: var(--sec-font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--sec-accent);
+  padding: 15px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--sec-border);
+}
+
+.sec-table tbody tr {
+  background: var(--sec-surface);
+  transition: all 0.3s ease;
+}
+
+.sec-table tbody tr:hover {
+  background: rgba(204, 255, 0, 0.03); /* Brillo sutil al hover */
+  transform: scale(1.002);
+}
+
+.user-list-container.light .sec-table tbody tr:hover {
+  background: rgba(255, 85, 0, 0.03);
+}
+
+.sec-table td {
+  padding: 15px 20px;
+  border-top: 1px solid var(--sec-border);
+  border-bottom: 1px solid var(--sec-border);
+  vertical-align: middle;
+}
+
+/* Esquinas cortadas para las filas (Efecto Táctico) */
+.sec-table td:first-child {
+  border-left: 1px solid var(--sec-border);
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+}
+
+.sec-table td:last-child {
+  border-right: 1px solid var(--sec-border);
+}
+
+/* --- BADGES DE ROL --- */
+.badge {
+  font-family: var(--sec-font-mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  letter-spacing: 1px;
+}
+
+.badge-admin { color: var(--sec-accent); background: rgba(204, 255, 0, 0.1); }
+.badge-enterprise { color: #00d9ff; background: rgba(0, 217, 255, 0.1); }
+.badge-user { color: var(--sec-text-dim); border-color: var(--sec-border); }
+
+/* --- ESTADOS DE BANEO --- */
+.status-active {
+  color: var(--sec-safe);
+  font-family: var(--sec-font-mono);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-active::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--sec-safe);
+  border-radius: 50%;
+  margin-right: 8px;
+  box-shadow: 0 0 10px var(--sec-safe);
+}
+
+.status-banned {
+  color: var(--sec-danger);
+  font-family: var(--sec-font-mono);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- BOTONES DE ACCIÓN --- */
+.sec-btn {
+  font-family: var(--sec-font-mono);
+  font-size: 0.7rem;
+  padding: 8px 16px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--sec-border);
+  color: var(--sec-text);
+  transition: all 0.3s;
+  text-transform: uppercase;
+  clip-path: polygon(0 0, 100% 0, 100% 75%, 85% 100%, 0 100%);
+}
+
+.btn-ban {
+  border-color: var(--sec-danger);
+  color: var(--sec-danger);
+}
+
+.btn-ban:hover:not(:disabled) {
+  background: var(--sec-danger);
+  color: #fff;
+}
+
+.btn-unban {
+  border-color: var(--sec-safe);
+  color: var(--sec-safe);
+}
+
+.btn-unban:hover {
+  background: var(--sec-safe);
+  color: #000;
+}
+
+.sec-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+  .sec-table thead {
+    display: none; /* Ocultamos cabecera en móvil */
+  }
+
+  .sec-table tbody tr {
+    display: block;
+    margin-bottom: 20px;
+    border: 1px solid var(--sec-border);
+  }
+
+  .sec-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 12px 20px;
+    text-align: right;
+  }
+
+  .sec-table td::before {
+    content: attr(data-label); /* Necesitarás agregar data-label en el HTML si quieres títulos */
+    font-family: var(--sec-font-mono);
+    font-size: 0.6rem;
+    color: var(--sec-accent);
+    text-align: left;
+  }
+
+  .sec-table td:first-child {
+    clip-path: none;
+    background: rgba(255,255,255,0.02);
+  }
+}

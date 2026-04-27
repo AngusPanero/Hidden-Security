@@ -5,7 +5,7 @@ const HighPerformanceSection = ({ label, text1, text1span, description }:{ label
         <section className="k-warp-section">
             {/* Bloques de fondo que se expanden */}
             <div className="k-warp-container">
-                {[...Array(10)].map((_, i) => (
+                {[...Array(8)].map((_, i) => (
                     <motion.div
                         key={i}
                         className="k-warp-block"

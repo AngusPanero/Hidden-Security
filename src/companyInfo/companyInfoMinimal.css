@@ -1,10 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@200;400;700;900&family=JetBrains+Mono:wght@300;500&display=swap');
-
-/* =========================================
-   SISTEMA DE VARIABLES KALEIDA (PREMIUM)
-   ========================================= */
 :root {
-
     background-color: #050505;
     /* DEFAULT DARK */
     --k-bg: #000000;
@@ -87,7 +81,7 @@
 
 .k-video {
     width: 100%;
-    height: 100%;
+    height: 100vh;
     /* La clave: 'cover' recorta los bordes pero mantiene la proporción */
     object-fit: cover;
     /* 'center' asegura que lo más importante del video siempre esté a la vista */
@@ -104,13 +98,13 @@
 
 .k-massive-title {
     font-family: "Montserrat" !important;
-    margin-top: 6rem !important;
     text-align: center !important;
-    font-size: clamp(3.5rem, 12vw, 12rem);
+    font-size: clamp(3.5rem, 12vw, 8rem);
     font-weight: 500;
     line-height: 0.8;
     letter-spacing: -0.05em;
     transition: transform 0.4s var(--ease-premium);
+    margin-top: -5rem;
 }
 
 .light .k-massive-title{ color: white; }
@@ -120,7 +114,7 @@
    SECTION 02: DNA
    ========================================= */
 .k-dna {
-    padding: 160px 8%;
+    padding: 50px 8%;
     border-top: 1px solid var(--k-border);
     position: relative;
     z-index: 2;
@@ -133,7 +127,7 @@
 }
 
 .k-dna-text {
-    font-size: clamp(1.4rem, 3.5vw, 2.8rem);
+    font-size: clamp(1.4rem, 3.5vw, 2.5rem);
     font-weight: 200;
     line-height: 1.3;
     max-width: 1000px;
@@ -252,7 +246,7 @@
 .k-warp-section {
     position: relative;
     width: 100vw; /* Ocupa todo el ancho */
-    height: 100vh; /* Ocupa toda la pantalla */
+    height: 60vh; /* Ocupa toda la pantalla */
     background-color: var(--k-bg);
     overflow: hidden;
     display: flex;
@@ -303,7 +297,7 @@
 }
 
 .k-warp-title {
-    font-size: clamp(2rem, 10vw, 8rem);
+    font-size: clamp(2rem, 10vw, 6rem);
     font-weight: 900;
     line-height: 0.8;
     color: #ccff00;
@@ -395,7 +389,7 @@
 
 .k-metric-card {
   background: var(--k-bg);
-  padding: 100px 50px;
+  padding: 40px ;
   position: relative;
   overflow: hidden;
   transition: background 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -432,7 +426,7 @@
 }
 
 .k-metric-value {
-  font-size: clamp(3.5rem, 8vw, 6.5rem);
+  font-size: clamp(3.5rem, 8vw, 5rem);
   font-weight: 200; /* Look minimal premium */
   line-height: 1;
   letter-spacing: -4px;
@@ -495,7 +489,7 @@
 .k-evolution-row {
     display: flex;
     align-items: center;
-    padding: 45px 0;
+    padding: 15px 0;
     gap: 50px;
     border-bottom: 1px solid var(--k-border);
     transition: padding 0.4s var(--ease-premium);
@@ -506,15 +500,15 @@
 }
 
 .k-evo-year {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
+    font-family: 'Montserrat', monospace;
+    font-size: 20px;
     font-weight: 500;
     min-width: 100px;
     color: var(--k-accent);
 }
 
 .k-evo-title {
-    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    font-size: clamp(1.5rem, 3vw, 1.8rem);
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: -1px;
@@ -538,7 +532,6 @@
     display: flex;
     justify-content: space-between;
     border-top: 1px solid var(--k-border);
-    padding-top: 60px;
 }
 
 .k-net-item {
@@ -555,7 +548,7 @@
 }
 
 .k-coord {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Montserrat', monospace;
     font-size: 17px;
     opacity: 0.4;
     letter-spacing: 1px;
@@ -565,7 +558,7 @@
    SECTION 06: FOOTER BIG LINK
    ========================================= */
 .k-footer {
-    padding: 180px 8% 100px 8%;
+    padding: 100px 8% 100px 8%;
     text-align: center;
 }
 
@@ -592,13 +585,24 @@
     .k-metrics-row { grid-template-columns: 1fr; }
     .k-metric-item { border-right: none; border-bottom: 1px solid var(--k-border); padding: 60px 0; }
     .k-evolution-row { gap: 20px; }
-    .k-net-wrapper { flex-direction: column; gap: 40px; }
+    .k-network{ padding: 25px; }
+    .k-net-wrapper { flex-direction: row; justify-content: center; gap: 80px; }
 }
 
 @media (max-width: 768px) {
-    .k-massive-title { margin-top: 28rem; font-size: 12vw; }
-    .k-warp-title { font-size: 11vw; }
+    .k-warp-content{ height: 65vh;}
+    .k-massive-title { font-size: 12vw; }
+    .k-warp-text-box{ margin-top: 14rem; }
+    .k-warp-title { font-size: 8vw; }
     .k-big-link{ font-size: 7vw; }
     .k-evo-title { font-size: 1.2rem; }
+    .k-evolution{ padding: 30px; }
+    .k-evo-title{ font-size: 1rem; }
+    .k-metric-card{ padding: 15px 30px; }
+    .k-dna-text{ height: 160px; }
+    .k-network{ padding: 10px; }
+    .k-net-wrapper{ display: flex; flex-direction: row;  }
+    .k-city{ font-size: 1.2rem; }
+    .k-coord{ margin-top: 15px; font-size: 0.95rem; }
 }
 
