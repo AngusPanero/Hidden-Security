@@ -89,67 +89,78 @@ export const SessionProvider = ({ children }: ProviderProps) => {
 
     // Login
     const handleLogin = async (email: string, password: string) => {
-    try {
-        setLoading(true);
-        setError(null);
+        try {
+            setLoading(true);
+            setError(null);
 
-        // 1. Llamada única al backend
-        const response = await axios.post(`${import.meta.env.VITE_API_URL}/login`, { email, password }, { withCredentials: true });
+            // 1. Llamada única al backend (Él decide si auditar o loguear)
+            const response = await axios.post(
+                `${import.meta.env.VITE_API_URL}/login`, 
+                { email, password }, 
+                { withCredentials: true }
+            );
 
-        if (response.status === 200) {
-            const { user, isAdmin, isEnterprise } = response.data;
+            // 2. Si llegamos aquí, las credenciales son válidas
+            if (response.status === 200) {
+                const { user, isAdmin, isEnterprise } = response.data;
 
-            const mergedUser = { 
-                ...user, 
-                isEnterprise: isEnterprise, 
-                admin: isAdmin 
-            };
+                const mergedUser = { 
+                    ...user, 
+                    isEnterprise: isEnterprise, 
+                    admin: isAdmin 
+                };
 
-            setUser(mergedUser);
+                setUser(mergedUser);
 
-            if (isAdmin) {
-                navigate("/admin");
-            } else if (isEnterprise === true) { 
-                navigate("/enterprise");               
-            } else {
-                navigate("/dashboard");
+                // Redirección Táctica
+                if (isAdmin) {
+                    navigate("/admin");
+                } else if (isEnterprise === true) { 
+                    navigate("/enterprise");               
+                } else {
+                    navigate("/dashboard");
+                }
+                return true;
             }
-            return true;
-        }
 
-    } catch (error: any) {
-        const serverCode = error.response?.data?.code;
+        } catch (error: any) {
+            console.log("LOGIN ERROR FAILED", error);
+            
+            // Extraemos la información de auditoría que el backend ya procesó
+            const serverData = error.response?.data;
+            const serverCode = serverData?.code;
+            const attempts = serverData?.attempts;
 
-        // 4. Respetar tu lógica de intentos fallidos
-        if (serverCode === "auth/invalid-credential" || error.response?.status === 401) {
-            try {
-                const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/login-failed`, { email });
-                
-                if (data.banned) {
-                    setError(texts[language].sessionErrors.loginTooManyAttempts);
-                } else if (data.attempts < 5) {
-                    setError(`${texts[language].sessionErrors.loginAttemptsLeft} ${5 - data.attempts} ${texts[language].sessionErrors.loginAttemptsLeftAfter}`);
+            // 3. Manejo de errores basado en la respuesta del Servidor
+            if (serverCode === "auth/too-many-attempts" || serverData?.banned) {
+                setError(texts[language].sessionErrors.loginTooManyAttempts);
+                return;
+            }
+
+            if (serverCode === "auth/user-banned") {
+                setError(texts[language].sessionErrors.loginBanned);
+                return;
+            }
+
+            if (serverCode === "auth/invalid-credential" || error.response?.status === 401) {
+                // Si el backend nos envió el número de intentos, lo mostramos
+                if (attempts && attempts < 5) {
+                    setError(`${texts[language].sessionErrors.loginAttemptsLeft} ${5 - attempts} ${texts[language].sessionErrors.loginAttemptsLeftAfter}`);
                 } else {
                     setError(texts[language].sessionErrors.loginInvalidCredentials);
                 }
-            } catch (error) {
-                setError(texts[language].sessionErrors.loginInvalidCredentials);
-                console.error("Login error:", error);
+                return;
             }
-            return;
-        }
 
-        if (serverCode === "auth/user-banned") {
-            setError(texts[language].sessionErrors.loginBanned);
-            return;
+            // Error genérico de sistema
+            console.error("LOG_CRITICAL // Login failure:", error);
+            setError(texts[language].sessionErrors.loginGeneralError);
+            
+        } finally {
+            setLoading(false);
         }
-
-        console.error("Login error:", error);
-        setError(texts[language].sessionErrors.loginGeneralError);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
+    
     // Logout
     const handleLogout = async () => {
         try {

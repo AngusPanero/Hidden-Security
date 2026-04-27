@@ -14,13 +14,15 @@ import PrivateRoute from "./PrivateRoute";
 import UserDashboard from "../user/UserDashboard";
 import AdminDashboard from "../admin/AdminDashboard";
 import EnterpriseDashboard from "../enterprise/EnterpriseDashboard";
+import Checkout from "../checkout/Checkout";
+import { CartProvider } from "../contexts/CartContext";
 
 const AppRouter = () => {
     return (
         <Router>
             <SessionProvider>
-                {/* <CartProvider>
-                    <ReseñasProvider>
+                <CartProvider>
+                {/*     <ReseñasProvider>
                         <FavoritesProvider> */}
                             <CookiesCube />
                             <NavBarMinimal />
@@ -32,6 +34,7 @@ const AppRouter = () => {
                                 <Route path="/courses-info/:courseSlug" element={<Courses />} />
                                 <Route path="/contact" element={<Contact />} />
                                 <Route path="/pricing" element={<Pricing />} />
+                                <Route path="/checkout/:planId" element={<Checkout />} />
                                 {/* <Route path="/products" element={<ProductsMinimal />} />
                                 <Route path="/sales" element={<Sales />} />
                                 <Route path="/contact" element={<ContactMinimal />} />
@@ -50,8 +53,8 @@ const AppRouter = () => {
                             </Routes>
                             <FooterMinimal />
                         {/* </FavoritesProvider>
-                    </ReseñasProvider>
-                </CartProvider> */}
+                    </ReseñasProvider>*/}
+                </CartProvider> 
             </SessionProvider>
         </Router>
     );  

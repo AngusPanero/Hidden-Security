@@ -3,20 +3,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { UseTheme } from "../contexts/ThemeContext";
 import LiveTypingText from "../ui/LiveTypingText";
 import "./pricing.css";
+import { useNavigate } from "react-router-dom";
 
 const Pricing = () => {
     const { theme } = UseTheme();
+    const navigate = useNavigate();
     const [view, setView] = useState<"students" | "business">("students");
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
 
+    const handlePurchase = (planTitle: string) => {
+        const planId = planTitle.toLowerCase();
+        navigate(`/checkout/${planId}`);
+    };
+
     const studentPlans = [
-        { title: "STARTER", price: "80.000", period: "3 MESES DISPONIBLES", features: ["Acceso completo al curso", "Material descargable", "Certificado de cursada"], label: "01 - TRAINING" },
-        { title: "PRO", price: "250.000", period: "6 MESES DISPONIBLES", features: ["1 Voucher de examen incluido", "Acceso a laboratorios", "Soporte prioritario"], label: "02 - BEST_SELLER", highlight: true },
-        { title: "ELITE", price: "350.000", period: "12 MESES DISPONIBLES", features: ["Beneficio de Re-intento", "Mentorship 1-to-1", "Acceso a Red de Empleo"], label: "03 - FULL_STACK" },
-        { title: "VOUCHER", price: "180.000", period: "UNICO USO", features: ["Derecho a examen final", "Certificación oficial", "Validez internacional"], label: "04 - CERTIFICATION" }
+        { title: "STARTER", price: "80.000", period: "3 MESES DISPONIBLES", features: ["Acceso completo al curso", "Material descargable", "Certificado de cursada"], label: "01 - TRAINING", cuotas: 3 },
+        { title: "PRO", price: "250.000", period: "6 MESES DISPONIBLES", features: ["1 Voucher de examen incluido", "Acceso a laboratorios", "Soporte prioritario"], label: "02 - BEST_SELLER", highlight: true, cuotas: 3},
+        { title: "ELITE", price: "350.000", period: "12 MESES DISPONIBLES", features: ["Beneficio de Re-intento", "Mentorship 1-to-1", "Acceso a Red de Empleo"], label: "03 - FULL_STACK", cuotas: 3 },
+        { title: "VOUCHER", price: "180.000", period: "UNICO USO", features: ["Derecho a examen final", "Certificación oficial", "Validez internacional"], label: "04 - CERTIFICATION", cuotas: 3 }
     ];
 
     const businessPlans = [
@@ -25,7 +32,8 @@ const Pricing = () => {
             price: "400.000", 
             period: "6 MESES", 
             features: ["Acceso a base de perfiles", "Filtros por habilidades", "3 Búsquedas activas", "Candidatos en dominio activo"],
-            label: "01 // BUSINESS_CORE"
+            label: "01 // BUSINESS_CORE",
+            cuotas: 3
         },
         { 
             title: "B2B_DOCE", 
@@ -33,7 +41,8 @@ const Pricing = () => {
             period: "12 MESES", 
             features: ["Publicaciones ilimitadas", "Estabilidad comercial extendida", "Continuidad en el ecosistema", "Soporte dedicado 24/7"],
             label: "02 // ENTERPRISE_PRO",
-            highlight: true
+            highlight: true,
+            cuotas: 3
         }
     ];
 
@@ -101,8 +110,8 @@ const Pricing = () => {
                                     ))}
                                 </ul>
 
-                                <button className="plan-cta Montserrat-900">
-                                    {plan.title === "VOUCHER" ? "ADQUIRIR_EXAMEN" : "SOLICITAR_ACCESO"}
+                                <button className="plan-cta Montserrat-900" onClick={() => handlePurchase(plan.title)}>
+                                    {plan.title === "VOUCHER" ? "ADQUIRIR_EXAMEN" : "COMPRAR"}
                                 </button>
                                 
                                 {plan.highlight && <div className="highlight-glow" />}

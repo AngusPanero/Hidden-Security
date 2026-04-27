@@ -272,7 +272,7 @@ function PricingContent({ view, setView, theme }: any) {
                                         <li key={idx} className="Montserrat-500"><span className="bullet">_</span> {f}</li>
                                     ))}
                                 </ul>
-                                <button className="plan-cta Montserrat-900">SOLICITAR_ACCESO</button>
+                                <button className="plan-cta Montserrat-900">COMPRAR</button>
                                 {plan.highlight && <div className="highlight-glow" />}
                             </motion.div>
                         ))}

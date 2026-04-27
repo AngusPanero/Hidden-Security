@@ -1,0 +1,205 @@
+/* --- CREDIT CARD: HIDDEN SECURITY HUD STYLE --- */
+
+.visual-card-container {
+    width: 100%;
+    max-width: 400px;
+    height: 240px;
+    perspective: 1000px;
+    margin: 0 auto 2rem auto;
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+    transform-style: preserve-3d;
+}
+
+.visual-card-container.is-flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+/* Base común para ambos lados */
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000; /* Marco exterior */
+}
+
+.card-back {
+    transform: rotateY(180deg);
+}
+
+/* --- EL NÚCLEO (Cuerpo de la tarjeta) --- */
+.card-content {
+    position: absolute;
+    inset: 2px; /* Grosor del borde de neón */
+    background: #0a0a0b;
+    /* Textura micro-hexagonal técnica */
+    background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
+    background-size: 8px 8px;
+    border-radius: 10px;
+    padding: 25px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
+}
+
+/* --- NEON BORDER GLOW (Animado) --- */
+.border-glow {
+    position: absolute;
+    width: 180%;
+    height: 180%;
+    background: conic-gradient(
+        transparent, 
+        transparent, 
+        transparent, 
+        #ccff00, /* Verde Lima */
+        #ffffff, 
+        #ccff00, 
+        transparent
+    );
+    animation: rotateGlow 4s linear infinite;
+    z-index: 1;
+}
+
+/* Modo Claro: Naranja */
+.theme-light .border-glow {
+    background: conic-gradient(
+        transparent, 
+        transparent, 
+        transparent, 
+        #ff5500, /* Naranja */
+        #ffffff, 
+        #ff5500, 
+        transparent
+    );
+}
+
+.theme-light .card-content {
+    background: #ffffff;
+    background-image: radial-gradient(rgba(0,0,0,0.05) 1px, transparent 0);
+}
+
+@keyframes rotateGlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* --- ESTILOS DEL FRENTE --- */
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-chip {
+    width: 45px;
+    height: 35px;
+    background: linear-gradient(135deg, #fddb60, #000);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    position: relative;
+}
+
+.card-chip::before {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%; height: 60%;
+    border: 1px solid rgb(189, 186, 146);
+}
+
+.card-brand {
+    color: var(--h-accent);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+}
+
+.card-number-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.25rem;
+    color: #fff;
+    letter-spacing: 3px;
+    margin: 25px 0;
+    text-shadow: 0 0 10px rgba(255,255,255,0.1);
+}
+
+.theme-light .card-number-display { color: #000; text-shadow: none; }
+
+.card-bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.card-label {
+    font-size: 0.6rem;
+    color: #52525b;
+    display: block;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+}
+
+.card-value {
+    font-size: 0.85rem;
+    color: #fff;
+    letter-spacing: 1px;
+}
+
+.theme-light .card-value { color: #000; }
+
+/* --- ESTILOS DEL REVERSO --- */
+.magnetic-bar {
+    background: #000;
+    width: 100%;
+    height: 45px;
+    margin: 10px 0 20px 0;
+    position: relative;
+    left: -25px; /* Compensa el padding del card-content */
+    width: calc(100% + 50px);
+}
+
+.cvv-section {
+    text-align: right;
+    padding-right: 10px;
+}
+
+.cvv-white-bar {
+    background: #111;
+    border: 1px solid var(--h-accent);
+    color: var(--h-accent);
+    padding: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 4px;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 80px;
+}
+
+.card-back-footer {
+    margin-top: auto;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 10px;
+}
+
+.footer-tech-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    color: #3f3f46;
+    letter-spacing: 1px;
+}

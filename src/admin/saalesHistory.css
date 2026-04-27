@@ -1,0 +1,203 @@
+/* --- Sales History: Hidden Security Theme --- */
+
+:root {
+  /* DARK (Default) */
+  --sh-bg: #000000;
+  --sh-surface: #141417;
+  --sh-border: #26262a;
+  --sh-text: #e4e4e7;
+  --sh-text-dim: #71717a;
+  --sh-accent: #ccff00; /* Verde Lima */
+  --sh-accent-soft: rgba(204, 255, 0, 0.05);
+}
+
+.sh-container.light {
+  --sh-bg: #f4f4f5;
+  --sh-surface: #ffffff;
+  --sh-border: #e4e4e7;
+  --sh-text: #18181b;
+  --sh-text-dim: #a1a1aa;
+  --sh-accent: #ff5500; /* Naranja */
+  --sh-accent-soft: rgba(255, 85, 0, 0.05);
+}
+
+.sh-container {
+  background: var(--sh-bg);
+  min-height: 100vh;
+  padding: 20px 40px;
+  color: var(--sh-text);
+  font-family: 'JetBrains Mono', 'Inter', monospace;
+  transition: all 0.3s ease;
+}
+
+/* Header & Controls */
+.sh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 25px;
+  border-bottom: 1px solid var(--sh-border);
+  padding-bottom: 15px;
+  gap: 20px;
+}
+
+.sh-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.sh-title span {
+  color: var(--sh-accent);
+}
+
+.sh-count {
+  font-size: 0.65rem;
+  color: var(--sh-text-dim);
+  font-weight: bold;
+}
+
+.sh-controls {
+  display: flex;
+  gap: 10px;
+}
+
+/* Inputs Estilo Terminal */
+.sh-search-input, .sh-select {
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  color: var(--sh-text);
+  padding: 8px 15px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.sh-search-input:focus {
+  border-color: var(--sh-accent);
+}
+
+.sh-search-input { width: 250px; }
+
+/* Logs Card */
+.sh-card-header {
+  background: var(--sh-border);
+  color: var(--sh-text);
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 5px 15px;
+  border-radius: 4px 4px 0 0;
+  display: inline-block;
+}
+
+.sh-list {
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: 0 4px 4px 4px;
+}
+
+/* Filas Estilo "Database Stream" */
+.sh-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--sh-border);
+  transition: background 0.2s;
+}
+
+.sh-row:hover {
+  background: var(--sh-accent-soft);
+}
+
+.sh-main-info {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.sh-date {
+  color: var(--sh-accent);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.sh-user {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.sh-details {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Status Badges */
+.sh-status {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.05);
+}
+
+.sh-status.paid { color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+.sh-status.pending { color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+.sh-plan {
+  font-size: 0.75rem;
+  color: var(--sh-text-dim);
+  text-transform: uppercase;
+}
+
+.sh-amount {
+  font-weight: 800;
+  color: var(--sh-text);
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Pagination */
+.sh-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 25px;
+}
+
+.sh-pag-btn {
+  background: transparent;
+  border: 1px solid var(--sh-border);
+  color: var(--sh-text);
+  padding: 5px 15px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sh-pag-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.sh-pag-btn:hover:not(:disabled) { border-color: var(--sh-accent); color: var(--sh-accent); }
+
+.sh-pag-info { font-size: 0.7rem; color: var(--sh-text-dim); }
+
+.sh-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--sh-text-dim);
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sh-header { flex-direction: column; align-items: flex-start; }
+  .sh-search-input { width: 100%; }
+  .sh-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .sh-details { width: 100%; justify-content: space-between; }
+}

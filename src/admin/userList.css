@@ -1,5 +1,6 @@
 /* --- CONTENEDOR PRINCIPAL --- */
 .user-list-container {
+  background-color: #000;
   --sec-bg: transparent;
   --sec-surface: #0a0a0a;
   --sec-border: rgba(204, 255, 0, 0.1);
@@ -17,7 +18,7 @@
 
 .user-list-container.light {
     background-color: #f5f5f5;
-  --sec-surface: #f5f5f5;
+  --sec-surface: #ffffff;
   --sec-border: rgba(0, 0, 0, 0.1);
   --sec-accent: #ff5500; /* International Orange */
   --sec-text: #000000;

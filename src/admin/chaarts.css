@@ -1,0 +1,267 @@
+/* --- Hidden Security Theme Variables --- */
+:root {
+  /* DARK THEME (Default) */
+  --dc-bg: #000000;
+  --dc-card: #141417;
+  --dc-border: #26262a;
+  --dc-text: #e4e4e7;
+  --dc-text-dim: #71717a;
+  --dc-accent: #ccff00; /* El verde lima de seguridad */
+  --dc-accent-soft: rgba(204, 255, 0, 0.1);
+}
+
+/* Sobreescribir si el context detecta light */
+.dc-wrapper.light {
+  --dc-bg: #f4f4f5;
+  --dc-card: #ffffff;
+  --dc-border: #e4e4e7;
+  --dc-text: #18181b;
+  --dc-text-dim: #a1a1aa;
+  --dc-accent: #ff5500; /* El naranja que definiste para light */
+  --dc-accent-soft: rgba(255, 85, 0, 0.1);
+}
+
+.dc-wrapper {
+  background-color: var(--dc-bg);
+  min-height: 100%;
+  padding: 20px 50px;
+  color: var(--sec-text);
+  font-family: 'JetBrains Mono', 'Inter', monospace;
+  transition: all 0.3s ease;
+}
+
+/* Header & Filtros */
+.dc-filter-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 30px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dc-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dc-control-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--dc-text-dim);
+  letter-spacing: 0.1em;
+}
+
+.dc-btn-group {
+  display: flex;
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.dc-filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--dc-text-dim);
+  padding: 6px 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.dc-filter-btn.active {
+  background: var(--dc-accent);
+  color: #000;
+}
+
+/* Grilla de Gráficos */
+.dc-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Cards Estilo Terminal */
+.dc-terminal-card {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 8px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dc-card-header {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--dc-border);
+  padding: 8px 15px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--dc-text-dim);
+  letter-spacing: 0.1em;
+}
+
+.dc-card-body {
+  padding: 20px;
+}
+
+.dc-big-number {
+  display: block;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--dc-accent);
+  line-height: 1;
+}
+
+.dc-label {
+  font-size: 0.75rem;
+  margin-top: 10px;
+  color: var(--dc-text);
+  text-transform: uppercase;
+}
+
+.dc-unit {
+  font-size: 0.6rem;
+  color: var(--dc-text-dim);
+}
+
+/* Ajustes Específicos para Gráficos */
+.dc-chart-wrapper {
+  padding: 15px;
+}
+
+.dc-pie-container {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+}
+
+.dc-pie-legend {
+  font-size: 0.75rem;
+  color: var(--dc-text);
+}
+
+.dc-pie-legend p {
+  margin: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.dot.net { background: #10b981; }
+.dot.comm { background: #ef4444; }
+
+/* Metrics Section */
+.metrics p {
+  font-size: 0.7rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.dc-green-glow { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+.dc-accent-text { color: var(--dc-accent); }
+
+.dc-progress-bar {
+  height: 4px;
+  background: var(--dc-border);
+  border-radius: 2px;
+  margin-top: 10px;
+}
+
+.dc-fill {
+  height: 100%;
+  background: var(--dc-accent);
+  box-shadow: 0 0 10px var(--dc-accent);
+}
+
+/* --- Estilos para Inputs de Fecha (Hidden Security) --- */
+
+.dc-date-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--dc-card);
+  padding: 5px 12px;
+  border: 1px solid var(--dc-border);
+  border-radius: 6px;
+  animation: fadeIn 0.3s ease;
+}
+
+.dc-date-field {
+  background: transparent;
+  border: none;
+  color: var(--dc-accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  outline: none;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+/* Estilo del icono del calendario (Chrome/Safari) */
+.dc-date-field::-webkit-calendar-picker-indicator {
+  filter: invert(var(--theme-invert)); /* Ajuste dinámico según el tema */
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.dc-date-field::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.dc-arrow {
+  color: var(--dc-text-dim);
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+/* Variable auxiliar para el icono del calendario */
+:root {
+  --theme-invert: 1; /* En Dark, invertimos a blanco */
+}
+
+.dc-wrapper.light {
+  --theme-invert: 0; /* En Light, lo dejamos original (oscuro) */
+}
+
+/* Animación de entrada */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsivo para móviles */
+@media (max-width: 480px) {
+  .dc-date-inputs {
+    flex-direction: column;
+    width: 100%;
+    align-items: flex-start;
+  }
+  .dc-arrow {
+    transform: rotate(90deg);
+    align-self: center;
+  }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .dc-charts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dc-filter-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
