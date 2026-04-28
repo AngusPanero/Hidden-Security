@@ -1,0 +1,143 @@
+/* --- HIDDEN SECURITY: DATA_TRACKING_BANNER --- */
+
+.ck-overlay {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    z-index: 9999999;
+    width: 90%;
+    max-width: 800px;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    opacity: 1;
+}
+
+.ck-overlay.ck-leaving {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+}
+
+/* --- THEME LOGIC --- */
+.ck-overlay.dark {
+    --ck-bg: #0a0a0b;
+    --ck-border: #1a1a1c;
+    --ck-accent: #ccff00; /* Verde Lima */
+    --ck-text: #ffffff;
+    --ck-muted: #71717a;
+}
+
+.ck-overlay.light {
+    --ck-bg: #ffffff;
+    --ck-border: #e2e8f0;
+    --ck-accent: #ff5500; /* Naranja */
+    --ck-text: #0f172a;
+    --ck-muted: #64748b;
+}
+
+/* --- CARD STRUCTURE --- */
+.ck-card {
+    background: var(--ck-bg);
+    border: 1px solid var(--ck-border);
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    /* Corte técnico en esquina superior derecha */
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.ck-overlay.light .ck-card {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* --- ELEMENTOS INTERNOS --- */
+.ck-emoji {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 0 10px rgba(204, 255, 0, 0.2));
+    animation: ck-float 3s ease-in-out infinite;
+}
+
+.ck-body {
+    flex: 1;
+}
+
+.ck-title {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ck-accent);
+    margin: 0 0 5px 0;
+}
+
+.ck-text {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--ck-muted);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.ck-link {
+  font-family: "Montserrat";
+    color: var(--ck-text);
+    transition: color 0.2s;
+}
+
+.ck-link:hover {
+    color: var(--ck-accent);
+}
+
+/* --- ACCIONES --- */
+.ck-actions {
+    display: flex;
+}
+
+.ck-btn-accept {
+    background: transparent;
+    border: 1px solid var(--ck-accent);
+    color: var(--ck-accent);
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 85% 100%, 0 100%);
+}
+
+.ck-btn-accept:hover {
+    background: var(--ck-accent);
+    color: #000;
+    box-shadow: 0 0 15px rgba(204, 255, 0, 0.3);
+}
+
+/* --- ANIMACIONES & RESPONSIVE --- */
+@keyframes ck-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@media (max-width: 768px) {
+  .ck-overlay{ bottom: 30px; }
+    .ck-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .ck-actions {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .ck-btn-accept {
+        width: 100%;
+    }
+}

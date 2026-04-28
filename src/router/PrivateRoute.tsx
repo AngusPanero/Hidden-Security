@@ -55,15 +55,15 @@ const PrivateRoute = ({ children, adminOnly = false  }: PrivateRouteProps) => {
     }
 
     if (status === "no-admin") {
-        return <Error errorMessage={"Acceso Restringido: Se requieren permisos de Administrador."} />;
+        return <Error processMessage={"Acceso Restringido: Se requieren permisos de Administrador."} />;
     }
 
     if (status === "banned") {
-        return <Error errorMessage={"Usuario Baneado, contactate con DeepDev."} />;
+        return <Error processMessage={"Usuario Baneado, contactate con DeepDev."} />;
     }
 
     if (status === "unauth" || !user) {
-        return <Error errorMessage={"No autorizado, por favor inicia sesión."} />;
+        return <Error processMessage={"No autorizado, por favor inicia sesión."} />;
     }
 
     // Solo si todo está OK, renderizamos los children (el dashboard o la vista protegida)
@@ -133,10 +133,10 @@ const PrivateRoute = ({ children, adminOnly = false, enterpriseOnly = false }: P
     }, [user, loading, adminOnly, enterpriseOnly]);
 
     if (loading || status === "loading") return <Loader />;
-    if (status === "no-admin") return <Error errorMessage={"Acceso Restringido: Se requieren permisos de Administrador."} />;
-    if (status === "no-enterprise") return <Error errorMessage={"Acceso Restringido: Se requiere una cuenta Empresa."} />;
-    if (status === "banned") return <Error errorMessage={"Usuario Baneado, contactate con DeepDev."} />;
-    if (status === "unauth" || !user) return <Error errorMessage={"No autorizado, por favor inicia sesión."} />;
+    if (status === "no-admin") return <Error processMessage={"Acceso Restringido: Se requieren permisos de Administrador."} />;
+    if (status === "no-enterprise") return <Error processMessage={"Acceso Restringido: Se requiere una cuenta Empresa."} />;
+    if (status === "banned") return <Error processMessage={"Usuario Baneado, contactate con DeepDev."} />;
+    if (status === "unauth" || !user) return <Error processMessage={"No autorizado, por favor inicia sesión."} />;
 
     return status === "ok" ? <>{children}</> : null;
 };

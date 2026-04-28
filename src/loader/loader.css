@@ -1,113 +1,187 @@
-/* --- BASE OVERLAY --- */
-.corporate-loader-overlay {
+/* --- HIDDEN SECURITY LOADER --- */
+
+.hs-loader-overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 99999;
-    transition: all 0.5s ease;
+    z-index: 999999;
+    overflow: hidden;
+    transition: background 0.5s ease;
 }
 
-.corporate-loader-overlay.dark {
-    background-color: #0f172a; /* El mismo marino del Hero */
+/* Colores de Marca */
+.hs-loader-overlay.dark {
+    background-color: #000000;
+    --h-accent: #ccff00; /* Verde Lima */
+    --h-text: #ffffff;
 }
 
-.corporate-loader-overlay.light {
+.hs-loader-overlay.light {
     background-color: #f8fafc;
+    --h-accent: #ff5500; /* Naranja */
+    --h-text: #0f172a;
 }
 
-/* --- CONTENT BOX --- */
+/* Grilla de fondo sutil */
+.loader-bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(204, 255, 0, 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(204, 255, 0, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: 1;
+}
+
+.hs-loader-overlay.light .loader-bg-grid {
+    background-image: linear-gradient(rgba(255, 85, 0, 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 85, 0, 0.03) 1px, transparent 1px);
+}
+
+/* --- CONTENIDO --- */
 .loader-content {
-    text-align: center;
+    position: relative;
+    z-index: 10;
     width: 100%;
-    max-width: 400px;
+    max-width: 500px;
     padding: 2rem;
 }
 
-/* --- LOGOTIPO --- */
-.loader-logo {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 900;
-    font-size: 3.5rem;
-    letter-spacing: -2px;
-    margin-bottom: 2.5rem;
-    transition: color 0.3s ease;
-}
-
-.dark .loader-logo { color: #ffffff; }
-.light .loader-logo { color: #0f172a; }
-
-.loader-logo span {
-    color: var(--blue, #0062ff);
-}
-
-/* --- TRACK & BAR (LA BARRA) --- */
-.loader-track {
-    width: 100%;
-    height: 4px; /* Más fina = más corporativa */
-    background: rgba(148, 163, 184, 0.1);
-    border-radius: 20px;
-    overflow: hidden;
-    margin-bottom: 1rem;
-}
-
-.loader-bar {
-    height: 100%;
-    background-color: var(--blue, #0062ff);
-    box-shadow: 0 0 15px rgba(0, 98, 255, 0.4);
-    transition: width 0.1s linear;
-    position: relative;
-}
-
-/* Efecto de brillo sutil pasando por la barra */
-.loader-bar::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    animation: bar-shine 1.5s infinite;
-}
-
-/* --- INFO (TEXTOS INFERIORES) --- */
-.loader-info {
+.loader-header {
     display: flex;
     justify-content: space-between;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-family: 'Montserrat', monospace;
+    font-size: 0.65rem;
+    color: var(--h-accent);
+    letter-spacing: 2px;
 }
 
-.dark .loader-status { color: #94a3b8; }
-.light .loader-status { color: #64748b; }
+.loader-logo {
+    font-family: "Montserrat";
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    color: var(--h-text);
+    margin-bottom: 2rem;
+    letter-spacing: -1px;
+}
+
+.loader-logo span {
+    color: var(--h-accent);
+    /* filter: drop-shadow(0 0 5px var(--h-accent)); */
+}
+
+/* --- BARRA DE PROGRESO TÁCTICA --- */
+.loader-main-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.loader-progress-fill {
+    height: 100%;
+    background-color: var(--h-accent);
+    position: relative;
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 20px var(--h-accent);
+}
+
+/* Escáner animado sobre la barra */
+.fill-scanner {
+    position: absolute;
+    top: 0; right: 0;
+    width: 20px; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+    animation: scanner 1.5s infinite;
+}
+
+/* --- FOOTER INFO --- */
+.loader-footer-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.status-group {
+    font-family: "Montserrat";
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.blink-dot {
+    width: 6px; height: 6px;
+    background: var(--h-accent);
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+}
+
+.loader-status {
+    font-family: "Montserrat";
+    font-size: 0.7rem;
+    color: var(--h-text);
+    letter-spacing: 1.5px;
+}
 
 .loader-number {
-    color: var(--blue, #0062ff);
+    font-family: "Montserrat";
+    color: var(--h-accent);
+    font-size: 1.2rem;
 }
 
+/* --- STUDIO BRANDING --- */
+.studio-branding {
+    font-family: "Montserrat";
+    margin-top: 4rem;
+    text-align: center;
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+    padding-top: 1.5rem;
+}
+
+.studio-branding p {
+    font-size: 0.9rem;
+    color: var(--h-text-muted, #64748b);
+    letter-spacing: 3px;
+    margin: 0;
+}
+
+.studio-branding span {
+    color: var(--h-text);
+}
+
+/* --- DECORACIONES DE ESQUINAS --- */
+.loader-corner-decor {
+    position: absolute;
+    width: 40px; height: 40px;
+    border: 2px solid var(--h-accent);
+    z-index: 5;
+}
+
+.top-left { top: 40px; left: 40px; border-right: none; border-bottom: none; }
+.bottom-right { bottom: 40px; right: 40px; border-left: none; border-top: none; }
+
 /* --- ANIMACIONES --- */
-@keyframes bar-shine {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+@keyframes scanner {
+    0% { transform: translateX(-100px); }
+    100% { transform: translateX(100px); }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
 }
 
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
-    .loader-logo {
-        font-size: 2.5rem;
-    }
-    
-    .loader-content {
-        max-width: 80%;
-    }
-}
-
-@media (max-height: 450px) {
-    .loader-logo {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-    }
+    .loader-content { margin-top: 4rem;  max-width: 90%; }
+    .loader-corner-decor { width: 20px; height: 20px; top: 20px; left: 20px; }
+    .bottom-right { bottom: 20px; right: 20px; }
+    .loader-header { font-size: 0.5rem; }
 }

@@ -53,7 +53,7 @@ const SorteoDevMinimal: React.FC = () => {
         }
     };
 
-    if (error) return <Error errorMessage={"ACCESO_DENEGADO: Error en registro."} />;
+    if (error) return <Error processMessage={"ACCESO_DENEGADO: Error en registro."} />;
     if (loading) return <LoaderMinimal />;
 
 return (

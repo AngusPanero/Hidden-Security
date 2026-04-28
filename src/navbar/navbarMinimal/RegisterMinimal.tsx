@@ -57,7 +57,7 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
     }, []);
 
     if(loading) return <Loader />
-    if(error) return <Error errorMessage={`${texts[language].register.errorRegister}`} />
+    if(error) return <Error processMessage={`${texts[language].register.errorRegister}`} />
 
     return (
         <div className={`k-reg-overlay ${exit ? "k-reg-fade-out" : ""}`}>

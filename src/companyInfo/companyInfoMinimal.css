@@ -89,6 +89,9 @@
     opacity: 0.5;
 }
 
+.k-hero-content span{ letter-spacing: 2px; }
+
+.light .k-video{ opacity: 1; }
 
 .k-hero-content {
     width: 100%;
@@ -591,7 +594,7 @@
 
 @media (max-width: 768px) {
     .k-warp-content{ height: 65vh;}
-    .k-massive-title { font-size: 12vw; }
+    .k-massive-title { font-size: 8.5vw; }
     .k-warp-text-box{ margin-top: 14rem; }
     .k-warp-title { font-size: 8vw; }
     .k-big-link{ font-size: 7vw; }

@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { SessionProvider } from "../contexts/SessionContext";
 import FooterMinimal from "../footer/minimalFooter/FooterMinimal";
-import CookiesCube from "../cookiesCube/CookiesCube";
 import NavBarMinimal from "../navbar/navbarMinimal/NavBarMinimal";
 import Home from "../home/Home";
 import CompanyInfo from "../companyInfo/CompanyInfoMinimal";
@@ -16,6 +15,11 @@ import AdminDashboard from "../admin/AdminDashboard";
 import EnterpriseDashboard from "../enterprise/EnterpriseDashboard";
 import Checkout from "../checkout/Checkout";
 import { CartProvider } from "../contexts/CartContext";
+import Loader from "../loader/Loader";
+import Error from "../processMessages/Error";
+import CookieBanner from "../cookies/CookiesCorporate";
+import PoliticaCookies from "../cookies/PoliticaCookies";
+import Error404Minimal from "../processMessages/Error404Minimal";
 
 const AppRouter = () => {
     return (
@@ -24,7 +28,7 @@ const AppRouter = () => {
                 <CartProvider>
                 {/*     <ReseñasProvider>
                         <FavoritesProvider> */}
-                            <CookiesCube />
+                            <CookieBanner />
                             <NavBarMinimal />
                             <Routes>
                                 <Route path="/" element={<Home />} />
@@ -35,13 +39,17 @@ const AppRouter = () => {
                                 <Route path="/contact" element={<Contact />} />
                                 <Route path="/pricing" element={<Pricing />} />
                                 <Route path="/checkout/:planId" element={<Checkout />} />
+                                <Route path="/loader" element={<Loader />} />
+                                <Route path="/error" element={<Error processMessage="" />} />
+                                <Route path="/policy-cookie" element={<PoliticaCookies />} />
+                                <Route path="/*" element={<Error404Minimal />} />
                                 {/* <Route path="/products" element={<ProductsMinimal />} />
                                 <Route path="/sales" element={<Sales />} />
                                 <Route path="/contact" element={<ContactMinimal />} />
-                                <Route path="/policy" element={<PoliticaCookiesCube />} />
+                                
                                 <Route path="/raffle-terms" element={<RaffleTermsCube />} />
                                 <Route path="/*" element={<Error404Minimal />} />
-                                <Route path="/loader" element={<SpinnerMinimal />} />
+                                
                                 <Route path="/product/:id" element={<ParamsProduct />} />
                                 <Route path="/testproducts" element={<IndividualProduct />} />
                                 <Route path="/cart-products-view" element={<CartView />} /> 

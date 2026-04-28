@@ -136,8 +136,8 @@ const Checkout = () => {
         }
     };
 
-    if (!selectedPlan) return <Error errorMessage="PLAN_NO_IDENTIFICADO" />;
-    if (error) return <Error errorMessage={error}/>;
+    if (!selectedPlan) return <Error processMessage="PLAN_NO_IDENTIFICADO" />;
+    if (error) return <Error processMessage={error}/>;
     if (loading) return <Loader />;
     if (status === "ok") return <ProcessOk processMessage={"ACCESO_CONCEDIDO_AL_NODO"} />;
 

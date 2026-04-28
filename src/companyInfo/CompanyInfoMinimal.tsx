@@ -40,7 +40,7 @@ const CompanyInfo: React.FC = () => {
                 </motion.div>
                 <div className="k-hero-content">
                     <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.5 }}>
-                        <h1><FloatingTitle text='Hidden History'/></h1>
+                        <h1><FloatingTitle text='HIDDEN HISTORY'/></h1>
                     </motion.div>
                 </div>
             </section>

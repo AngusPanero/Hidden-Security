@@ -7,7 +7,11 @@ export default defineConfig({
   base: '/',
   server: {
     host: true,
-    port: 5173
+    port: 5173,
+    allowedHosts: [
+      'deepdev-front.ngrok-free.app', // La URL de tu FRONT en ngrok
+      'all'
+    ]
   },
   build: {
     

@@ -64,7 +64,7 @@ const CursosParams = () => {
                                 className={`h-tactic-strip ${expanded === i ? 'is-active' : ''} ${isAvailable ? 'is-link' : 'is-locked'}`}
                                 onClick={() => handleExpand(i)}
                                 onMouseEnter={() => !isMobile && setExpanded(i)}
-                                animate={{ width: isMobile ? "100%" : (expanded === i ? "55%" : "9%"), height: isMobile ? (expanded === i ? "510px" : "75px") : "85%" }}
+                                animate={{ width: isMobile ? "100%" : (expanded === i ? "55%" : "9%"), height: isMobile ? (expanded === i ? "510px" : "75px") : "100%" }}
                                 transition={{ duration: 0.7, ease: [0.19, 1, 0.22, 1] }}
                             >
                                 <div className="h-strip-bg">
