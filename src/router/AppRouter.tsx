@@ -26,8 +26,6 @@ const AppRouter = () => {
         <Router>
             <SessionProvider>
                 <CartProvider>
-                {/*     <ReseñasProvider>
-                        <FavoritesProvider> */}
                             <CookieBanner />
                             <NavBarMinimal />
                             <Routes>
@@ -60,8 +58,6 @@ const AppRouter = () => {
                                 <Route path="/enterprise" element={<PrivateRoute enterpriseOnly={true}><EnterpriseDashboard /></PrivateRoute>} /> 
                             </Routes>
                             <FooterMinimal />
-                        {/* </FavoritesProvider>
-                    </ReseñasProvider>*/}
                 </CartProvider> 
             </SessionProvider>
         </Router>

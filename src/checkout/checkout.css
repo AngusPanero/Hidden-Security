@@ -3,7 +3,7 @@
 .checkout-screen {
     --h-bg: #000000;
     --h-text: #ffffff;
-    --h-accent: #ccff00; /* Neon Lime */
+    --h-accent: #ccff00;
     --h-border: rgba(255, 255, 255, 0.1);
     --h-surface: rgba(255, 255, 255, 0.015);
     
@@ -12,12 +12,14 @@
     padding: 180px 5% 100px;
     font-family: 'Montserrat', sans-serif;
     color: var(--h-text);
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .checkout-screen.light {
     --h-bg: #f5f5f5;
     --h-text: #000000;
-    --h-accent: #ff5500; /* Neon Orange */
+    --h-accent: #ff5500;
     --h-border: rgba(0, 0, 0, 0.1);
     --h-surface: rgba(0, 0, 0, 0.02);
 }
@@ -62,6 +64,7 @@
     margin-bottom: 30px;
     position: relative;
     transition: border-color 0.3s;
+    box-sizing: border-box;
 }
 
 .checkout-section:hover {
@@ -96,12 +99,12 @@
     color: var(--h-text) !important;
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 17px;
     width: 100%;
     outline: none;
     transition: all 0.3s;
-    /* Recorte sutil en los inputs */
     clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%, 0 80%);
+    box-sizing: border-box;
 }
 
 .main-checkout-form input:focus {
@@ -116,7 +119,7 @@
     margin-top: 20px;
 }
 
-/* --- BOTÓN FINAL (CLIP-PATH PRICING) --- */
+/* --- BOTÓN FINAL --- */
 .final-pay-btn {
     width: 100%;
     background: none;
@@ -131,6 +134,7 @@
     transition: all 0.3s;
     clip-path: polygon(0 0, 100% 0, 100% 70%, 95% 100%, 0 100%);
     margin-top: 20px;
+    box-sizing: border-box;
 }
 
 .final-pay-btn:hover {
@@ -143,6 +147,16 @@
 .checkout-summary-column {
     position: sticky;
     top: 140px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.summary-sticky-content {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .checkout-items-preview {
@@ -157,6 +171,13 @@
     border-bottom: 1px solid var(--h-border);
 }
 
+.mini-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
 .item-name {
     font-weight: 900;
     font-size: 1rem;
@@ -168,6 +189,7 @@
     color: var(--h-accent);
     font-weight: 900;
     font-size: 1.2rem;
+    white-space: nowrap;
 }
 
 .badge-benefit {
@@ -187,6 +209,7 @@
     padding: 30px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--h-border);
+    box-sizing: border-box;
 }
 
 .summary-line {
@@ -196,15 +219,18 @@
     font-size: 0.9rem;
     margin-bottom: 15px;
     opacity: 0.8;
+    gap: 10px;
 }
 
 .summary-line.total {
-    font-size: 2rem;
+    font-size: 1.8rem;
     opacity: 1;
     font-weight: 900;
     border-top: 1px solid var(--h-border);
     padding-top: 25px;
     margin-top: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .summary-line.total span:last-child {
@@ -221,15 +247,20 @@
 }
 
 /* --- CUPÓN --- */
+.checkout-coupon-box {
+    margin-top: 16px;
+}
+
 .coupon-input-group {
     display: flex;
-    margin-top: 20px;
     gap: 10px;
 }
 
 .coupon-input-group input {
-    clip-path: none;
-    padding: 12px;
+    clip-path: none !important;
+    padding: 12px !important;
+    flex: 1;
+    min-width: 0;
 }
 
 .coupon-input-group button {
@@ -237,13 +268,26 @@
     color: var(--h-bg);
     border: none;
     font-weight: 900;
-    padding: 0 25px;
+    padding: 0 20px;
     cursor: pointer;
     font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
+.coupon-msg {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-top: 8px;
+}
+
+.coupon-msg.ok  { color: #22c55e; }
+.coupon-msg.err { color: #ef4444; }
+
 .discount-row {
-    color: var(--h-accent); /* Verde Lima o Naranja */
+    color: var(--h-accent);
     margin: 8px 0;
     font-size: 0.9rem;
 }
@@ -252,6 +296,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .discount-badge {
@@ -281,16 +326,147 @@
     background: var(--h-accent);
 }
 
-/* .accent-glow {
-    text-shadow: 0 0 15px var(--h-accent);
-} */
-
 .interest-row {
     opacity: 0.8;
     font-size: 0.85rem;
 }
 
-/* --- RESPONSIVO --- */
+/* --- UPSELL BLOCK --- */
+.upsell-block {
+    margin-top: 16px;
+    border: 1px solid var(--h-border);
+    border-left: 3px solid var(--h-accent);
+    padding: 20px 24px;
+    background: rgba(204, 255, 0, 0.02);
+    position: relative;
+    animation: slideIn 0.35s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    box-sizing: border-box;
+}
+
+.checkout-screen.light .upsell-block {
+    background: rgba(255, 85, 0, 0.02);
+}
+
+.upsell-voucher {
+    border-left-color: var(--h-accent);
+    opacity: 0.92;
+}
+
+.upsell-added {
+    border-left-color: #22c55e;
+    background: rgba(34, 197, 94, 0.04);
+}
+
+.upsell-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 14px;
+}
+
+.upsell-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--h-accent);
+    letter-spacing: 2px;
+    opacity: 0.8;
+}
+
+.upsell-plan-name {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    color: var(--h-text);
+}
+
+.upsell-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.upsell-benefits li {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--h-text);
+    opacity: 0.75;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.upsell-bullet {
+    color: var(--h-accent);
+    font-weight: 900;
+    font-size: 0.9rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.upsell-diff {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--h-text);
+    opacity: 0.5;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--h-border);
+    gap: 10px;
+}
+
+.upsell-cta {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--h-accent);
+    color: var(--h-accent);
+    padding: 12px 16px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 97% 100%, 0 100%);
+    box-sizing: border-box;
+}
+
+.upsell-cta:hover {
+    background: var(--h-accent);
+    color: #000;
+}
+
+.upsell-remove {
+    all: unset;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--h-text);
+    opacity: 0.65;
+    transition: opacity 0.2s;
+}
+
+.upsell-remove:hover { opacity: 0.7; }
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+
 @media (max-width: 1024px) {
     .checkout-wrapper {
         grid-template-columns: 1fr;
@@ -298,4 +474,264 @@
     .checkout-summary-column {
         position: static;
     }
+}
+
+@media (max-width: 768px) {
+    .checkout-screen {
+        padding: 100px 16px 60px;
+    }
+
+    .checkout-header {
+        margin-bottom: 30px;
+        padding-left: 16px;
+    }
+
+    .checkout-header h1 {
+        font-size: 1.8rem;
+        letter-spacing: -1px;
+    }
+
+    .terminal-text {
+        font-size: 0.65rem;
+        letter-spacing: 1.5px;
+    }
+
+    /* Formulario: menos padding en mobile */
+    .checkout-section {
+        padding: 20px 16px;
+        margin-bottom: 16px;
+    }
+
+    /* MM / YY / CVV → 2 columnas arriba, select abajo */
+    .input-row {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .input-row .select-cuotas {
+        grid-column: 1 / -1;
+    }
+
+    .main-checkout-form input,
+    .select-cuotas {
+        padding: 14px 12px;
+        font-size: 17px;
+        clip-path: none;
+    }
+
+    .final-pay-btn {
+        padding: 18px;
+        font-size: 0.85rem;
+        letter-spacing: 1.5px;
+        clip-path: none;
+    }
+
+    /* Credit card — contenida en el viewport */
+    .summary-sticky-content {
+        width: 100%;
+    }
+
+    /* Plan activo */
+    .checkout-items-preview {
+        padding: 20px 16px;
+    }
+
+    .item-name { font-size: 0.9rem; }
+    .item-price { font-size: 1rem; }
+
+    /* Total */
+    .cart-summary-card {
+        padding: 20px 16px;
+    }
+
+    .summary-line {
+        font-size: 0.8rem;
+    }
+
+    .summary-line.total {
+        font-size: 1.4rem;
+    }
+
+    /* Upsell */
+    .upsell-block {
+        padding: 16px;
+    }
+
+    .upsell-plan-name {
+        font-size: 0.9rem;
+    }
+
+    .upsell-cta {
+        clip-path: none;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        padding: 12px;
+    }
+
+    /* Cupón */
+    .coupon-input-group button {
+        padding: 0 14px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .checkout-screen {
+        padding: 90px 12px 50px;
+    }
+
+    .checkout-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .input-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    /* CVV pasa a segunda fila junto al select */
+    .input-row input:nth-child(3),
+    .input-row .select-cuotas {
+        grid-column: span 1;
+    }
+
+    .summary-line.total {
+        font-size: 1.2rem;
+    }
+}
+
+/* ─── ORDEN MOBILE ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .checkout-wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 1. Resumen (plan + upsell + cupón + total) sube primero */
+    .checkout-summary-column {
+        order: 1;
+    }
+
+    /* 2. Formulario (header + inputs + botón) va al final */
+    .checkout-form-column {
+        order: 2;
+    }
+
+    /* Dentro del resumen: CreditCard (primer hijo) baja al fondo,
+       el resto del contenido (plan, upsell, cupón, total) queda arriba */
+    .summary-sticky-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .summary-sticky-content > *:first-child {
+        order: 10;
+        margin-top: 24px;
+        margin-bottom: 8px;
+    }
+
+    .summary-sticky-content > *:not(:first-child) {
+        order: 1;
+    }
+}
+
+/* ─── SESSION REQUIRED BANNER ───────────────────────────────── */
+.session-required-banner {
+    max-width: 1400px;
+    margin: 0px auto 64px;
+    border: 1px solid var(--h-accent);
+    border-left: 4px solid var(--h-accent);
+    padding: 20px 24px;
+    background: rgba(204, 255, 0, 0.03);
+}
+
+.checkout-screen.light .session-required-banner {
+    background: rgba(255, 85, 0, 0.03);
+}
+
+.session-required-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--h-accent);
+    letter-spacing: 2px;
+    display: block;
+    margin-bottom: 8px;
+
+}
+
+.session-required-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--h-text);
+    opacity: 0.75;
+    line-height: 1.6;
+    margin: 0 0 16px;
+}
+
+.session-required-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.session-btn-primary {
+    background: var(--h-accent);
+    color: #000;
+    border: none;
+    padding: 12px 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 95% 100%, 0 100%);
+}
+
+.session-btn-primary:hover { opacity: 0.85; }
+
+.session-btn-secondary {
+    all: unset;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--h-text);
+    opacity: 0.45;
+    text-decoration: underline;
+    transition: opacity 0.2s;
+    padding: 12px 4px;
+}
+
+.session-btn-secondary:hover { opacity: 0.8; }
+
+/* ─── SECCIONES BLOQUEADAS SIN SESIÓN ───────────────────────── */
+.section-locked {
+    opacity: 0.35;
+    pointer-events: none;
+    user-select: none;
+    position: relative;
+}
+
+/* ─── BOTÓN DESHABILITADO SIN SESIÓN ────────────────────────── */
+.final-pay-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.final-pay-btn:disabled:hover {
+    background: transparent;
+    color: var(--h-accent);
+}
+
+/* ─── FIX ANCHO COMPLETO COLUMNA RESUMEN ────────────────────── */
+.checkout-items-preview,
+.cart-summary-card,
+.checkout-coupon-box,
+.upsell-block {
+    width: 100%;
+    box-sizing: border-box;
 }

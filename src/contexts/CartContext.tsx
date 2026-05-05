@@ -33,7 +33,7 @@ interface CartContextType {
     isLocked: boolean;
     setLock: (status: boolean) => void;
     appliedCoupon: Coupon | null;
-    applyCoupon: (code: string) => Promise<string>; 
+    applyCoupon: (code: string, planId: string) => Promise<string>; 
     handlePaymentSuccess: () => Promise<void>;
     priceAlert: string | null;
     setPriceAlert: (msg: string | null) => void;
@@ -127,21 +127,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem("terminal_cart");
     };
 
-    const applyCoupon = async (code: string) => {
+    const applyCoupon = async (code: string, planId: string) => {
         if (!user) return "Debes iniciar sesión para aplicar cupones 🔴";
+    
         try {
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/coupons/validate`, { code, email: user.email }, { withCredentials: true });
+            const response = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/coupons/validate`,
+                {
+                    code,
+                    email:  user.email,
+                    planId,          
+                },
+                { withCredentials: true }
+            );
+    
             if (response.status === 200) {
-                const couponData: Coupon = {
-                    code: response.data.coupon.code,
-                    discount: response.data.coupon.discount,
-                    type: response.data.coupon.type, 
-                    appliedAt: new Date() 
+                const couponData = {
+                    code:         response.data.coupon.code,
+                    discount:     response.data.coupon.discount,
+                    type:         response.data.coupon.type,
+                    scope:        response.data.coupon.scope,
+                    allowedPlans: response.data.coupon.allowedPlans,
+                    appliedAt:    new Date()
                 };
                 setAppliedCoupon(couponData);
                 return response.data.message;
             }
+    
             return "Error inesperado";
+    
         } catch (error: any) {
             setAppliedCoupon(null);
             return error.response?.data?.message || "Error al validar cupón 🔴";

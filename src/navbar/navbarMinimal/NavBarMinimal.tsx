@@ -101,10 +101,24 @@ const NavBarMinimal = () => {
                             <li><a href="/pricing"><span className="index">03</span> Precios</a></li>
                             {/* <li><a href="/raffles"><span className="index">03</span> Sorteos</a></li> */}
                             <li><a href="/contact"><span className="index">04</span> Contacto</a></li>
-                            {user && (
+                            {user && user.admin !== true &&(
                                 <li>
                                     <a href="/dashboard" className="nav-link-special">
                                         <span className="index">05</span> DASHBOARD
+                                    </a>
+                                </li>
+                            )}
+                            {user && user.admin === true &&(
+                                <li>
+                                    <a href="/admin" className="nav-link-special">
+                                        <span className="index">05</span> Admin
+                                    </a>
+                                </li>
+                            )}
+                            {user && user.isEnterprise === true && user.admin !== true &&(
+                                <li>
+                                    <a href="/enterprise" className="nav-link-special">
+                                        <span className="index">05</span> Dashboard Empresa
                                     </a>
                                 </li>
                             )}

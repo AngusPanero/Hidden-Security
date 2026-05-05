@@ -200,10 +200,12 @@ input:focus {
 }
 
 .tag-discount {
+    font-family: "Montserrat";
     color: var(--h-accent);
     font-weight: 900;
     background: rgba(204, 255, 0, 0.1);
     padding: 2px 6px;
+    margin-left: 10px;
     border-radius: 3px;
     font-size: 0.8rem;
 }
@@ -287,6 +289,136 @@ input:focus {
     border-color: rgba(255, 85, 0, 0.2);
     background: rgba(255, 85, 0, 0.05);
 }
+
+select.code-input {
+    font-family: "Montserrat", monospace;
+    padding-left: 20px;
+    height: 40px;
+    color: var(--h-text);
+    appearance: none;
+    background: rgba(0, 0, 0, 0.2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;
+    cursor: pointer;
+}
+ 
+.admin-inventory-wrapper.light select.code-input {
+    background-color: #f8fafc;
+}
+ 
+.plan-selector-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+ 
+.plan-selector-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(204, 255, 0, 0.1);
+    border: 1px solid rgba(204, 255, 0, 0.3);
+    color: var(--h-accent);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 4px 8px;
+}
+ 
+.admin-inventory-wrapper.light .selector-chip {
+    background: rgba(255, 85, 0, 0.08);
+    border-color: rgba(255, 85, 0, 0.3);
+}
+ 
+.selector-chip button {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    opacity: 0.7;
+}
+ 
+.selector-chip button:hover { opacity: 1; }
+ 
+.selector-dropdown-wrap {
+    position: relative;
+}
+ 
+.selector-search {
+    width: 100%;
+}
+ 
+.selector-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--h-surface);
+    border: 1px solid var(--h-border);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+ 
+.selector-item {
+    padding: 10px 14px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: var(--h-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: background 0.15s;
+}
+ 
+.selector-item:hover { background: rgba(255,255,255,0.05); }
+ 
+.admin-inventory-wrapper.light .selector-item:hover { background: rgba(0,0,0,0.04); }
+ 
+.selector-item.selected { background: rgba(204, 255, 0, 0.06); }
+ 
+.admin-inventory-wrapper.light .selector-item.selected { background: rgba(255, 85, 0, 0.06); }
+ 
+.selector-item-main {
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+ 
+.selector-item-sub {
+    font-size: 0.65rem;
+    color: var(--h-text-muted);
+    letter-spacing: 1px;
+}
+ 
+.selector-check {
+    color: var(--h-accent);
+    font-weight: 900;
+    font-size: 0.8rem;
+    margin-left: auto;
+}
+ 
+.coupon-helper {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.6rem;
+    color: var(--h-text-muted);
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+ 
+.tag-delete-btn {
+    all: unset;
+    cursor: pointer;
+    color: var(--h-text-muted);
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    transition: color 0.2s;
+}
+ 
+.tag-delete-btn:hover { color: #ef4444; }
 
 @keyframes slideIn {
     from { opacity: 0; transform: translateY(10px); }
