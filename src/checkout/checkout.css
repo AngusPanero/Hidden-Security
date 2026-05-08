@@ -276,11 +276,13 @@
 }
 
 .coupon-msg {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Montserrat', monospace;
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 1px;
     margin-top: 8px;
+    padding-top: 10px;
+    padding-left: 10px;
 }
 
 .coupon-msg.ok  { color: #22c55e; }

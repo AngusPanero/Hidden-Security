@@ -8,7 +8,7 @@ const CookieBanner: React.FC = () => {
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    localStorage.clear()
+    /* localStorage.clear() */
     const consent = localStorage.getItem('cookie-consent');
     if (!consent) {
       const t = setTimeout(() => setVisible(true), 1200);

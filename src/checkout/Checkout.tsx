@@ -100,7 +100,28 @@ const Checkout = () => {
         return base * (1 + tasa);
     }, [selectedPlan, formData.cuotas, cuotasSeleccionadas, voucherAdded]);
 
-    const finalAmount    = useMemo(() => !appliedCoupon ? totalConInteres : totalConInteres * (1 - appliedCoupon.discount / 100), [totalConInteres, appliedCoupon]);
+    const finalAmount = useMemo(() => {
+        if (!appliedCoupon) return totalConInteres;
+
+        if (appliedCoupon.scope === 'all') {
+            // descuenta todo
+            return totalConInteres * (1 - appliedCoupon.discount / 100);
+        }
+
+        // scope: 'plans' — descuenta solo los items que aplican
+        let discountableBase = 0;
+        if (appliedCoupon.allowedPlans.includes(selectedPlan!.id)) {
+            discountableBase += selectedPlan!.price;
+        }
+        if (voucherAdded && appliedCoupon.allowedPlans.includes('voucher')) {
+            discountableBase += VOUCHER_PLAN.price;
+        }
+
+        const discount = discountableBase * (appliedCoupon.discount / 100);
+        return totalConInteres - discount;
+
+    }, [totalConInteres, appliedCoupon, selectedPlan, voucherAdded]);
+    
     const discountAmount = totalConInteres - finalAmount;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -110,7 +131,11 @@ const Checkout = () => {
         if (!user) { setCouponMsg({ text: "REGISTRO_REQUERIDO", isError: true }); return; }
         if (!selectedPlan) return;
         setLoading(true);
-        const message = await applyCoupon(couponInput, selectedPlan.id);
+
+        // pasamos todos los planes del pedido actual
+        const itemsToValidate = [selectedPlan.id, ...(voucherAdded ? ["voucher"] : [])];
+        const message = await applyCoupon(couponInput, itemsToValidate);
+
         setCouponMsg({ text: message.toUpperCase(), isError: !message.includes('éxito') && !message.includes('🟢') });
         setLoading(false);
     };

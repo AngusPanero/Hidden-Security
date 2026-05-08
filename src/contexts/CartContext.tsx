@@ -8,6 +8,7 @@ interface Coupon {
     type: 'single_use' | 'date_limited';
     expiryDate?: Date;
     appliedAt?: Date;
+    allowedPlans?: string[];
 }
 
 interface CartItem {
@@ -127,20 +128,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem("terminal_cart");
     };
 
-    const applyCoupon = async (code: string, planId: string) => {
+    const applyCoupon = async (code: string, planIds: string[]) => {
         if (!user) return "Debes iniciar sesión para aplicar cupones 🔴";
-    
+
         try {
             const response = await axios.post(
                 `${import.meta.env.VITE_API_URL}/api/coupons/validate`,
                 {
                     code,
                     email:  user.email,
-                    planId,          
+                    planId: planIds,  // back acepta string o array
                 },
                 { withCredentials: true }
             );
-    
+
             if (response.status === 200) {
                 const couponData = {
                     code:         response.data.coupon.code,
@@ -153,9 +154,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 setAppliedCoupon(couponData);
                 return response.data.message;
             }
-    
+
             return "Error inesperado";
-    
+
         } catch (error: any) {
             setAppliedCoupon(null);
             return error.response?.data?.message || "Error al validar cupón 🔴";

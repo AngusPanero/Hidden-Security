@@ -49,7 +49,7 @@ const CouponCreator = () => {
         try {
             await axios.delete(`${import.meta.env.VITE_API_URL}/api/coupons/${id}`, { withCredentials: true });
             fetchCoupons();
-        } catch (err) { alert("No se pudo eliminar"); }
+        } catch (err) { console.error("No se pudo eliminar", err); }
     };
 
     const handleChange = (e: any) => {
