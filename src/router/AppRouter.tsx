@@ -20,6 +20,7 @@ import Error from "../processMessages/Error";
 import CookieBanner from "../cookies/CookiesCorporate";
 import PoliticaCookies from "../cookies/PoliticaCookies";
 import Error404Minimal from "../processMessages/Error404Minimal";
+import ProcessOk from "../processMessages/Error";
 
 const AppRouter = () => {
     return (
@@ -39,19 +40,9 @@ const AppRouter = () => {
                                 <Route path="/checkout/:planId" element={<Checkout />} />
                                 <Route path="/loader" element={<Loader />} />
                                 <Route path="/error" element={<Error processMessage="" />} />
+                                <Route path="/ok" element={<ProcessOk processMessage="Compra Exitosa!" />} />
                                 <Route path="/policy-cookie" element={<PoliticaCookies />} />
                                 <Route path="/*" element={<Error404Minimal />} />
-                                {/* <Route path="/products" element={<ProductsMinimal />} />
-                                <Route path="/sales" element={<Sales />} />
-                                <Route path="/contact" element={<ContactMinimal />} />
-                                
-                                <Route path="/raffle-terms" element={<RaffleTermsCube />} />
-                                <Route path="/*" element={<Error404Minimal />} />
-                                
-                                <Route path="/product/:id" element={<ParamsProduct />} />
-                                <Route path="/testproducts" element={<IndividualProduct />} />
-                                <Route path="/cart-products-view" element={<CartView />} /> 
-                                <Route path="/checkout" element={<CheckoutPage />} />*/}
                                 <Route path="/dashboard" element={<PrivateRoute adminOnly={false}><UserDashboard /></PrivateRoute>} />
                                 Tiene Acceso solo el admin con la prop pasada
                                 <Route path="/admin" element={<PrivateRoute adminOnly={true}><AdminDashboard /></PrivateRoute>} />

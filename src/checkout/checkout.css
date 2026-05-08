@@ -454,7 +454,8 @@
     font-weight: 800;
     letter-spacing: 1.5px;
     color: var(--h-text);
-    opacity: 0.65;
+    opacity: 0.35;
+    text-decoration: underline;
     transition: opacity 0.2s;
 }
 
@@ -638,7 +639,7 @@
 /* ─── SESSION REQUIRED BANNER ───────────────────────────────── */
 .session-required-banner {
     max-width: 1400px;
-    margin: 0px auto 64px;
+    margin: 0 auto 24px;
     border: 1px solid var(--h-accent);
     border-left: 4px solid var(--h-accent);
     padding: 20px 24px;
@@ -651,17 +652,16 @@
 
 .session-required-tag {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
+    font-size: 0.6rem;
     font-weight: 800;
     color: var(--h-accent);
     letter-spacing: 2px;
     display: block;
     margin-bottom: 8px;
-
 }
 
 .session-required-text {
-    font-size: 1rem;
+    font-size: 0.82rem;
     font-weight: 500;
     color: var(--h-text);
     opacity: 0.75;
@@ -734,4 +734,80 @@
 .upsell-block {
     width: 100%;
     box-sizing: border-box;
+}
+
+/* ─── PLAN PREVIEW ──────────────────────────────────────────── */
+.plan-preview-header {
+    padding: 16px 0 12px;
+    border-bottom: 1px solid var(--h-border);
+    margin-bottom: 4px;
+}
+
+.plan-preview-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--h-accent);
+    letter-spacing: 2px;
+    opacity: 0.8;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.plan-preview-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.plan-preview-title {
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin: 0;
+}
+
+.plan-preview-price {
+    color: var(--h-accent);
+    font-size: 1.1rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.plan-preview-period {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--h-text);
+    opacity: 0.4;
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 4px;
+}
+
+.plan-preview-features {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.plan-preview-features li {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--h-text);
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.preview-bullet {
+    color: var(--h-accent);
+    font-weight: 900;
+    flex-shrink: 0;
 }
