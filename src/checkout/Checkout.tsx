@@ -9,9 +9,9 @@ import axios from "axios";
 import "./checkout.css";
 import Error from "../processMessages/Error";
 import Loader from "../loader/Loader";
-import ProcessOk from "../processMessages/ProcessOk";
 import useMercadoPago from "../hooks/useMercadoPago";
 import CreditCard from "../ui/creditCard/CreditCard";
+import ProcessOk from "../processMessages/ProcessOk";
 
 const ALL_PLANS = [
     {
@@ -80,46 +80,36 @@ const Checkout = () => {
     const [voucherAdded, setVoucherAdded] = useState(false);
 
     const [formData, setFormData] = useState({
-        nombre: "", email: user?.email || "", dni: "",
+        nombre: "", email: user?.email || "", telefono: "", dni: "",
         tarjetaNumero: "", mesVencimiento: "", añoVencimiento: "", cvv: "",
         cuotas: "1",
     });
 
-    const selectedPlan = useMemo(() => ALL_PLANS.find(p => p.id === planId?.toLowerCase()), [planId]);
-    const upgradeInfo  = useMemo(() => planId ? UPGRADE_MAP[planId.toLowerCase()] ?? null : null, [planId]);
+    const selectedPlan  = useMemo(() => ALL_PLANS.find(p => p.id === planId?.toLowerCase()), [planId]);
+    const upgradeInfo   = useMemo(() => planId ? UPGRADE_MAP[planId.toLowerCase()] ?? null : null, [planId]);
     const canAddVoucher = useMemo(() => planId ? PLANS_WITHOUT_VOUCHER.includes(planId.toLowerCase()) : false, [planId]);
-    const upgradePlan  = useMemo(() => upgradeInfo ? ALL_PLANS.find(p => p.id === upgradeInfo.targetId) : null, [upgradeInfo]);
+    const upgradePlan   = useMemo(() => upgradeInfo ? ALL_PLANS.find(p => p.id === upgradeInfo.targetId) : null, [upgradeInfo]);
 
     const cuotasSeleccionadas = parseInt(formData.cuotas);
 
     const totalConInteres = useMemo(() => {
         if (!selectedPlan) return 0;
-        const base = selectedPlan.price + (voucherAdded ? VOUCHER_PLAN.price : 0);
+        const base    = selectedPlan.price + (voucherAdded ? VOUCHER_PLAN.price : 0);
         const esGratis = selectedPlan.cuotas_sin_interes && cuotasSeleccionadas <= selectedPlan.cuotas_sin_interes;
-        const tasa = (cuotasSeleccionadas > 1 && !esGratis) ? (INTERES_RATES[formData.cuotas] || 0) : 0;
+        const tasa    = (cuotasSeleccionadas > 1 && !esGratis) ? (INTERES_RATES[formData.cuotas] || 0) : 0;
         return base * (1 + tasa);
     }, [selectedPlan, formData.cuotas, cuotasSeleccionadas, voucherAdded]);
 
     const finalAmount = useMemo(() => {
         if (!appliedCoupon) return totalConInteres;
-
         if (appliedCoupon.scope === 'all') {
-            // descuenta todo
             return totalConInteres * (1 - appliedCoupon.discount / 100);
         }
-
-        // scope: 'plans' — descuenta solo los items que aplican
         let discountableBase = 0;
-        if (appliedCoupon.allowedPlans.includes(selectedPlan!.id)) {
-            discountableBase += selectedPlan!.price;
-        }
-        if (voucherAdded && appliedCoupon.allowedPlans.includes('voucher')) {
-            discountableBase += VOUCHER_PLAN.price;
-        }
-
+        if (appliedCoupon.allowedPlans.includes(selectedPlan!.id)) discountableBase += selectedPlan!.price;
+        if (voucherAdded && appliedCoupon.allowedPlans.includes('voucher'))    discountableBase += VOUCHER_PLAN.price;
         const discount = discountableBase * (appliedCoupon.discount / 100);
         return totalConInteres - discount;
-
     }, [totalConInteres, appliedCoupon, selectedPlan, voucherAdded]);
 
     const discountAmount = totalConInteres - finalAmount;
@@ -131,11 +121,8 @@ const Checkout = () => {
         if (!user) { setCouponMsg({ text: "REGISTRO_REQUERIDO", isError: true }); return; }
         if (!selectedPlan) return;
         setLoading(true);
-
-        // pasamos todos los planes del pedido actual
         const itemsToValidate = [selectedPlan.id, ...(voucherAdded ? ["voucher"] : [])];
         const message = await applyCoupon(couponInput, itemsToValidate);
-
         setCouponMsg({ text: message.toUpperCase(), isError: !message.includes('éxito') && !message.includes('🟢') });
         setLoading(false);
     };
@@ -145,7 +132,7 @@ const Checkout = () => {
         if (!mp || !selectedPlan || !user) return;
         try {
             setLoading(true);
-            const cardNumber   = formData.tarjetaNumero.replace(/\s/g, "");
+            const cardNumber     = formData.tarjetaNumero.replace(/\s/g, "");
             const paymentMethods = await mp.getPaymentMethods({ bin: cardNumber.substring(0, 6) });
             const paymentMethod  = paymentMethods?.results?.[0];
             if (!paymentMethod) console.error("TARJETA_NO_SOPORTADA");
@@ -179,7 +166,7 @@ const Checkout = () => {
         }
     }; */
 
-    const makePayment = async (e: React.FormEvent) => {
+    const makePaymentTest = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedPlan || !user) return;
 
@@ -188,11 +175,13 @@ const Checkout = () => {
 
         try {
             setLoading(true);
-
-            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/test-course-payment`,
+            const { data } = await axios.post(
+                `${import.meta.env.VITE_API_URL}/test-course-payment`,
                 {
-                    transaction_amount: Math.round(finalAmount),
-                    payer: { email: formData.email },
+                    payer: {
+                        email: formData.email,
+                        phone: formData.telefono || null,   
+                    },
                     idempotencyKey,
                     items,
                     couponCode: appliedCoupon?.code || null,
@@ -200,18 +189,21 @@ const Checkout = () => {
                 { withCredentials: true }
             );
 
-            if (data.mp_status === "approved"){
+            if (data.mp_status === "approved") {
+                setStatus("ok");
                 try {
-                    await axios.post(`${import.meta.env.VITE_API_URL}/course-order-confirmation`, {
-                        name:       formData.nombre,
-                        email:      formData.email,
-                        items,                             
-                        totalPrice: Math.round(finalAmount),
-                        couponCode: appliedCoupon?.code  || null,
-                        discount:   appliedCoupon?.discount || null,
-                    }, { withCredentials: true });
-
-                    setStatus("ok")
+                    await axios.post(
+                        `${import.meta.env.VITE_API_URL}/confirm-order`,
+                        {
+                            name:       formData.nombre,
+                            email:      formData.email,
+                            items,
+                            totalPrice: data.amount,              
+                            couponCode: appliedCoupon?.code    || null,
+                            discount:   appliedCoupon?.discount || null,
+                        },
+                        { withCredentials: true }
+                    );
                 } catch (error: any) {
                     setError(`PAGO_REALIZADO_PERO_FALLO_CONFIRMACION, ${error}`);
                 }
@@ -229,28 +221,20 @@ const Checkout = () => {
     if (!selectedPlan)   return <Error processMessage="NO IDENTIFICADO" />;
     if (error)           return <Error processMessage={error} />;
     if (loading)         return <Loader />;
-    if (status === "ok") return <ProcessOk processMessage="COMPRA APROBADA!" />;
+    if (status === "ok") return <ProcessOk processMessage="COMPRA EXITOSA!" />;
 
     const upgradeDiff = upgradePlan ? upgradePlan.price - selectedPlan.price : 0;
 
     return (
         <main className={`checkout-screen ${theme}`}>
 
-            {/* AVISO SESIÓN — siempre primero */}
+            {/* AVISO SESIÓN */}
             {!user && (
                 <motion.div className="session-required-banner" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
                     <span className="session-required-tag">// AUTENTICACIÓN_REQUERIDA</span>
                     <p className="session-required-text">
                         El acceso al curso se registra en tu cuenta. Iniciá sesión para continuar con la compra.
                     </p>
-                    {/* <div className="session-required-actions">
-                        <button type="button" className="session-btn-primary Montserrat-900" onClick={() => navigate('/login')}>
-                            INICIAR_SESIÓN →
-                        </button>
-                        <button type="button" className="session-btn-secondary Montserrat-700" onClick={() => navigate('/register')}>
-                            CREAR_CUENTA
-                        </button>
-                    </div> */}
                 </motion.div>
             )}
 
@@ -263,7 +247,7 @@ const Checkout = () => {
                         <h1 className="Montserrat-900">PROCESAR_<span>ACCESO</span></h1>
                     </header>
 
-                    <form id="checkout-form" className="main-checkout-form" onSubmit={makePayment}>
+                    <form id="checkout-form" className="main-checkout-form" onSubmit={makePaymentTest}>
                         <section className={`checkout-section ${!user ? 'section-locked' : ''}`}>
                             <span className="section-label">01 // IDENTIDAD_DIGITAL</span>
                             <div className="input-field">
@@ -273,11 +257,25 @@ const Checkout = () => {
                             <div className="input-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px' }}>
                                 <div className="input-field">
                                     <label>ID_EMAIL</label>
+                                    {/* Email bloqueado — viene de la sesión */}
                                     <input value={user ? formData.email : '—'} disabled className="disabled-input" />
                                 </div>
+
+                                <div className="input-field">
+                                    <label>TELÉFONO</label>
+                                    {/* ✅ corregido: ya no tiene disabled hardcodeado */}
+                                    <input
+                                        name="telefono"
+                                        placeholder="11-1234-5678"
+                                        value={formData.telefono}
+                                        onChange={handleChange}
+                                        disabled={!user}
+                                    />
+                                </div>
+
                                 <div className="input-field">
                                     <label>DNI</label>
-                                    <input name="dni" placeholder="NUMERO" onChange={handleChange} required disabled={!user} />
+                                    <input name="dni" placeholder="NÚMERO" onChange={handleChange} required disabled={!user} />
                                 </div>
                             </div>
                         </section>
@@ -308,7 +306,7 @@ const Checkout = () => {
                     <div className="summary-sticky-content">
                         <CreditCard data={formData} isFlipped={isFlipped} />
 
-                        {/* PLAN SELECCIONADO — info completa */}
+                        {/* PLAN SELECCIONADO */}
                         <div className="checkout-items-preview">
                             <span className="section-label">SISTEMA_PLAN_ACTIVO</span>
 

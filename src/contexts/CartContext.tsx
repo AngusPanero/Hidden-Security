@@ -9,6 +9,7 @@ interface Coupon {
     expiryDate?: Date;
     appliedAt?: Date;
     allowedPlans?: string[];
+    scope?: string | string[];
 }
 
 interface CartItem {

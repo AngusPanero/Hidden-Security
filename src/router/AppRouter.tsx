@@ -4,7 +4,6 @@ import FooterMinimal from "../footer/minimalFooter/FooterMinimal";
 import NavBarMinimal from "../navbar/navbarMinimal/NavBarMinimal";
 import Home from "../home/Home";
 import CompanyInfo from "../companyInfo/CompanyInfoMinimal";
-import SorteoDevMinimal from "../sorteo/SorteoDevMinimal";
 import CursosParams from "../courses/CursosParams";
 import Courses from "../courses/relativeRoutes/Courses";
 import Contact from "../contact/Contact";
@@ -20,7 +19,7 @@ import Error from "../processMessages/Error";
 import CookieBanner from "../cookies/CookiesCorporate";
 import PoliticaCookies from "../cookies/PoliticaCookies";
 import Error404Minimal from "../processMessages/Error404Minimal";
-import ProcessOk from "../processMessages/Error";
+import ProcessOk from "../processMessages/ProcessOk";
 
 const AppRouter = () => {
     return (
@@ -32,7 +31,7 @@ const AppRouter = () => {
                             <Routes>
                                 <Route path="/" element={<Home />} />
                                 <Route path="/company" element={<CompanyInfo />} />
-                                <Route path="/raffles" element={<SorteoDevMinimal />} />
+                                {/* <Route path="/raffles" element={<SorteoDevMinimal />} /> */}
                                 <Route path="/courses-info" element={<CursosParams />} />
                                 <Route path="/courses-info/:courseSlug" element={<Courses />} />
                                 <Route path="/contact" element={<Contact />} />

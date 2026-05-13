@@ -21,12 +21,9 @@ const Contact = () => {
         setLoading(true);
 
         try {
-            // Asegúrate que esta ruta /contact sea la que guarda en DB y devuelva 201
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/contact`, contact);
             
             if (response.status === 201 || response.status === 200) {
-                await axios.post(`${import.meta.env.VITE_API_URL}/send-email`, contact);
-                
                 setProcess("ok");
                 setLoading(false);
             }
