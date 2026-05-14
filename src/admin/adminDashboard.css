@@ -122,7 +122,8 @@
     height:      6px;
     background:  var(--h-accent);
     flex-shrink: 0;
-    animation:   hs-blink 1.5s ease-in-out infinite;
+    animation:   hs-blink 2s ease-in-out infinite;
+    border-radius: 50px;
 }
 
 /* ── TABS NAV ────────────────────────────────────────────────── */

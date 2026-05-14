@@ -1,0 +1,743 @@
+/* ══════════════════════════════════════════════════════════════
+   vacancyManager.css — HIDDEN SECURITY
+   Montserrat 700/900 + Montserrat
+══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap');
+
+/* ── Variables dark (default) ───────────────────────────────── */
+.hs-vacancy-manager {
+  --h-bg:             #000000;
+  --h-text:           #ffffff;
+  --h-accent:         #ccff00;
+  --h-accent-alpha:   rgba(204, 255, 0, 0.25);
+  --h-accent-bg:      rgba(204, 255, 0, 0.06);
+  --h-accent-bg-soft: rgba(204, 255, 0, 0.08);
+  --h-accent-hover:   rgba(204, 255, 0, 0.1);
+  --h-accent-border:  rgba(204, 255, 0, 0.3);
+  --h-accent-focus:   rgba(204, 255, 0, 0.5);
+  --h-border:         rgba(255, 255, 255, 0.1);
+  --h-border-hover:   rgba(255, 255, 255, 0.3);
+  --h-border-subtle:  rgba(255, 255, 255, 0.04);
+  --h-border-closed:  rgba(255, 255, 255, 0.05);
+  --h-surface:        rgba(255, 255, 255, 0.015);
+  --h-surface-input:  rgba(255, 255, 255, 0.03);
+  --h-muted:          rgba(255, 255, 255, 0.45);
+  --h-hint:           rgba(255, 255, 255, 0.3);
+  --h-placeholder:    rgba(255, 255, 255, 0.2);
+  --h-danger:         #ff4444;
+  --h-select-arrow:   %23ccff00;
+  --h-select-bg:      #111111;
+  --h-select-text:    #ffffff;
+  --h-btn-accent-hover: #d4ff1a;
+
+  background:  var(--h-bg);
+  color:       var(--h-text);
+  font-family: 'Montserrat', sans-serif;
+  min-height:  100vh;
+  padding:     60px 5% 100px;
+  box-sizing:  border-box;
+}
+
+/* ── Variables light ────────────────────────────────────────── */
+.hs-vacancy-manager.light {
+  --h-bg:             #f5f5f5;
+  --h-text:           #000000;
+  --h-accent:         #ff5500;
+  --h-accent-alpha:   rgba(255, 85, 0, 0.2);
+  --h-accent-bg:      rgba(255, 85, 0, 0.06);
+  --h-accent-bg-soft: rgba(255, 85, 0, 0.08);
+  --h-accent-hover:   rgba(255, 85, 0, 0.1);
+  --h-accent-border:  rgba(255, 85, 0, 0.3);
+  --h-accent-focus:   rgba(255, 85, 0, 0.5);
+  --h-border:         rgba(0, 0, 0, 0.12);
+  --h-border-hover:   rgba(0, 0, 0, 0.3);
+  --h-border-subtle:  rgba(0, 0, 0, 0.06);
+  --h-border-closed:  rgba(0, 0, 0, 0.06);
+  --h-surface:        rgba(0, 0, 0, 0.02);
+  --h-surface-input:  rgba(0, 0, 0, 0.03);
+  --h-muted:          rgba(0, 0, 0, 0.45);
+  --h-hint:           rgba(0, 0, 0, 0.3);
+  --h-placeholder:    rgba(0, 0, 0, 0.25);
+  --h-danger:         #cc0000;
+  --h-select-arrow:   %23ff5500;
+  --h-select-bg:      #eeeeee;
+  --h-select-text:    #000000;
+  --h-btn-accent-hover: #e04a00;
+}
+
+/* ── Typography helpers ─────────────────────────────────────── */
+.hs-terminal-text {
+  font-family:    'Montserrat', monospace;
+  font-size:      0.75rem;
+  font-weight:    800;
+  color:          var(--h-accent);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display:        block;
+  margin-bottom:  6px;
+}
+
+.hs-terminal-text--sm  { font-size: 0.65rem; margin-bottom: 3px; }
+.hs-terminal-text--lg  { font-size: 0.9rem;  margin-bottom: 12px; }
+.hs-accent             { color: var(--h-accent); }
+.hs-required           { color: var(--h-accent); }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.hs-vm-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-end;
+  margin-bottom:   50px;
+  border-left:     3px solid var(--h-accent);
+  padding-left:    25px;
+}
+
+.hs-vm-title {
+  font-size:      3rem;
+  font-weight:    900;
+  letter-spacing: -2px;
+  text-transform: uppercase;
+  line-height:    1;
+  margin:         5px 0 0;
+}
+
+@media (max-width: 768px) {
+  .hs-vm-header  { flex-direction: column; align-items: flex-start; gap: 24px; }
+  .hs-vm-title   { font-size: 2rem; }
+}
+
+/* ── Filtros ────────────────────────────────────────────────── */
+.hs-vm-filters {
+  display:       flex;
+  gap:           8px;
+  margin-bottom: 32px;
+  flex-wrap:     wrap;
+}
+
+.hs-filter-btn {
+  display:        flex;
+  align-items:    center;
+  gap:            8px;
+  padding:        8px 18px;
+  background:     transparent;
+  border:         1px solid var(--h-border);
+  color:          var(--h-muted);
+  font-family:    'Montserrat', monospace;
+  font-size:      0.7rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor:         pointer;
+  transition:     border-color 0.2s, color 0.2s;
+}
+
+.hs-filter-btn:hover {
+  border-color: var(--h-accent-border);
+  color:        var(--h-text);
+}
+
+.hs-filter-btn--active {
+  border-color: var(--h-accent);
+  color:        var(--h-accent);
+}
+
+.hs-filter-count {
+  background:    var(--h-accent-hover);
+  color:         var(--h-accent);
+  border-radius: 2px;
+  padding:       1px 6px;
+  font-size:     0.65rem;
+}
+
+/* ── Grid de vacantes ───────────────────────────────────────── */
+.hs-vacancy-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap:                   20px;
+}
+
+/* ── Card ───────────────────────────────────────────────────── */
+.hs-card {
+  background:     var(--h-surface);
+  border:         1px solid var(--h-border);
+  padding:        24px 26px;
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+  transition:     border-color 0.25s;
+}
+
+/* Company row */
+.hs-card-company {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding-bottom: 14px;
+  border-bottom:  1px solid var(--h-border);
+}
+
+.hs-card-company-logo {
+  width:         50px;
+  height:        auto;
+  border-radius: 4px;
+  object-fit:    cover;
+  border:        1px solid var(--h-border);
+}
+
+.hs-card-company-placeholder {
+  width:           32px;
+  height:          32px;
+  border-radius:   4px;
+  background:      var(--h-accent-bg);
+  border:          1px solid var(--h-accent-border);
+  color:           var(--h-accent);
+  font-family:     'Montserrat', monospace;
+  font-size:       0.75rem;
+  font-weight:     800;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+}
+
+.hs-card-company-name {
+  font-size:      1rem;
+  font-weight:    700;
+  color:          var(--h-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Salary */
+.hs-card-salary {
+  font-size:   1rem;
+  font-weight: 700;
+  color:       var(--h-text);
+}
+
+/* Closes at */
+.hs-card-closes {
+  font-family:    'Montserrat', monospace;
+  font-size:      0.62rem;
+  font-weight:    700;
+  color:          var(--h-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hs-card:hover        { border-color: var(--h-accent-alpha); }
+.hs-card--paused      { opacity: 0.65; }
+.hs-card--closed      { opacity: 0.45; border-color: var(--h-border-closed); }
+
+.hs-card-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-start;
+  gap:             12px;
+}
+
+.hs-card-meta   { flex: 1; }
+
+.hs-card-title {
+  font-size:      1.1rem;
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  margin:         4px 0 6px;
+  line-height:    1.2;
+}
+
+.hs-card-subtitle {
+  font-size:   0.75rem;
+  color:       var(--h-muted);
+  font-weight: 600;
+}
+
+/* Status badges */
+.hs-status-badge {
+  font-family:    'Montserrat', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  padding:        4px 10px;
+  border:         1px solid;
+  white-space:    nowrap;
+  flex-shrink:    0;
+}
+
+.hs-status-badge--active {
+  color:        var(--h-accent);
+  border-color: var(--h-accent-border);
+  background:   var(--h-accent-bg);
+}
+
+.hs-status-badge--paused {
+  color:        #facc15;
+  border-color: rgba(250, 204, 21, 0.4);
+  background:   rgba(250, 204, 21, 0.06);
+}
+
+.hs-status-badge--closed {
+  color:        var(--h-muted);
+  border-color: var(--h-border);
+  background:   transparent;
+}
+
+/* Skills en card */
+.hs-card-skills {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.hs-card-skill {
+  background:     transparent;
+  border:         1px solid var(--h-accent-border);
+  color:          var(--h-accent);
+  font-family:    'Montserrat', monospace;
+  font-size:      0.65rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  padding:        3px 10px;
+  opacity:        0.7;
+}
+
+.hs-card-skill-more {
+  color:       var(--h-muted);
+  font-size:   0.7rem;
+  font-weight: 600;
+  align-self:  center;
+}
+
+/* Card footer */
+.hs-card-footer {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  border-top:      1px solid var(--h-border);
+  padding-top:     16px;
+  gap:             12px;
+  flex-wrap:       wrap;
+}
+
+.hs-card-applicants {
+  font-family:    'Montserrat', monospace;
+  font-size:      0.65rem;
+  font-weight:    700;
+  color:          var(--h-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hs-card-actions { display: flex; gap: 6px; }
+
+/* Botones de acción en card */
+.hs-action-btn {
+  padding:        5px 12px;
+  background:     transparent;
+  border:         1px solid var(--h-border);
+  color:          var(--h-muted);
+  font-family:    'Montserrat', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  cursor:         pointer;
+  transition:     border-color 0.2s, color 0.2s;
+}
+
+.hs-action-btn:hover {
+  border-color: var(--h-border-hover);
+  color:        var(--h-text);
+}
+
+.hs-action-btn--accent {
+  border-color: var(--h-accent-border);
+  color:        var(--h-accent);
+}
+
+.hs-action-btn--accent:hover {
+  border-color: var(--h-accent);
+  background:   var(--h-accent-bg);
+}
+
+.hs-action-btn--danger {
+  color:        var(--h-danger);
+  border-color: var(--h-border);
+  opacity:      0.6;
+}
+
+.hs-action-btn--danger:hover {
+  opacity:      1;
+  border-color: var(--h-danger);
+}
+
+.hs-action-btn--confirm {
+  color:        var(--h-bg)    !important;
+  background:   var(--h-danger) !important;
+  border-color: var(--h-danger) !important;
+  opacity:      1               !important;
+  animation:    hs-pulse 0.5s ease;
+}
+
+@keyframes hs-pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+.hs-empty {
+  text-align: center;
+  padding:    100px 0;
+  border:     1px dashed var(--h-border);
+}
+
+.hs-empty-text {
+  color:       var(--h-muted);
+  font-size:   0.9rem;
+  font-weight: 600;
+  margin-top:  8px;
+}
+
+/* ── Botones globales ───────────────────────────────────────── */
+.hs-btn {
+  padding:        10px 22px;
+  background:     transparent;
+  border:         1px solid var(--h-border);
+  color:          var(--h-muted);
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.8rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor:         pointer;
+  transition:     all 0.2s;
+}
+
+.hs-btn:hover        { border-color: var(--h-border-hover); color: var(--h-text); }
+.hs-btn--ghost:hover { background: var(--h-surface); }
+
+.hs-btn--accent {
+  background:   var(--h-accent);
+  border-color: var(--h-accent);
+  color:        #000000;
+  font-weight:  900;
+}
+
+.hs-btn--accent:hover {
+  background:   var(--h-btn-accent-hover);
+  border-color: var(--h-btn-accent-hover);
+  color:        #000000;
+}
+
+.hs-btn--lg { padding: 13px 30px; font-size: 0.85rem; }
+
+/* ── Modal ──────────────────────────────────────────────────── */
+.hs-modal-overlay {
+  position:        fixed;
+  inset:           0;
+  z-index:         200;
+  background:      rgba(0, 0, 0, 0.88);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         20px;
+}
+
+.hs-modal {
+  background:     var(--h-bg);
+  border:         1px solid var(--h-accent-alpha);
+  width:          100%;
+  max-width:      900px;
+  max-height:     80vh;
+  overflow-y:     auto;
+  display:        flex;
+  flex-direction: column;
+  margin-top: 5rem;
+}
+
+.hs-modal-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-start;
+  padding:         32px 36px 24px;
+  border-bottom:   1px solid var(--h-border);
+  position:        sticky;
+  top:             0;
+  background:      var(--h-bg);
+  z-index:         1;
+}
+
+.hs-modal-title {
+  font-size:      1.6rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  margin:         4px 0 0;
+}
+
+.hs-modal-close {
+  background:  transparent;
+  border:      none;
+  color:       var(--h-muted);
+  font-size:   28px;
+  cursor:      pointer;
+  line-height: 1;
+  padding:     0;
+  transition:  color 0.2s;
+}
+
+.hs-modal-close:hover { color: var(--h-text); }
+
+.hs-modal-body {
+  padding:    28px 36px;
+  flex:       1;
+  overflow-y: auto;
+}
+
+.hs-modal-footer {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             10px;
+  padding:         20px 36px 28px;
+  border-top:      1px solid var(--h-border);
+  position:        sticky;
+  bottom:          0;
+  background:      var(--h-bg);
+}
+
+/* ── Company preview en modal ───────────────────────────────── */
+.hs-modal-company-preview {
+  background:    var(--h-surface);
+  border:        1px solid var(--h-border);
+  padding:       14px 16px;
+  margin-bottom: 24px;
+}
+
+.hs-modal-company-row {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  margin-top:  8px;
+}
+
+.hs-modal-company-logo {
+  width:         40px;
+  height:        40px;
+  border-radius: 4px;
+  object-fit:    cover;
+  border:        1px solid var(--h-border);
+  flex-shrink:   0;
+}
+
+.hs-modal-company-placeholder {
+  width:           40px;
+  height:          40px;
+  border-radius:   4px;
+  background:      var(--h-accent-bg);
+  border:          1px solid var(--h-accent-border);
+  color:           var(--h-accent);
+  font-family:     'Montserrat', monospace;
+  font-size:       1rem;
+  font-weight:     800;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+}
+
+.hs-modal-company-name {
+  font-size:      0.9rem;
+  font-weight:    700;
+  color:          var(--h-text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hs-modal-company-empty {
+  font-size:   0.75rem;
+  font-weight: 600;
+  color:       var(--h-danger);
+  font-family: 'Montserrat', monospace;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── Form elements ──────────────────────────────────────────── */
+.hs-field { margin-bottom: 22px; }
+
+.hs-field-label {
+  font-family:    'Montserrat', monospace;
+  font-size:      0.68rem;
+  font-weight:    800;
+  color:          var(--h-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  display:        block;
+  margin-bottom:  8px;
+}
+
+.hs-field-hint {
+  font-size:   0.7rem;
+  color:       var(--h-hint);
+  margin-top:  6px;
+  line-height: 1.5;
+}
+
+.hs-field-error {
+  font-size:   0.7rem;
+  color:       var(--h-danger);
+  margin-top:  5px;
+  font-weight: 700;
+}
+
+.hs-input {
+  width:              100%;
+  background:         var(--h-surface-input);
+  border:             1px solid var(--h-border);
+  color:              var(--h-text);
+  font-family:        'Montserrat', sans-serif;
+  font-size:          0.875rem;
+  font-weight:        600;
+  padding:            11px 14px;
+  box-sizing:         border-box;
+  outline:            none;
+  transition:         border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.hs-input:focus       { border-color: var(--h-accent-focus); }
+.hs-input::placeholder { color: var(--h-placeholder); }
+.hs-input--error      { border-color: var(--h-danger) !important; }
+.hs-textarea          { resize: vertical; min-height: 90px; }
+
+.hs-select {
+  cursor:              pointer;
+  background-image:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='var(--h-select-arrow)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat:   no-repeat;
+  background-position: right 12px center;
+  padding-right:       34px;
+}
+
+/* Las options del select no pueden leer CSS variables del padre, así que van hardcodeadas por tema */
+.hs-vacancy-manager       .hs-select option { background: #111111; color: #ffffff; }
+.hs-vacancy-manager.light .hs-select option { background: #eeeeee; color: #000000; }
+
+.hs-select--narrow { width: 80px; flex-shrink: 0; }
+
+.hs-grid-3 {
+  display:               grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:                   14px;
+}
+
+@media (max-width: 600px) {
+  .hs-grid-3 { grid-template-columns: 1fr; }
+}
+
+.hs-salary-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.hs-salary-row .hs-input:not(.hs-select--narrow) { flex: 1; min-width: 120px; }
+
+.hs-checkbox-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-top:  10px;
+  cursor:      pointer;
+}
+
+.hs-checkbox       { accent-color: var(--h-accent); width: 14px; height: 14px; }
+.hs-checkbox-label { font-size: 0.75rem; font-weight: 600; color: var(--h-muted); }
+
+/* ── Skill Selector ─────────────────────────────────────────── */
+.hs-skill-selector { position: relative; }
+
+.hs-skill-input-box {
+  border:     1px solid var(--h-border);
+  background: var(--h-surface-input);
+  padding:    8px 10px;
+  min-height: 46px;
+  display:    flex;
+  flex-wrap:  wrap;
+  gap:        6px;
+  cursor:     text;
+  transition: border-color 0.2s;
+}
+
+.hs-skill-input-box:focus-within { border-color: var(--h-accent-focus); }
+
+.hs-skill-tag {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            5px;
+  background:     var(--h-accent-bg-soft);
+  border:         1px solid var(--h-accent-border);
+  color:          var(--h-accent);
+  font-family:    'Montserrat', monospace;
+  font-size:      0.65rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  padding:        3px 10px;
+}
+
+.hs-skill-remove {
+  background:  transparent;
+  border:      none;
+  color:       var(--h-accent);
+  cursor:      pointer;
+  padding:     0;
+  font-size:   16px;
+  line-height: 1;
+  opacity:     0.6;
+  transition:  opacity 0.15s;
+}
+
+.hs-skill-remove:hover { opacity: 1; }
+
+.hs-skill-search {
+  background:  transparent;
+  border:      none;
+  outline:     none;
+  color:       var(--h-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.8rem;
+  font-weight: 600;
+  flex:        1;
+  min-width:   140px;
+}
+
+.hs-skill-search::placeholder { color: var(--h-placeholder); }
+
+.hs-skill-dropdown {
+  position:   absolute;
+  top:        calc(100% + 2px);
+  left:       0;
+  right:      0;
+  z-index:    100;
+  background: var(--h-bg);
+  border:     1px solid var(--h-accent-alpha);
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.hs-skill-option {
+  padding:       9px 16px;
+  cursor:        pointer;
+  font-size:     0.8rem;
+  font-weight:   600;
+  color:         var(--h-muted);
+  border-bottom: 1px solid var(--h-border-subtle);
+  transition:    color 0.15s, background 0.15s;
+}
+
+.hs-skill-option:hover {
+  background: var(--h-accent-hover);
+  color:      var(--h-accent);
+}
+
+@keyframes hs-slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
