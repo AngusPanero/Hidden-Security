@@ -13,10 +13,10 @@ gsap.registerPlugin(ScrollTrigger);
 const Home = () => {
   const { width } = UseWidth();
   const { theme } = UseTheme();
-  const containerRef = useRef(null);
-  const textRef = useRef(null);
-  const canvasRef = useRef(null);
-  const welcomeTextRef = useRef(null); // Ref para el nuevo texto interno
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLHeadingElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const welcomeTextRef = useRef<HTMLHeadingElement>(null); // Ref para el nuevo texto interno
 
   // --- LÓGICA MATRIX (Tus colores y opacidades originales) ---
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, cubicBezier } from "framer-motion";
 
 const FloatingTitle = ({ text }: { text: string }) => {
   const letters = Array.from(text);
@@ -35,7 +35,7 @@ const FloatingTitle = ({ text }: { text: string }) => {
       filter: "blur(0px) brightness(1)",
       transition: {
         duration: 1.5, // Un toque más ágil para la carga inicial
-        ease: [0.16, 1, 0.3, 1], // Easeout ultra fluido
+        ease: cubicBezier(0.16, 1, 0.3, 1), // Easeout ultra fluido
       },
     },
   };

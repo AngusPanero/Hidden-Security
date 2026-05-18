@@ -321,7 +321,7 @@ const UserDashboard = () => {
                                                 {p.items && p.items.length > 0 && (
                                                     <div className="dm-detail-block">
                                                         <span className="dm-detail-title">PRODUCTOS</span>
-                                                        {p.items.map((item, i) => (
+                                                        {p.items.map((item: any, i: any) => (
                                                             <div key={i} className="dm-item-row">
                                                                 <div className="dm-item-info">
                                                                     <strong>{item.nombre}</strong>

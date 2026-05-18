@@ -182,6 +182,7 @@ export interface Translation {
         loginTooManyAttempts: string
         loginInvalidCredentials: string
         loginAttemptsLeft: string
+        loginAttemptsLeftAfter?: string
         loginGeneralError: string
         resetEmailRequired: string
         resetEmailSent: string
@@ -418,7 +419,8 @@ export const LanguageProvider = ({ children }: ProviderProps) => {
             loginBanned: "User banned. Contact DeepDev.",
             loginTooManyAttempts: "Your account was blocked due to too many failed attempts.",
             loginInvalidCredentials: "Invalid credentials.",
-            loginAttemptsLeft: "Invalid credentials. You have {{attempts}} attempt(s) left.",
+            loginAttemptsLeft: "Invalid credentials. You have attempt(s) left.",
+
             loginGeneralError: "Error logging in. Try again later.",
             resetEmailRequired: "Please enter your email to reset your password.",
             resetEmailSent: "Email sent! Check your inbox.",
@@ -638,7 +640,8 @@ export const LanguageProvider = ({ children }: ProviderProps) => {
             loginBanned: "Usuario baneado. Contactate con DeepDev.",
             loginTooManyAttempts: "Tu cuenta fue bloqueada por demasiados intentos fallidos.",
             loginInvalidCredentials: "Credenciales inválidas.",
-            loginAttemptsLeft: "Credenciales inválidas. Te quedan {{attempts}} intento(s).",
+            loginAttemptsLeft: "Credenciales inválidas. Te quedan intento(s).",
+            loginAttemptsLeftAfter: "restantes.",
             loginGeneralError: "Error al iniciar sesión. Intentá más tarde.",
             resetEmailRequired: "Por favor, ingresa tu email para restablecer la contraseña.",
             resetEmailSent: "¡Email enviado! Revisa tu bandeja de entrada.",
@@ -857,7 +860,8 @@ Il nostro approccio assicura che ogni informazione arrivi nel posto giusto al mo
             loginBanned: "Utente bannato. Contatta DeepDev.",
             loginTooManyAttempts: "Il tuo account è stato bloccato per troppi tentativi falliti.",
             loginInvalidCredentials: "Credenziali non valide.",
-            loginAttemptsLeft: "Credenziali non valide. Ti rimangono {{attempts}} tentativi.",
+            loginAttemptsLeft: "Credenziali non valide. Ti rimangono tentativi.",
+
             loginGeneralError: "Errore durante l'accesso. Riprova più tardi.",
             resetEmailRequired: "Per favore, inserisci la tua email per reimpostare la password.",
             resetEmailSent: "Email inviata! Controlla la tua posta in arrivo.",
@@ -1073,7 +1077,8 @@ Il nostro approccio assicura che ogni informazione arrivi nel posto giusto al mo
             loginBanned: "Utilisateur banni. Contactez DeepDev.",
             loginTooManyAttempts: "Votre compte a été bloqué suite à trop de tentatives infructueuses.",
             loginInvalidCredentials: "Identifiants invalides.",
-            loginAttemptsLeft: "Identifiants invalides. Il vous reste {{attempts}} tentative(s).",
+            loginAttemptsLeft: "Identifiants invalides. Il vous reste tentative(s).",
+
             loginGeneralError: "Erreur lors de la connexion. Réessayez plus tard.",
             resetEmailRequired: "Veuillez saisir votre e-mail pour réinitialiser le mot de passe.",
             resetEmailSent: "E-mail envoyé ! Vérifiez votre boîte de réception.",
@@ -1288,7 +1293,8 @@ Durch die Integration Ihrer Tools helfen wir Ihrem Unternehmen, die Effizienz zu
             loginBanned: "Benutzer gesperrt. Kontaktieren Sie DeepDev.",
             loginTooManyAttempts: "Ihr Konto wurde wegen zu vieler fehlgeschlagener Versuche gesperrt.",
             loginInvalidCredentials: "Ungültige Anmeldedaten.",
-            loginAttemptsLeft: "Ungültige Anmeldedaten. Sie haben noch {{attempts}} Versuch(e).",
+            loginAttemptsLeft: "Ungültige Anmeldedaten. Sie haben noch Versuch(e).",
+
             loginGeneralError: "Fehler beim Anmelden. Versuchen Sie es später erneut.",
             resetEmailRequired: "Bitte geben Sie Ihre E-Mail ein, um das Passwort zurückzusetzen.",
             resetEmailSent: "E-Mail gesendet! Überprüfen Sie Ihren Posteingang.",
@@ -1503,7 +1509,8 @@ Durch die Integration Ihrer Tools helfen wir Ihrem Unternehmen, die Effizienz zu
             loginBanned: "Пользователь заблокирован. Свяжитесь с DeepDev.",
             loginTooManyAttempts: "Ваш аккаунт заблокирован из-за слишком большого количества неудачных попыток.",
             loginInvalidCredentials: "Неверные учетные данные.",
-            loginAttemptsLeft: "Неверные учетные данные. У вас осталось {{attempts}} попыток.",
+            loginAttemptsLeft: "Неверные учетные данные. У вас осталось попыток.",
+
             loginGeneralError: "Ошибка при входе в систему. Попробуйте позже.",
             resetEmailRequired: "Пожалуйста, введите свой email для сброса пароля.",
             resetEmailSent: "Email отправлен! Проверьте папку входящие.",

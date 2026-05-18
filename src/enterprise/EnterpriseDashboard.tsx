@@ -202,27 +202,27 @@ function PostuladosTab() {
 
 // ─── EnterpriseDashboard ──────────────────────────────────────────────────────
 const EnterpriseDashboard = () => {
-  const { user }                         = UseSession();
-  const { allTickets, getAllTickets }     = UseShopping();
-  const { theme }                        = UseTheme();
+  const { user } = UseSession();
+  const { allTickets, getAllTickets } = UseShopping();
+  const { theme } = UseTheme();
 
-  const [activeTab,       setActiveTab]       = useState("vacancy");
-  const [toast,           setToast]           = useState<{ msg: string; color: string; bg: string } | null>(null);
+  const [activeTab, setActiveTab] = useState("vacancy");
+  const [toast, setToast] = useState<{ msg: string; color: string; bg: string } | null>(null);
   const [applicantCount,  setApplicantCount]  = useState(0);
-  const [newApplicants,   setNewApplicants]   = useState<ApplicantEvent[]>([]);
+  const [,   setNewApplicants]   = useState<ApplicantEvent[]>([]);
 
-  const audioCtxRef        = useRef<AudioContext | null>(null);
-  const toastTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sseSalesRef        = useRef<EventSource | null>(null);
-  const sseApplicantsRef   = useRef<EventSource | null>(null);
-  const getAllTicketsRef    = useRef(getAllTickets);
-  const showToastRef       = useRef<(msg: string, color?: string, bg?: string) => void>(() => {});
-  const activeTabRef       = useRef(activeTab);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sseSalesRef = useRef<EventSource | null>(null);
+  const sseApplicantsRef = useRef<EventSource | null>(null);
+  const getAllTicketsRef = useRef(getAllTickets);
+  const showToastRef = useRef<(msg: string, color?: string, bg?: string) => void>(() => {});
+  const activeTabRef = useRef(activeTab);
 
   useEffect(() => { getAllTicketsRef.current = getAllTickets; });
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
-  const uncheckedCount = allTickets.filter((t) => !t.checked).length;
+  /* const uncheckedCount = allTickets.filter((t: any) => !t.checked).length; */
 
   // Inicializar AudioContext en el primer click — requerido por los browsers
   useEffect(() => {

@@ -537,11 +537,11 @@ export default function VacancyManager() {
   const { theme } = UseTheme();
   const isLight = theme === "light";
 
-  const [vacancies,      setVacancies]      = useState<Vacancy[]>([]);
-  const [showModal,      setShowModal]      = useState(false);
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [showModal, setShowModal] = useState(false);
   const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null);
-  const [filterStatus,   setFilterStatus]   = useState<Status | "all">("all");
-  const [toast,          setToast]          = useState<ToastState | null>(null);
+  const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
+  const [, setToast] = useState<ToastState | null>(null);
 
   const notify = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });

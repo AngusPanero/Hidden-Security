@@ -3,7 +3,6 @@ import "./loginMinimal.css";
 import eyeClose from "/logos/eye-close.svg";
 import eyeOpen from "/logos/eye-open.svg";
 import Loader from "../../loader/Loader";
-import { UseLanguage } from "../../contexts/LanguageContext";
 import { UseTheme } from "../../contexts/ThemeContext";
 import { UseSession } from "../../contexts/SessionContext";
 
@@ -13,7 +12,6 @@ interface LoginProps {
 }
 
 const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
-    const { language, texts } = UseLanguage();  
     const { theme } = UseTheme();
     const { handleLogin, loading, error, handleResetPassword } = UseSession();
     const loginRef = useRef<HTMLDivElement>(null);

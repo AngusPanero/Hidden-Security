@@ -3,8 +3,6 @@ import { motion, useScroll, useSpring, useTransform, useMotionValue, useVelocity
 import { wrap } from '@motionone/utils';
 import './logoCarrousel.css';
 import { UseTheme } from '../contexts/ThemeContext';
-import LiveTypingText from '../ui/LiveTypingText';
-
 interface MarqueeProps {
   logos: string[];
   baseVelocity: number;
@@ -23,7 +21,7 @@ const MarqueeRow: React.FC<MarqueeProps> = ({ logos, baseVelocity = 100 }) => {
 
     const directionFactor = useRef<number>(1);
     
-    useAnimationFrame((t, delta) => {
+    useAnimationFrame((_, delta) => {
         let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
 
         // Cambiar dirección según el scroll

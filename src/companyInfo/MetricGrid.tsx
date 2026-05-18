@@ -85,5 +85,5 @@ export const MetricGrid: React.FC<MetricGridProps> = ({
         ))}
       </div>
     </section>
-  );å
+  );
 };
