@@ -408,6 +408,10 @@ interface VacancyCardProps {
 function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const isExpired = vacancy.closesAt
+    ? new Date(vacancy.closesAt) < new Date()
+    : false;
+
   const handleDelete = () => {
     if (confirmDelete) {
       onDelete(vacancy._id);
@@ -418,7 +422,7 @@ function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardP
   };
 
   return (
-    <div className={`hs-card hs-card--${vacancy.status}`}>
+    <div className={`hs-card hs-card--${vacancy.status}${isExpired ? " hs-card--expired" : ""}`}>
 
       {/* Empresa */}
       <div className="hs-card-company">
@@ -441,9 +445,14 @@ function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardP
             {vacancy.location ? ` · ${vacancy.location}` : ""}
           </p>
         </div>
-        <span className={`hs-status-badge hs-status-badge--${vacancy.status}`}>
-          {STATUS_LABELS[vacancy.status]}
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+          <span className={`hs-status-badge hs-status-badge--${vacancy.status}`}>
+            {STATUS_LABELS[vacancy.status]}
+          </span>
+          {isExpired && (
+            <span className="hs-status-badge hs-status-badge--expired">VENCIDA</span>
+          )}
+        </div>
       </div>
 
       {/* Skills */}
@@ -473,8 +482,9 @@ function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardP
 
       {/* Cierre */}
       {vacancy.closesAt && (
-        <p className="hs-card-closes">
-          Cierra: {new Date(vacancy.closesAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+        <p className={`hs-card-closes${isExpired ? " hs-card-closes--expired" : ""}`}>
+          {isExpired ? "Venció: " : "Cierra: "}
+          {new Date(vacancy.closesAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
         </p>
       )}
 
@@ -486,10 +496,17 @@ function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardP
         <div className="hs-card-actions">
           <button
             className="hs-action-btn"
-            title={vacancy.status === "paused" ? "Activar" : "Pausar"}
-            onClick={() =>
-              onToggleStatus(vacancy._id, vacancy.status === "paused" ? "active" : "paused")
+            disabled={isExpired && vacancy.status !== "active"}
+            title={
+              isExpired
+                ? "Fecha vencida — editá la vacante para cambiar la fecha"
+                : vacancy.status === "paused" ? "Activar" : "Pausar"
             }
+            onClick={() => {
+              if (isExpired) return;
+              onToggleStatus(vacancy._id, vacancy.status === "paused" ? "active" : "paused");
+            }}
+            style={{ opacity: isExpired ? 0.35 : 1, cursor: isExpired ? "not-allowed" : "pointer" }}
           >
             {vacancy.status === "paused" ? "ACTIVAR" : "PAUSAR"}
           </button>
@@ -614,7 +631,7 @@ export default function VacancyManager() {
         <div className="hs-vm-header-text">
           <span className="hs-terminal-text">// EMPRESA</span>
           <h1 className="hs-vm-title">
-            GESTIÓN DE <span className="hs-accent">VACANTES</span>
+            GESTIÓN DE<br /><span className="hs-accent">VACANTES</span>
           </h1>
         </div>
         <button className="hs-btn hs-btn--accent hs-btn--lg" onClick={openCreate}>
@@ -660,6 +677,17 @@ export default function VacancyManager() {
       {showModal && (
         <VacancyModal initial={editingVacancy} onSave={handleSave} onClose={closeModal} />
       )}
+
+      {/* Toast */}
+{/*       {toast && (
+        <div className={`hs-toast hs-toast--${toast.type}`}>
+          <span className="hs-terminal-text hs-terminal-text--sm">
+            {toast.type === "success" ? "// OK" : "// ERROR"}
+          </span>
+          {toast.msg}
+        </div>
+      )} */}
+
     </div>
   );
 }
