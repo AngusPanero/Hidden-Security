@@ -58,6 +58,9 @@ export default function JobBoard() {
   const [selected,     setSelected]     = useState<Vacancy | null>(null);
   const [applying,     setApplying]     = useState(false);
   const [toast,        setToast]        = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [hasCV,        setHasCV]        = useState<boolean | null>(null); // null = cargando
+  const [showConsent,  setShowConsent]  = useState(false);
+  const [consentVacancy, setConsentVacancy] = useState<Vacancy | null>(null);
 
   // Filtros
   const [filterExp,          setFilterExp]          = useState("");
@@ -107,6 +110,14 @@ export default function JobBoard() {
     fetchApplications();
   }, [filterExp, filterModality, filterSkill, isCertified]);
 
+  // Verificar si el usuario certificado tiene CV creado
+  useEffect(() => {
+    if (!isCertified) return;
+    axios.get(`${import.meta.env.VITE_API_URL}/api/cv/me`, { withCredentials: true })
+      .then(({ data }) => setHasCV(!!data.data))
+      .catch(() => setHasCV(false));
+  }, [isCertified]);
+
   const clearFilters = () => {
     setFilterExp(""); setFilterModality(""); setFilterContractType("");
     setFilterSkill(""); setFilterCurrency(""); setFilterSalaryMin("");
@@ -137,25 +148,42 @@ export default function JobBoard() {
       return sortOrder === "desc" ? db - da : da - db;
     });
 
-  const handleApply = async (vacancy: Vacancy) => {
+  // Abre el modal de consentimiento o bloquea si no tiene CV
+  const requestApply = (vacancy: Vacancy) => {
     if (!isCertified) return;
+    if (!hasCV) {
+      notify("Debés crear tu CV antes de postularte. Andá al tab MI CV.", "error");
+      return;
+    }
+    setConsentVacancy(vacancy);
+    setShowConsent(true);
+    setSelected(null);
+  };
+
+  const handleApply = async () => {
+    if (!consentVacancy || !isCertified) return;
     setApplying(true);
+    setShowConsent(false);
     try {
       await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/vacancy/${vacancy._id}/applicants`,
-        {},   // userId viene del token en el backend
+        `${import.meta.env.VITE_API_URL}/api/vacancy/${consentVacancy._id}/applicants`,
+        { consent: true },
         { withCredentials: true }
       );
-      // Agregar al estado local con status pending
       setApplications((prev) => [
         ...prev,
-        { vacancyId: vacancy._id, title: vacancy.title, status: "pending", appliedAt: new Date().toISOString() },
+        { vacancyId: consentVacancy._id, title: consentVacancy.title, status: "pending", appliedAt: new Date().toISOString() },
       ]);
       notify("¡Postulación enviada!");
-      setSelected(null);
+      setConsentVacancy(null);
     } catch (err: any) {
       const msg = err.response?.data?.message;
-      notify(msg || "Error al postularse", "error");
+      if (msg === "CV_REQUIRED") {
+        notify("Debés crear tu CV antes de postularte. Andá al tab MI CV.", "error");
+        setHasCV(false);
+      } else {
+        notify(msg || "Error al postularse", "error");
+      }
     } finally {
       setApplying(false);
     }
@@ -403,7 +431,7 @@ export default function JobBoard() {
                   <button
                     className="jb-apply-btn"
                     disabled={applying}
-                    onClick={() => handleApply(selected)}
+                    onClick={() => requestApply(selected)}
                   >
                     {applying ? "ENVIANDO..." : "POSTULARME"}
                   </button>
@@ -419,6 +447,60 @@ export default function JobBoard() {
           </div>
         );
       })()}
+
+      {/* Banner CV requerido */}
+      {isCertified && hasCV === false && (
+        <div className="jb-cert-banner" style={{ borderColor: "rgba(249,115,22,0.35)", background: "rgba(249,115,22,0.05)" }}>
+          <span className="jb-cert-icon">📄</span>
+          <div>
+            <p className="jb-cert-title" style={{ color: "#f97316" }}>CV requerido para postularse</p>
+            <p className="jb-cert-sub">Tenés la certificación pero aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de consentimiento */}
+      {showConsent && consentVacancy && (
+        <div className="jb-modal-overlay" onClick={() => setShowConsent(false)}>
+          <div className="jb-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <button className="jb-modal-close" onClick={() => setShowConsent(false)}>×</button>
+            <span className="jb-modal-eyebrow">// CONSENTIMIENTO_DE_DATOS</span>
+            <h2 className="jb-modal-title" style={{ fontSize: "1.1rem" }}>Confirmar postulación</h2>
+            <p className="jb-modal-meta" style={{ marginTop: 4 }}>{consentVacancy.title}</p>
+
+            <div style={{ margin: "20px 0", padding: "16px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)", lineHeight: 1.7 }}>
+              <p style={{ fontSize: "0.82rem", fontWeight: 600, marginBottom: 10 }}>
+                Al confirmar, autorizás a Hidden Security a compartir los siguientes datos personales y laborales con la empresa publicante, de forma confidencial y con el único fin de evaluar tu postulación:
+              </p>
+              <ul style={{ paddingLeft: 16, fontSize: "0.78rem", opacity: 0.75, display: "flex", flexDirection: "column", gap: 4 }}>
+                <li>Nombre completo, datos de contacto y foto de perfil</li>
+                <li>Experiencia laboral, educación y certificaciones</li>
+                <li>Skills técnicas, proyectos y preferencias laborales</li>
+              </ul>
+              <p style={{ fontSize: "0.75rem", opacity: 0.5, marginTop: 12 }}>
+                Esta información solo podrá ser utilizada en el contexto del proceso de selección para esta posición.
+              </p>
+            </div>
+
+            <div className="jb-modal-footer" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                className="jb-apply-btn"
+                disabled={applying}
+                onClick={handleApply}
+                style={{ flex: 1 }}
+              >
+                {applying ? "ENVIANDO..." : "ACEPTO Y ME POSTULO"}
+              </button>
+              <button
+                onClick={() => setShowConsent(false)}
+                style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.5)", fontFamily: "'Montserrat',sans-serif", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "14px 20px", cursor: "pointer" }}
+              >
+                CANCELAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (

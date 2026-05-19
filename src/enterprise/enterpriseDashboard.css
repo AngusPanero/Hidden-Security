@@ -211,6 +211,7 @@
 
 /* ── CONTENIDO ───────────────────────────────────────────────── */
 .hs-content {
+  padding: 80px 70px;
     width:      100%;
     max-width:  100vw;
     flex:       1;
@@ -476,7 +477,7 @@
 
 .hs-postulados-applicant-uid {
   font-family:   'JetBrains Mono', monospace;
-  font-size:     0.72rem;
+  font-size:     0.92rem !important;
   font-weight:   700;
   opacity:       0.75;
   overflow:      hidden;
@@ -486,7 +487,7 @@
 
 .hs-postulados-applicant-date {
   font-family:    'JetBrains Mono', monospace;
-  font-size:      0.58rem;
+  font-size:      0.78rem !important;
   font-weight:    600;
   opacity:        0.35;
   letter-spacing: 0.5px;
@@ -510,7 +511,7 @@
   background:     rgba(255,255,255,0.03);
   border:         1px solid;
   font-family:    'JetBrains Mono', monospace;
-  font-size:      0.8rem;
+  font-size:      0.8rem !important;
   font-weight:    800;
   letter-spacing: 1px;
   padding:        4px 8px;
@@ -554,6 +555,363 @@
 }
 
 .hs-toast-msg { flex: 1; line-height: 1.4; }
+
+/* ══════════════════════════════════════════════════════════════
+   POSTULADOS TAB — agregar al final de enterpriseDashboard.css
+══════════════════════════════════════════════════════════════ */
+
+.hs-postulados { padding: 8px 0; }
+
+.hs-postulados-loading {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding:     40px 0;
+  opacity:     0.5;
+  font-size:   0.8rem;
+  font-weight: 600;
+}
+
+/* Resumen stats */
+.hs-postulados-summary {
+  display:       flex;
+  gap:           16px;
+  margin-bottom: 32px;
+  flex-wrap:     wrap;
+}
+
+.hs-postulados-stat {
+  border:         1px solid var(--hs-border, rgba(255,255,255,0.1));
+  padding:        18px 24px;
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  min-width:      140px;
+}
+
+.hs-postulados-stat-value {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      2rem;
+  font-weight:    900;
+  letter-spacing: -2px;
+  line-height:    1;
+  color:          var(--hs-accent, #ccff00);
+}
+
+.hs-postulados-stat-label {
+  font-size:   0.72rem;
+  font-weight: 600;
+  opacity:     0.5;
+}
+
+/* Empty state */
+.hs-postulados-empty {
+  padding:    60px 0;
+  text-align: center;
+  opacity:    0.4;
+}
+
+.hs-postulados-empty p {
+  font-size:   0.8rem;
+  font-weight: 500;
+  margin-top:  10px;
+}
+
+/* Lista de vacantes con postulados */
+.hs-postulados-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            12px;
+}
+
+.hs-postulados-card {
+  border:     1px solid var(--hs-border, rgba(255,255,255,0.1));
+  background: var(--hs-surface, rgba(255,255,255,0.015));
+  overflow:   hidden;
+}
+
+.hs-postulados-card-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding:         18px 22px;
+  cursor:          pointer;
+  transition:      background 0.2s;
+  gap:             12px;
+}
+
+.hs-postulados-card-header:hover {
+  background: rgba(204, 255, 0, 0.03);
+}
+
+.hs-admin.light .hs-postulados-card-header:hover {
+  background: rgba(255, 85, 0, 0.03);
+}
+
+.hs-postulados-card-left { display: flex; flex-direction: column; gap: 4px; }
+
+.hs-postulados-card-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.95rem;
+  font-weight:    900;
+  letter-spacing: -0.3px;
+  text-transform: uppercase;
+  margin:         0;
+}
+
+.hs-postulados-card-right {
+  display:     flex;
+  align-items: center;
+  gap:         14px;
+  flex-shrink: 0;
+}
+
+.hs-postulados-count {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.7rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  color:          var(--hs-accent, #ccff00);
+}
+
+.hs-admin.light .hs-postulados-count { color: #ff5500; }
+
+.hs-postulados-chevron {
+  font-size: 0.7rem;
+  opacity:   0.4;
+}
+
+/* Lista de applicants dentro de la card */
+.hs-postulados-applicants {
+  border-top: 1px solid var(--hs-border, rgba(255,255,255,0.08));
+  padding:    12px 22px 18px;
+  display:    flex;
+  flex-direction: column;
+  gap:        8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.hs-postulados-applicant-row {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     10px 12px;
+  background:  rgba(255,255,255,0.02);
+  border:      1px solid rgba(255,255,255,0.05);
+  flex-wrap:   wrap;
+}
+
+.hs-admin.light .hs-postulados-applicant-row {
+  background:   rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.06);
+}
+
+.hs-postulados-applicant-num {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  color:          var(--hs-accent, #ccff00);
+  opacity:        0.6;
+  flex-shrink:    0;
+  min-width:      28px;
+}
+
+.hs-admin.light .hs-postulados-applicant-num { color: #ff5500; }
+
+.hs-postulados-applicant-info {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  flex:           1;
+  min-width:      0;
+}
+
+.hs-postulados-applicant-uid {
+  font-family:   'JetBrains Mono', monospace;
+  font-size:     0.72rem;
+  font-weight:   700;
+  opacity:       0.75;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+}
+
+.hs-postulados-applicant-date {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.58rem;
+  font-weight:    600;
+  opacity:        0.35;
+  letter-spacing: 0.5px;
+}
+
+.hs-postulados-applicant-status {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex-shrink: 0;
+}
+
+.hs-postulados-status-dot {
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+
+.hs-postulados-status-select {
+  background:     rgba(255,255,255,0.03);
+  border:         1px solid;
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  padding:        4px 8px;
+  cursor:         pointer;
+  outline:        none;
+  transition:     opacity 0.2s;
+}
+
+.hs-postulados-status-select option { background: #111; color: #fff; }
+.hs-admin.light .hs-postulados-status-select option { background: #eee; color: #000; }
+
+/* ── Modal CV del postulante ──────────────────────────────────── */
+.hs-postulados-cv-overlay {
+  position:        fixed;
+  inset:           0;
+  z-index:         400;
+  background:      rgba(0,0,0,0.88);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         20px;
+}
+
+.hs-postulados-cv-modal {
+  margin-top: 80px;
+  background:     #000;
+  border:         1px solid var(--h-accent, #ccff00);
+  width:          100%;
+  max-width:      880px;
+  max-height:     85vh;
+  display:        flex;
+  flex-direction: column;
+  overflow:       hidden;
+}
+
+.hs-postulados-cv-modal-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding:         18px 22px;
+  border-bottom:   1px solid rgba(204,255,0,0.15);
+  flex-shrink:     0;
+  gap:             12px;
+  flex-wrap:       wrap;
+}
+
+.hs-postulados-cv-close {
+  background:  transparent;
+  border:      none;
+  color:       rgba(255,255,255,0.4);
+  font-size:   22px;
+  line-height: 1;
+  cursor:      pointer;
+  transition:  color 0.2s;
+}
+.hs-postulados-cv-close:hover { color: #fff; }
+
+.hs-postulados-cv-body {
+  overflow-y: auto;
+  padding:    24px 22px;
+  flex:       1;
+}
+
+/* CV viewer */
+.hs-cv-header {
+  display:     flex;
+  align-items: flex-start;
+  gap:         16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.hs-cv-photo {
+  width:         72px;
+  height:        72px;
+  object-fit:    cover;
+  border:        2px solid rgba(204,255,0,0.3);
+  border-radius: 2px;
+  flex-shrink:   0;
+}
+
+.hs-cv-name {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      1.2rem;
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  color:          var(--h-accent, #ccff00);
+  margin-bottom:  4px;
+}
+
+.hs-cv-headline {
+  font-size:   0.78rem;
+  font-weight: 600;
+  opacity:     0.6;
+  margin-bottom: 8px;
+}
+
+.hs-cv-contacts {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       8px;
+}
+
+.hs-cv-contacts span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size:   0.62rem;
+  font-weight: 700;
+  opacity:     0.55;
+  letter-spacing: 0.5px;
+}
+
+.hs-cv-section { margin-bottom: 18px; }
+
+.hs-cv-section-title {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 2.5px;
+  color:          var(--h-accent, #ccff00);
+  text-transform: uppercase;
+  display:        block;
+  margin-bottom:  10px;
+}
+
+.hs-cv-entry { margin-bottom: 12px; }
+
+.hs-cv-entry-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-start;
+  gap:             10px;
+  flex-wrap:       wrap;
+  margin-bottom:   4px;
+  font-size:       0.82rem;
+  font-weight:     700;
+}
+
+.hs-cv-text {
+  font-size:   0.78rem;
+  font-weight: 500;
+  opacity:     0.75;
+  line-height: 1.7;
+  margin:      0;
+  white-space: pre-line;
+}
 
 /* ── RESPONSIVE ──────────────────────────────────────────────── */
 @media (max-width: 768px) {

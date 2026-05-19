@@ -12,6 +12,7 @@
 
 /* ── Banner certificación ────────────────────────────────────── */
 .jb-cert-banner {
+  margin-top: 30px;
   display:       flex;
   align-items:   flex-start;
   gap:           14px;

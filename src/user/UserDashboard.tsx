@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import axios from "axios";
 import "./userDashboard.css";
 import { UseSession } from "../contexts/SessionContext";
 import { UseTheme } from "../contexts/ThemeContext";
 import { UseShopping } from "../contexts/ShoppingContext";
 import JobBoard from "./JobBoard";
+import CvBuilder from "./CvBuilder";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserNotification {
@@ -47,10 +49,11 @@ const UserDashboard = () => {
     const { theme } = UseTheme();
 
     const [expandedId,    setExpandedId]    = useState<string | null>(null);
-    const [activeTab,     setActiveTab]     = useState<"compras" | "cuenta" | "bolsa" | "notif">("cuenta");
+    const [activeTab,     setActiveTab]     = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv">("cuenta");
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [unreadCount,   setUnreadCount]   = useState(0);
     const [toast,         setToast]         = useState<{ msg: string; color: string; bg: string } | null>(null);
+    const [cvProfile,     setCvProfile]     = useState<{ firstName: string; lastName: string; photo: string } | null>(null);
 
     const sseRef       = useRef<EventSource | null>(null);
     const audioCtxRef  = useRef<AudioContext | null>(null);
@@ -61,6 +64,21 @@ const UserDashboard = () => {
     useEffect(() => {
         if (user && user.email) getPurchased(user.email);
     }, [user?.email, user]);
+
+    // Cargar datos del CV para el hero
+    useEffect(() => {
+        if (!user) return;
+        axios.get(`${import.meta.env.VITE_API_URL}/api/cv/me`, { withCredentials: true })
+            .then(({ data }) => {
+                if (data.data?.personalInfo) {
+                    const { firstName, lastName, photo } = data.data.personalInfo;
+                    if (firstName || lastName || photo) {
+                        setCvProfile({ firstName: firstName ?? "", lastName: lastName ?? "", photo: photo ?? "" });
+                    }
+                }
+            })
+            .catch(() => {});
+    }, [user]);
 
     // Inicializar AudioContext en el primer click — requerido por los browsers
     useEffect(() => {
@@ -212,16 +230,26 @@ const UserDashboard = () => {
             <div className="dm-hero">
                 <div className="dm-hero-left">
                     <div className="dm-avatar">
-                        {user.nombre?.charAt(0).toUpperCase() ?? user.email.charAt(0).toUpperCase()}
+                        {cvProfile?.photo
+                            ? <img src={cvProfile.photo} alt="Foto de perfil" className="dm-avatar-photo" />
+                            : (cvProfile?.firstName || cvProfile?.lastName)
+                                ? (cvProfile.firstName.charAt(0) + (cvProfile.lastName.charAt(0) ?? "")).toUpperCase()
+                                : (user.nombre?.charAt(0).toUpperCase() ?? user.email.charAt(0).toUpperCase())
+                        }
                     </div>
                     <div className="dm-hero-info">
-                        <h1 className="dm-hero-name">{user.nombre || user.email.split("@")[0]}</h1>
+                        <h1 className="dm-hero-name">
+                            {(cvProfile?.firstName || cvProfile?.lastName)
+                                ? `${cvProfile.firstName} ${cvProfile.lastName}`.trim()
+                                : (user.nombre || user.email.split("@")[0])
+                            }
+                        </h1>
                         <p className="dm-hero-email">{user.email}</p>
                     </div>
                 </div>
                 <div className="dm-hero-right">
                     <div className="dm-hero-badge">
-                        {user.userCertificated ? "CERTIFICADO" : "ESTUDIANTE"}
+                        {user.userCertificated ? "ESTUDIANTE CERTIFICADO" : "ESTUDIANTE"}
                     </div>
                     {user.userCertificated && (
                         <span className="dm-live-badge">
@@ -251,10 +279,13 @@ const UserDashboard = () => {
             {/* ── TABS ── */}
             <div className="dm-tabs">
                 <button className={`dm-tab ${activeTab === "compras" ? "active" : ""}`} onClick={() => handleTabChange("compras")}>
-                    COMPRAS
+                    HISTORIAL
                 </button>
                 <button className={`dm-tab ${activeTab === "bolsa" ? "active" : ""}`} onClick={() => handleTabChange("bolsa")}>
                     BOLSA DE TRABAJO
+                </button>
+                <button className={`dm-tab ${activeTab === "cv" ? "active" : ""}`} onClick={() => handleTabChange("cv")}>
+                    MI CV
                 </button>
                 {user.userCertificated && (
                     <button className={`dm-tab dm-tab--notif ${activeTab === "notif" ? "active" : ""}`} onClick={() => handleTabChange("notif")}>
@@ -321,7 +352,7 @@ const UserDashboard = () => {
                                                 {p.items && p.items.length > 0 && (
                                                     <div className="dm-detail-block">
                                                         <span className="dm-detail-title">PRODUCTOS</span>
-                                                        {p.items.map((item: any, i: any) => (
+                                                        {p.items.map((item, i) => (
                                                             <div key={i} className="dm-item-row">
                                                                 <div className="dm-item-info">
                                                                     <strong>{item.nombre}</strong>
@@ -346,6 +377,13 @@ const UserDashboard = () => {
 
             {/* ══ TAB: BOLSA DE TRABAJO ══ */}
             {activeTab === "bolsa" && <JobBoard />}
+
+            {/* ══ TAB: MI CV ══ */}
+            {activeTab === "cv" && (
+                <div className="dm-section">
+                    <CvBuilder />
+                </div>
+            )}
 
             {/* ══ TAB: NOTIFICACIONES ══ */}
             {activeTab === "notif" && (
@@ -417,7 +455,7 @@ const UserDashboard = () => {
                         <div className="dm-account-card">
                             <span className="dm-account-card-label">CERTIFICACIÓN</span>
                             <span className="dm-account-card-value" style={{ color: user.userCertificated ? "#22c55e" : "inherit" }}>
-                                {user.userCertificated ? "✓ CERTIFICADO" : "PENDIENTE"}
+                                {user.userCertificated ? "✓ ESTUDIANTE CERTIFICADO" : "PENDIENTE"}
                             </span>
                         </div>
                     </div>
