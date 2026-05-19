@@ -60,6 +60,7 @@
 }
 
 .hc-carta-reverso {
+  height: 450px !important;
   transform: rotateY(180deg);
   justify-content: flex-start; /* El texto del reverso suele ir arriba */
   align-items: flex-start;
@@ -421,5 +422,15 @@
     font-size: 1rem;
     margin-top: 15px;
     opacity: 0.8;
+  }
+
+  .hc-face {
+    width: 300px !important;
+    height: 450px !important;
+  }
+
+  .hc-carta-reverso {
+    width: 300px !important;
+    height: 450px !important;
   }
 }

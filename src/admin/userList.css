@@ -166,6 +166,7 @@
 
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
+  .user-list-container{ overflow-x: hidden; }
   .sec-table thead {
     display: none; /* Ocultamos cabecera en móvil */
   }

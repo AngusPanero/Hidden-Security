@@ -679,9 +679,95 @@
 
 .hs-cv-text { font-size: 0.78rem; font-weight: 500; opacity: 0.72; line-height: 1.75; margin: 0; white-space: pre-line; }
 
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — pegar al final de enterpriseDashboard.css
+   Solo responsive (1024 / 768) y ajustes light mode
+   NO modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+/* ── LIGHT MODE ──────────────────────────────────────────────── */
+.hs-admin.light .hs-postulados-stat-value    { color: #ff5500; }
+.hs-admin.light .hs-postulados-count         { color: #ff5500; }
+.hs-admin.light .hs-postulados-applicant-num { color: #ff5500; }
+.hs-admin.light .hs-mono                     { color: #ff5500; }
+.hs-admin.light .hs-postulados-cv-modal      { background: #f5f5f5; border-color: #ff5500; }
+.hs-admin.light .hs-postulados-cv-modal-header { border-bottom-color: rgba(255,85,0,0.15); }
+.hs-admin.light .hs-postulados-cv-close      { color: rgba(0,0,0,0.35); }
+.hs-admin.light .hs-postulados-cv-close:hover { color: #000; }
+.hs-admin.light .hs-cv-name                  { color: #ff5500; }
+.hs-admin.light .hs-cv-section-title         { color: #ff5500; border-bottom-color: rgba(255,85,0,0.12); }
+.hs-admin.light .hs-cv-entry                 { border-bottom-color: rgba(0,0,0,0.08); }
+.hs-admin.light .hs-cv-text                  { color: rgba(0,0,0,0.7); }
+.hs-admin.light .hs-cv-contacts span         { color: rgba(0,0,0,0.55); }
+.hs-admin.light .hs-cv-header                { border-bottom-color: rgba(0,0,0,0.1); }
+.hs-admin.light .hs-cv-photo                 { border-color: rgba(255,85,0,0.35); }
+.hs-admin.light .hs-filter-input:focus       { border-color: #ff5500; }
+.hs-admin.light .hs-filter-select:focus      { border-color: #ff5500; }
+.hs-admin.light .hs-action-btn:hover:not(:disabled) { border-color: #ff5500; color: #ff5500; }
+.hs-admin.light .hs-action-btn--accent       { border-color: rgba(255,85,0,0.4); color: #ff5500; }
+.hs-admin.light .hs-action-btn--accent:hover { background: rgba(255,85,0,0.06); }
+
+/* ── TABLET 1024px ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .hs-postulados { padding: 36px 40px; }
+
+  .hs-header-inner { padding: 22px 32px; }
+
+  .hs-tabs-inner { padding: 0 24px; }
+
+  .hs-postulados-summary { gap: 12px; }
+  .hs-postulados-stat    { min-width: 110px; padding: 14px 18px; }
+
+  /* Modal CV */
+  .hs-postulados-cv-modal  { max-width: 90vw; }
+}
+
+/* ── MOBILE 768px ────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .hs-postulados-cv-body         { padding: 18px 16px; }
+  .hs-admin { padding-top: 100px; }
+
+  .hs-postulados { padding: 20px 16px; }
+
+  /* Header */
+  .hs-header-inner { padding: 16px; flex-wrap: wrap; gap: 8px; }
+  .hs-header-meta  { display: none; }
+  .hs-header-title { font-size: 1.1rem; }
+
+  /* Tabs nav */
+  .hs-tabs-inner  { padding: 0 8px; justify-content: flex-start; overflow-x: auto; }
+  .hs-tab-btn     { padding: 12px 14px; }
+  .hs-tab-label   { display: none; }
+  .hs-tab-icon svg { width: 18px; height: 18px; }
+  .hs-tab-btn.active .hs-tab-label { display: inline; font-size: 0.7rem; }
+
+  /* Stats postulados */
+  .hs-postulados-summary { flex-wrap: wrap; gap: 8px; }
+  .hs-postulados-stat    { min-width: calc(50% - 8px); flex: 1 1 calc(50% - 8px); padding: 12px 14px; }
+  .hs-postulados-stat-value { font-size: 1.5rem; }
+
+  /* Filtros */
+  .hs-filter-input  { width: 100%; }
+  .hs-filter-select { width: 100%; }
+
+  /* Filas de postulantes */
+  .hs-postulados-applicant-row { flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .hs-postulados-applicant-info { min-width: 0; width: 100%; }
+  .hs-postulados-applicant-uid  { font-size: 0.82rem; }
+  .hs-postulados-applicant-status { width: 100%; justify-content: flex-end; }
+  .hs-postulados-status-select { font-size: 0.72rem; }
+
+  /* Modal CV */
+  .hs-postulados-cv-overlay { padding: 10px; }
+  .hs-postulados-cv-modal   { max-width: 100%; max-height: 85vh; padding: 15px; }
   .hs-postulados-cv-modal-header { padding: 14px 16px; }
-  .hs-cv-photo                   { width: 56px; height: 56px; }
-  .hs-cv-name                    { font-size: 1rem; }
+  .hs-postulados-cv-body    { padding: 18px 25px; }
+  .hs-cv-name               { font-size: 1rem; }
+  .hs-cv-photo              { width: 56px; height: 56px; }
+  .hs-cv-header             { gap: 12px; }
+
+  /* Toast */
+  .hs-toast { right: 10px; bottom: 10px; max-width: calc(100vw - 20px); font-size: 0.72rem; padding: 10px 14px; height: auto; }
+
+  /* 401 */
+  .hs-401 { font-size: 4.5rem; }
 }

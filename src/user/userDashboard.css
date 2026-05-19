@@ -78,7 +78,8 @@
 .dm-empty-state {
   display:        flex;
   flex-direction: column;
-  align-items:    center;
+  align-items:    center !important;
+  text-align: center !important;
   gap:            12px;
   padding:        64px 0;
   color:          var(--dm-text-dim);
@@ -219,6 +220,7 @@
   margin-bottom: 20px;
   border-bottom: 1px solid var(--dm-border);
   animation:     dm-fade-in 0.5s ease 0.15s both;
+  overflow-y: hidden;
 }
 
 .dm-tab {
@@ -1132,17 +1134,122 @@
   text-transform: uppercase;
 }
 
-/* ════════════════════════════════════════════════
-   RESPONSIVE
-════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — pegar al final de userDashboard.css
+   Solo responsive (1024 / 768) y ajustes light mode
+   NO modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+/* ── LIGHT MODE — ajustes de contraste y legibilidad ─────────── */
+.dm-container.light .dm-avatar {
+  background: #000;
+  color:      #fff;
+}
+
+.dm-container.light .dm-hero {
+  border-image: linear-gradient(90deg, #ff5500 0%, rgba(0,0,0,0.1) 100%) 1;
+}
+
+.dm-container.light .dm-hero-badge {
+  color:      #ff5500;
+  border-color: #ff5500;
+  background: rgba(255,85,0,0.07);
+}
+
+.dm-container.light .dm-live-dot { background: #22c55e; }
+
+.dm-container.light .dm-stat-accent .dm-stat-value { color: #ff5500; }
+
+.dm-container.light .dm-purchase-amount { color: #ff5500; }
+
+.dm-container.light .dm-purchase-id { color: #333; }
+
+.dm-container.light .dm-total > strong { color: #ff5500 !important; }
+
+.dm-container.light .dm-variante {
+  color:      #ff5500;
+  background: rgba(255,85,0,0.07);
+  border-left-color: #ff5500;
+}
+
+.dm-container.light .dm-detail-title { color: #ff5500; }
+
+.dm-container.light .dm-account-card-value { color: #000; }
+
+.dm-container.light .dm-notif-toast {
+  background: #fff !important;
+  color:      #000;
+}
+
+.dm-container.light .dm-empty-state p { color: rgba(0,0,0,0.4); }
+
+.dm-container.light .dm-tab.active {
+  color:              #ff5500;
+  border-bottom-color: #ff5500;
+}
+
+/* ── TABLET 1024px ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .dm-container { padding: 120px 28px 40px; }
+
+  .dm-hero-name { font-size: 22px; }
+
+  .dm-stats { grid-template-columns: repeat(3, 1fr); }
+
+  .dm-purchase-detail { grid-template-columns: 1fr 1fr; }
+
+  .dm-account-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .dm-tabs { overflow-x: auto; }
+
+  .dm-tab { padding: 10px 16px; font-size: 12px; }
+}
+
+/* ── MOBILE 768px ────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .dm-hero-email { font-size: 14px !important; }
-  .dm-container     { padding: 120px 14px; }
-  .dm-stats         { grid-template-columns: 1fr; gap: 2px; }
-  .dm-stat-accent   { border-left: none; border-right: none; border-top: 2px solid var(--dm-accent); border-bottom: 2px solid var(--dm-accent); }
-  .dm-purchase-detail { grid-template-columns: 1fr; }
-  .dm-account-grid  { grid-template-columns: 1fr; }
-  .dm-hero          { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .dm-tabs          { height: 50px; overflow-x: auto; overflow-y: hidden;}
-  .dm-tab           { white-space: nowrap; }
+  .dm-container { padding: 100px 14px 32px; }
+
+  /* Hero */
+  .dm-hero       { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .dm-hero-left  { gap: 12px; }
+  .dm-hero-right { align-items: flex-start; flex-direction: row; gap: 10px; }
+  .dm-avatar     { width: 72px; height: 72px; font-size: 28px; }
+  .dm-hero-name  { font-size: 18px; }
+  .dm-hero-email { font-size: 13px; }
+  .dm-hero-badge { font-size: 11px; padding: 3px 10px; }
+
+  /* Stats */
+  .dm-stats              { grid-template-columns: 1fr; gap: 2px; }
+  .dm-stat-accent        { border-left: none; border-right: none; border-top: 2px solid var(--dm-accent); border-bottom: 2px solid var(--dm-accent); }
+  .dm-stat-value         { font-size: 22px; }
+  .dm-stat-label         { font-size: 9px; }
+
+  /* Tabs */
+  .dm-tabs       { overflow-x: auto; scrollbar-width: none; padding-bottom: 0; }
+  .dm-tabs::-webkit-scrollbar { display: none; }
+  .dm-tab        { white-space: nowrap; padding: 10px 14px; font-size: 11px; }
+
+  /* Compras */
+  .dm-purchase-row   { padding: 12px 14px; gap: 8px; }
+  .dm-purchase-left  { flex-direction: column; gap: 2px; }
+  .dm-purchase-date  { font-size: 11px; }
+  .dm-purchase-id    { font-size: 12px; }
+  .dm-purchase-right { gap: 6px; }
+  .dm-purchase-amount { font-size: 15px; }
+  .dm-status         { font-size: 11px; padding: 2px 7px; }
+  .dm-invoice-badge  { display: none; } /* muy largo en mobile */
+  .dm-purchase-detail { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
+  .dm-detail-row > span   { font-size: 11px; }
+  .dm-detail-row > strong { font-size: 12px; }
+  .dm-total > strong { font-size: 17px; }
+
+  /* Cuenta */
+  .dm-account-grid { grid-template-columns: 1fr; }
+  .dm-account-card-value { font-size: 16px; }
+
+  /* Notificaciones */
+  .dm-notif-item  { padding: 14px 14px; }
+  .dm-notif-vacancy { font-size: 0.82rem; }
+  .dm-notif-toast { right: 10px; bottom: 10px; max-width: calc(100vw - 20px); font-size: 0.72rem; padding: 10px 14px; }
+  .dm-notif-badge { font-size: 0.5rem; min-width: 16px; height: 16px; }
 }

@@ -15,3 +15,37 @@ a{
 input{
   font-size: 16px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLLBARS 
+══════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width:  6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background:    #000;
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background:    #ccff00;
+  border-radius: 0;
+  border:        none;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d4ff1a;
+}
+
+::-webkit-scrollbar-corner {
+  background: #000;
+}
+
+/* ── Firefox ─────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #ccff00 #000;
+}

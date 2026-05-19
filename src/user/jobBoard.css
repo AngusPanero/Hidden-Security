@@ -668,3 +668,88 @@
   from { transform: translateY(16px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — pegar al final de jobBoard.css
+   Solo responsive (1024 / 768) y ajustes light mode
+   NO modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+/* ── LIGHT MODE ──────────────────────────────────────────────── */
+.dm-container.light .jb-card {
+  background:  rgba(0,0,0,0.015);
+  border-color: rgba(0,0,0,0.1);
+}
+
+.dm-container.light .jb-card:hover { border-color: rgba(255,85,0,0.4); }
+
+.dm-container.light .jb-card-title { color: #000; }
+
+.dm-container.light .jb-card-status-label { font-weight: 800; }
+
+.dm-container.light .jb-modal {
+  background:   #fff;
+  border-color: rgba(255,85,0,0.2);
+}
+
+.dm-container.light .jb-modal-close { color: rgba(0,0,0,0.35); }
+.dm-container.light .jb-modal-close:hover { color: #000; }
+
+.dm-container.light .jb-modal-eyebrow     { color: #ff5500; }
+.dm-container.light .jb-modal-section-title { color: #ff5500; }
+.dm-container.light .jb-modal-title        { color: #000; }
+.dm-container.light .jb-modal-meta         { color: rgba(0,0,0,0.5); }
+.dm-container.light .jb-modal-text         { color: rgba(0,0,0,0.75); }
+.dm-container.light .jb-modal-salary-label { color: #ff5500; }
+
+.dm-container.light .jb-apply-btn { background: #ff5500; color: #fff; }
+.dm-container.light .jb-apply-btn:hover:not(:disabled) { background: #e04a00; }
+
+.dm-container.light .jb-filter-clear { border-color: rgba(0,0,0,0.15); color: rgba(0,0,0,0.45); }
+.dm-container.light .jb-filter-clear:hover { border-color: rgba(0,0,0,0.4); color: #000; }
+
+.dm-container.light .jb-results-count { color: rgba(0,0,0,0.4); }
+.dm-container.light .jb-cert-title    { color: #ff0033; }
+
+.dm-container.light .jb-toast--success { background: rgba(255,85,0,0.05); border-color: rgba(255,85,0,0.3); }
+.dm-container.light .jb-toast-label   { color: #ff5500; }
+
+/* ── TABLET 1024px ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .jb-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .jb-filters-row { flex-wrap: wrap; }
+
+  .jb-modal { max-width: 680px; padding: 28px; }
+}
+
+/* ── MOBILE 768px ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .jb-grid { grid-template-columns: 1fr; }
+
+  .jb-card { padding: 16px; }
+
+  .jb-card-title { font-size: 0.92rem; }
+
+  .jb-filters-row { gap: 8px; }
+
+  .jb-filter-select,
+  .jb-filter-input { font-size: 0.72rem; padding: 7px 10px; min-width: 0; flex: 1 1 140px; }
+
+  .jb-filter-salary-range { flex-wrap: wrap; gap: 4px; }
+
+  .jb-filter-date-wrap { flex: 1 1 100%; }
+
+  .jb-modal {
+    margin-top:  60px;
+    padding:     22px 18px;
+    max-height:  90vh;
+  }
+
+  .jb-modal-title  { font-size: 1.1rem; }
+  .jb-modal-text   { font-size: 0.78rem; }
+
+  .jb-cert-banner { flex-direction: column; gap: 8px; padding: 14px; }
+
+  .jb-toast { right: 10px; bottom: 10px; max-width: calc(100vw - 20px); }
+}

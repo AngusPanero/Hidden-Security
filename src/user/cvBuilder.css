@@ -146,6 +146,7 @@
   margin-bottom:  24px;
   border-bottom:  1px solid var(--cv-border);
   padding-bottom: 0;
+  overflow-y: hidden;
 }
 
 .cv-tab {
@@ -572,4 +573,72 @@
     padding:  30px 40px;
     border:   none;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — pegar al final de cvBuilder.css
+   Solo responsive (1024 / 768) y ajustes light mode
+   NO modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+/* ── LIGHT MODE ──────────────────────────────────────────────── */
+.cv-builder.light .cv-label     { color: rgba(0,0,0,0.55); }
+.cv-builder.light .cv-input     { color: #000; }
+.cv-builder.light .cv-textarea  { color: #000; }
+.cv-builder.light .cv-section-title { color: #ff5500; }
+.cv-builder.light .cv-eyebrow        { color: #ff5500; }
+.cv-builder.light .cv-title span     { color: #ff5500; }
+.cv-builder.light .cv-add-btn:hover  { border-color: #ff5500; color: #ff5500; }
+.cv-builder.light .cv-remove-btn     { color: #ff0033; }
+.cv-builder.light .cv-tab.active     { color: #ff5500; border-bottom-color: #ff5500; }
+.cv-builder.light .cv-tab:hover      { color: #000; }
+.cv-builder.light .cv-btn--ghost:hover { border-color: #ff5500; color: #ff5500; }
+.cv-builder.light .cv-skill-option:hover { background: rgba(255,85,0,0.06); color: #ff5500; }
+.cv-builder.light .cv-skills-count  { color: rgba(0,0,0,0.4); }
+.cv-builder.light .cv-hint          { color: rgba(0,0,0,0.45); }
+.cv-builder.light .cv-empty         { color: rgba(0,0,0,0.35); }
+
+/* photo placeholder en light */
+.cv-builder.light .cv-photo-placeholder { color: rgba(0,0,0,0.35); border-color: rgba(0,0,0,0.15); }
+
+/* ── TABLET 1024px ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .cv-builder-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+
+  .cv-header-actions { width: 100%; }
+  .cv-header-actions .cv-btn { flex: 1; text-align: center; }
+
+  .cv-tabs { gap: 2px; }
+  .cv-tab  { font-size: 0.72rem; padding: 9px 12px; }
+
+  .cv-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── MOBILE 768px ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .cv-builder { padding-top: 4px; }
+
+  .cv-title { font-size: 1.3rem; }
+
+  .cv-tabs { overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+  .cv-tabs::-webkit-scrollbar { display: none; }
+  .cv-tab  { font-size: 0.68rem; padding: 8px 10px; letter-spacing: 1px; }
+
+  .cv-grid-2, .cv-grid-3 { grid-template-columns: 1fr; }
+
+  .cv-card-block { padding: 16px 14px 12px; }
+
+  .cv-photo-row { flex-direction: column; gap: 14px; }
+  .cv-photo-actions { width: 100%; }
+
+  .cv-salary-row { flex-wrap: wrap; }
+  .cv-salary-row .cv-input { flex: 1 1 100px; }
+
+  /* Vista previa en mobile — scroll horizontal si necesita */
+  .cv-preview { padding: 24px 18px; overflow-x: auto; }
+  .cvp-header { flex-direction: column; gap: 16px; }
+  .cvp-contact { align-items: flex-start; }
+  .cvp-name    { font-size: 1.4rem; }
+
+  .cv-toast { right: 10px; bottom: 10px; max-width: calc(100vw - 20px); font-size: 0.72rem; }
 }

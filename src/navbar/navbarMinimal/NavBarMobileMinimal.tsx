@@ -52,7 +52,7 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ them
                     </a>
                 ))}
                 
-                {user && user.admin !== true && (
+                {user && user.admin !== true && user.isEnterprise !== true && (
                     <a href="/dashboard" onClick={closeMenu} className="kaleida-mobile-item special">
                         <span className="item-index">06</span>
                         <span className="item-label">DASHBOARD</span>
