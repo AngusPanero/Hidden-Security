@@ -535,13 +535,60 @@ interface ToastState { msg: string; type: "success" | "error" }
 // ─── VacancyManager principal ─────────────────────────────────────────────────
 export default function VacancyManager() {
   const { theme } = UseTheme();
-  const isLight = theme === "light";
+  const { user }  = UseSession();
+  const isLight   = theme === "light";
 
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
-  const [showModal, setShowModal] = useState(false);
+  const [vacancies,      setVacancies]      = useState<Vacancy[]>([]);
+  const [showModal,      setShowModal]      = useState(false);
   const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null);
-  const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
-  const [, setToast] = useState<ToastState | null>(null);
+  const [filterStatus,   setFilterStatus]   = useState<Status | "all">("all");
+  const [toast,          setToast]          = useState<ToastState | null>(null);
+
+  // ── Plan B2B activo ────────────────────────────────────────────
+  const [b2bPlan,          setB2bPlan]          = useState<string | null>(null);   // "b2b_seis" | "b2b_doce" | null
+  const [vacancyLimit,     setVacancyLimit]     = useState<number | null>(null);   // null = ilimitado
+  const [vacanciesUsed,    setVacanciesUsed]    = useState<number>(0);
+  const [planExpiry,       setPlanExpiry]       = useState<Date | null>(null);
+  const [hasActivePlan,    setHasActivePlan]    = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const plan        = (user as any).enterprisePlan       ?? null;
+    const expiryStr   = (user as any).enterprisePlanExpiry ?? null;
+    const limit       = (user as any).vacancyLimit         ?? null;   // null = ilimitado
+    const used        = (user as any).vacanciesUsed        ?? 0;
+
+    if (!plan || !expiryStr) {
+      setHasActivePlan(false);
+      setB2bPlan(null);
+      return;
+    }
+
+    const expiry = new Date(expiryStr);
+    if (expiry <= new Date()) {
+      // Plan vencido en el cliente — mostrará bloqueado hasta que refresh-claims lo limpie
+      setHasActivePlan(false);
+      setB2bPlan(null);
+      return;
+    }
+
+    setHasActivePlan(true);
+    setB2bPlan(plan);
+    setVacancyLimit(limit);
+    setVacanciesUsed(used);
+    setPlanExpiry(expiry);
+  }, [user]);
+
+  // ── Cuántas publicaciones quedan ───────────────────────────────
+  const canCreateVacancy = hasActivePlan && (
+    vacancyLimit === null          // ilimitado (b2b_doce)
+    || vacanciesUsed < vacancyLimit // dentro del límite (b2b_seis)
+  );
+
+  const remainingVacancies = vacancyLimit !== null
+    ? Math.max(0, vacancyLimit - vacanciesUsed)
+    : null; // null = ilimitado
 
   const notify = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -557,7 +604,11 @@ export default function VacancyManager() {
 
   useEffect(() => { fetchVacancies(); }, []);
 
-  const openCreate = () => { setEditingVacancy(null); setShowModal(true); };
+  const openCreate = () => {
+    if (!canCreateVacancy) return;
+    setEditingVacancy(null);
+    setShowModal(true);
+  };
   const openEdit   = (v: Vacancy) => { setEditingVacancy(v); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditingVacancy(null); };
 
@@ -593,6 +644,10 @@ export default function VacancyManager() {
       );
       notify("Vacante eliminada");
       fetchVacancies();
+      // Recuperar cupo localmente si el plan tiene límite
+      if (vacancyLimit !== null) {
+        setVacanciesUsed(prev => Math.max(0, prev - 1));
+      }
     } catch {
       notify("Error al eliminar", "error");
     }
@@ -634,10 +689,83 @@ export default function VacancyManager() {
             GESTIÓN DE<br /><span className="hs-accent">VACANTES</span>
           </h1>
         </div>
-        <button className="hs-btn hs-btn--accent hs-btn--lg" onClick={openCreate}>
+        <button
+          className="hs-btn hs-btn--accent hs-btn--lg"
+          onClick={openCreate}
+          disabled={!canCreateVacancy}
+          title={
+            !hasActivePlan
+              ? "Necesitás un plan B2B activo para publicar vacantes"
+              : remainingVacancies === 0
+                ? "Alcanzaste el límite de publicaciones de tu plan"
+                : undefined
+          }
+          style={{ opacity: canCreateVacancy ? 1 : 0.4, cursor: canCreateVacancy ? "pointer" : "not-allowed" }}
+        >
           + NUEVA VACANTE
         </button>
       </div>
+
+      {/* Banner estado del plan */}
+      {!hasActivePlan ? (
+        <div style={{
+          border:     "1px solid rgba(244,63,94,0.3)",
+          background: "rgba(244,63,94,0.04)",
+          borderLeft: "3px solid #f43f5e",
+          padding:    "16px 22px",
+          marginBottom: 28,
+          display:    "flex",
+          alignItems: "flex-start",
+          gap:        14,
+        }}>
+          <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>🔒</span>
+          <div>
+            <p style={{ fontFamily: "Montserrat, monospace", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "2px", color: "#f43f5e", margin: "0 0 6px", textTransform: "uppercase" }}>
+              // SIN_PLAN_ACTIVO
+            </p>
+            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.82rem", fontWeight: 600, margin: 0, opacity: 0.75, lineHeight: 1.6 }}>
+              Necesitás un plan B2B activo para publicar vacantes y gestionar postulantes.
+              Podés ver las vacantes existentes pero no crear nuevas.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          border:     `1px solid rgba(204,255,0,0.15)`,
+          background: "rgba(204,255,0,0.03)",
+          borderLeft: "3px solid rgba(204,255,0,0.5)",
+          padding:    "12px 22px",
+          marginBottom: 28,
+          display:    "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap:        12,
+          flexWrap:   "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "Montserrat, monospace", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "2px", color: "var(--h-accent)", textTransform: "uppercase" }}>
+              // PLAN_{b2bPlan?.toUpperCase()}_ACTIVO
+            </span>
+            {vacancyLimit !== null ? (
+              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.75rem", fontWeight: 700, opacity: 0.65 }}>
+                {vacanciesUsed} / {vacancyLimit} publicaciones usadas
+                {remainingVacancies === 0 && (
+                  <span style={{ color: "#f97316", marginLeft: 8 }}>· límite alcanzado</span>
+                )}
+              </span>
+            ) : (
+              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.75rem", fontWeight: 700, opacity: 0.65 }}>
+                Publicaciones ilimitadas
+              </span>
+            )}
+          </div>
+          {planExpiry && (
+            <span style={{ fontFamily: "Montserrat, monospace", fontSize: "0.8rem", fontWeight: 700, opacity: 0.4, letterSpacing: "1px" }}>
+              Vence: {planExpiry.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="hs-vm-filters">
@@ -679,7 +807,7 @@ export default function VacancyManager() {
       )}
 
       {/* Toast */}
-{/*       {toast && (
+   {/*    {toast && (
         <div className={`hs-toast hs-toast--${toast.type}`}>
           <span className="hs-terminal-text hs-terminal-text--sm">
             {toast.type === "success" ? "// OK" : "// ERROR"}

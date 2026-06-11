@@ -59,25 +59,115 @@ const UPGRADE_MAP: Record<string, { targetId: string; targetTitle: string; benef
     "b2b_doce": null,
 };
 
+const ENTERPRISE_PLANS = ["b2b_seis", "b2b_doce"];
+const USER_PLANS        = ["starter", "pro", "elite", "voucher"];
 const PLANS_WITHOUT_VOUCHER = ["starter"];
 const VOUCHER_PLAN = ALL_PLANS.find(p => p.id === "voucher")!;
 
+// ─── Helper: detectar plan activo no vencido en las claims del usuario ─────────
+function getActivePlan(purchases: string[], purchaseExpiry: Record<string, string>): { planId: string; expiresAt: Date } | null {
+    if (!Array.isArray(purchases)) return null;
+    const now = new Date();
+    for (const planId of purchases) {
+        if (planId === 'voucher') continue;
+        const expiryStr = purchaseExpiry?.[planId];
+        if (!expiryStr) continue;
+        const expiry = new Date(expiryStr);
+        if (expiry > now) return { planId, expiresAt: expiry };
+    }
+    return null;
+}
+
+// ─── Componente de bloqueo ─────────────────────────────────────────────────────
+function PurchaseBlockedBanner({ title, detail }: { title: string; detail: string }) {
+    const navigate = useNavigate();
+    return (
+        <div style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#000",
+            padding: "40px 24px",
+            textAlign: "center",
+            gap: 24,
+        }}>
+            <span style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "0.65rem",
+                fontWeight: 800,
+                letterSpacing: "4px",
+                color: "#f43f5e",
+                textTransform: "uppercase",
+            }}>
+                // COMPRA_BLOQUEADA
+            </span>
+            <h2 style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(1.2rem, 3vw, 2rem)",
+                fontWeight: 900,
+                letterSpacing: "-1px",
+                textTransform: "uppercase",
+                color: "#fff",
+                margin: 0,
+                maxWidth: 600,
+            }}>
+                {title}
+            </h2>
+            <p style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "0.85rem",
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.55)",
+                maxWidth: 520,
+                lineHeight: 1.7,
+                margin: 0,
+            }}>
+                {detail}
+            </p>
+            <button
+                onClick={() => navigate(-1)}
+                style={{
+                    marginTop: 8,
+                    background: "transparent",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    color: "rgba(255,255,255,0.5)",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    letterSpacing: "2px",
+                    textTransform: "uppercase",
+                    padding: "10px 22px",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                }}
+                onMouseEnter={e => { (e.target as HTMLButtonElement).style.borderColor = "#fff"; (e.target as HTMLButtonElement).style.color = "#fff"; }}
+                onMouseLeave={e => { (e.target as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.2)"; (e.target as HTMLButtonElement).style.color = "rgba(255,255,255,0.5)"; }}
+            >
+                ← VOLVER
+            </button>
+        </div>
+    );
+}
+
+// ─── Checkout ──────────────────────────────────────────────────────────────────
 const Checkout = () => {
     const { planId } = useParams();
-    const navigate = useNavigate();
-    const mp = useMercadoPago();
+    const navigate   = useNavigate();
+    const mp         = useMercadoPago();
     const [idempotencyKey] = useState(v4());
-    const { theme } = UseTheme();
-    const { user } = UseSession();
+    const { theme }  = UseTheme();
+    const { user }   = UseSession();
     const { applyCoupon, appliedCoupon } = UseCart();
 
-    const [isFlipped, setIsFlipped] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [couponInput, setCouponInput] = useState('');
-    const [couponMsg, setCouponMsg] = useState({ text: '', isError: false });
-    const [error, setError] = useState<string | null>(null);
-    const [status, setStatus] = useState<string>("");
-    const [voucherAdded, setVoucherAdded] = useState(false);
+    const [isFlipped,     setIsFlipped]     = useState(false);
+    const [loading,       setLoading]       = useState(false);
+    const [couponInput,   setCouponInput]   = useState('');
+    const [couponMsg,     setCouponMsg]     = useState({ text: '', isError: false });
+    const [error,         setError]         = useState<string | null>(null);
+    const [status,        setStatus]        = useState<string>("");
+    const [voucherAdded,  setVoucherAdded]  = useState(false);
 
     const [formData, setFormData] = useState({
         nombre: "", email: user?.email || "", telefono: "", dni: "",
@@ -92,24 +182,40 @@ const Checkout = () => {
 
     const cuotasSeleccionadas = parseInt(formData.cuotas);
 
+    // ─── Validaciones de acceso ──────────────────────────────────────────────
+    const isEnterprise   = !!user?.isEnterprise;
+    const planIsEnterprise = planId ? ENTERPRISE_PLANS.includes(planId.toLowerCase()) : false;
+    const planIsUserPlan   = planId ? USER_PLANS.includes(planId.toLowerCase())       : false;
+
+    // Enterprise intentando comprar plan de usuario normal
+    const enterpriseBlockedFromUserPlan = isEnterprise && planIsUserPlan;
+
+    // Usuario normal intentando comprar plan enterprise
+    const userBlockedFromEnterprisePlan = !isEnterprise && planIsEnterprise && !!user;
+
+    // Plan activo vigente (bloquea re-compra, excepto voucher)
+    const purchases      = (user as any)?.purchases      ?? [];
+    const purchaseExpiry = (user as any)?.purchaseExpiry ?? {};
+    const activePlanInfo = planId?.toLowerCase() !== 'voucher'
+        ? getActivePlan(purchases, purchaseExpiry)
+        : null;
+
+    // ─── Totales ─────────────────────────────────────────────────────────────
     const totalConInteres = useMemo(() => {
         if (!selectedPlan) return 0;
-        const base    = selectedPlan.price + (voucherAdded ? VOUCHER_PLAN.price : 0);
+        const base     = selectedPlan.price + (voucherAdded ? VOUCHER_PLAN.price : 0);
         const esGratis = selectedPlan.cuotas_sin_interes && cuotasSeleccionadas <= selectedPlan.cuotas_sin_interes;
-        const tasa    = (cuotasSeleccionadas > 1 && !esGratis) ? (INTERES_RATES[formData.cuotas] || 0) : 0;
+        const tasa     = (cuotasSeleccionadas > 1 && !esGratis) ? (INTERES_RATES[formData.cuotas] || 0) : 0;
         return base * (1 + tasa);
     }, [selectedPlan, formData.cuotas, cuotasSeleccionadas, voucherAdded]);
 
     const finalAmount = useMemo(() => {
         if (!appliedCoupon) return totalConInteres;
-        if (appliedCoupon.scope === 'all') {
-            return totalConInteres * (1 - appliedCoupon.discount / 100);
-        }
+        if (appliedCoupon.scope === 'all') return totalConInteres * (1 - appliedCoupon.discount / 100);
         let discountableBase = 0;
         if (appliedCoupon.allowedPlans.includes(selectedPlan!.id)) discountableBase += selectedPlan!.price;
-        if (voucherAdded && appliedCoupon.allowedPlans.includes('voucher'))    discountableBase += VOUCHER_PLAN.price;
-        const discount = discountableBase * (appliedCoupon.discount / 100);
-        return totalConInteres - discount;
+        if (voucherAdded && appliedCoupon.allowedPlans.includes('voucher')) discountableBase += VOUCHER_PLAN.price;
+        return totalConInteres - (discountableBase * (appliedCoupon.discount / 100));
     }, [totalConInteres, appliedCoupon, selectedPlan, voucherAdded]);
 
     const discountAmount = totalConInteres - finalAmount;
@@ -118,7 +224,7 @@ const Checkout = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleApplyCoupon = async () => {
-        if (!user) { setCouponMsg({ text: "REGISTRO_REQUERIDO", isError: true }); return; }
+        if (!user)         { setCouponMsg({ text: "REGISTRO_REQUERIDO", isError: true }); return; }
         if (!selectedPlan) return;
         setLoading(true);
         const itemsToValidate = [selectedPlan.id, ...(voucherAdded ? ["voucher"] : [])];
@@ -126,45 +232,6 @@ const Checkout = () => {
         setCouponMsg({ text: message.toUpperCase(), isError: !message.includes('éxito') && !message.includes('🟢') });
         setLoading(false);
     };
-
-    /* const makePayment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!mp || !selectedPlan || !user) return;
-        try {
-            setLoading(true);
-            const cardNumber     = formData.tarjetaNumero.replace(/\s/g, "");
-            const paymentMethods = await mp.getPaymentMethods({ bin: cardNumber.substring(0, 6) });
-            const paymentMethod  = paymentMethods?.results?.[0];
-            if (!paymentMethod) console.error("TARJETA_NO_SOPORTADA");
-
-            const cardToken = await mp.createCardToken({
-                cardNumber,
-                cardholderName:       formData.nombre,
-                cardExpirationMonth:  formData.mesVencimiento,
-                cardExpirationYear:   formData.añoVencimiento,
-                securityCode:         formData.cvv,
-                identificationType:   "DNI",
-                identificationNumber: formData.dni,
-            });
-
-            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/mercado-pago-payments`, {
-                token:              cardToken.id,
-                payment_method_id:  paymentMethod.id,
-                transaction_amount: Math.round(finalAmount),
-                installments:       cuotasSeleccionadas,
-                description:        `HIDDEN_SECURITY_PLAN: ${selectedPlan.title}${voucherAdded ? ' + VOUCHER' : ''}`,
-                payer: { email: formData.email, identification: { type: "DNI", number: formData.dni } },
-                idempotencyKey
-            });
-
-            if (data.status === "approved") setStatus("ok");
-            else setError(data.status_detail || "ERROR_TRANSACCION");
-        } catch (err: any) {
-            setError(err.message || "FALLO_CRITICO_SISTEMA_PAGO");
-        } finally {
-            setLoading(false);
-        }
-    }; */
 
     const makePaymentTest = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -178,10 +245,7 @@ const Checkout = () => {
             const { data } = await axios.post(
                 `${import.meta.env.VITE_API_URL}/test-course-payment`,
                 {
-                    payer: {
-                        email: formData.email,
-                        phone: formData.telefono || null,   
-                    },
+                    payer: { email: formData.email, phone: formData.telefono || null },
                     idempotencyKey,
                     items,
                     couponCode: appliedCoupon?.code || null,
@@ -198,30 +262,70 @@ const Checkout = () => {
                             name:       formData.nombre,
                             email:      formData.email,
                             items,
-                            totalPrice: data.amount,              
+                            totalPrice: data.amount,
                             couponCode: appliedCoupon?.code    || null,
                             discount:   appliedCoupon?.discount || null,
                         },
                         { withCredentials: true }
                     );
-                } catch (error: any) {
-                    setError(`PAGO_REALIZADO_PERO_FALLO_CONFIRMACION, ${error}`);
+                } catch (err: any) {
+                    setError(`PAGO_REALIZADO_PERO_FALLO_CONFIRMACION, ${err}`);
                 }
             } else {
                 setError(data.message || "ERROR_TRANSACCION");
             }
 
         } catch (err: any) {
-            setError(err.response?.data?.message || err.message || "FALLO_CRITICO_SISTEMA_PAGO");
+            // El backend devuelve mensajes específicos — los mostramos directamente
+            const backendMsg  = err.response?.data?.message;
+            const backendCode = err.response?.data?.code;
+
+            if (backendCode === "ENTERPRISE_CANNOT_BUY_USER_PLANS" || backendCode === "USER_CANNOT_BUY_ENTERPRISE_PLANS") {
+                setError(`TU_TIPO_DE_USUARIO_ESTÁ_INHABILITADO_PARA_ESTA_COMPRA`);
+            } else if (backendCode === "ACTIVE_PLAN_EXISTS") {
+                setError(err.response?.data?.detail || "YA_TENÉS_UN_PLAN_ACTIVO");
+            } else {
+                setError(backendMsg || err.message || "FALLO_CRITICO_SISTEMA_PAGO");
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    if (!selectedPlan)   return <Error processMessage="NO IDENTIFICADO" />;
-    if (error)           return <Error processMessage={error} />;
+    // ─── Guards de renderizado ────────────────────────────────────────────────
+    if (!selectedPlan)   return <Error processMessage="PLAN_NO_IDENTIFICADO" />;
     if (loading)         return <Loader />;
     if (status === "ok") return <ProcessOk processMessage="COMPRA EXITOSA!" />;
+
+    // Error de tipo de usuario — enterprise intentando comprar plan normal
+    if (enterpriseBlockedFromUserPlan) return (
+        <PurchaseBlockedBanner
+            title="Tu tipo de cuenta no puede adquirir este plan"
+            detail="Las cuentas Enterprise están habilitadas únicamente para planes B2B. Los planes de estudio individuales (Starter, Pro, Elite, Voucher) son exclusivos para usuarios personales."
+        />
+    );
+
+    // Error de tipo de usuario — usuario normal intentando comprar plan enterprise
+    if (userBlockedFromEnterprisePlan) return (
+        <PurchaseBlockedBanner
+            title="Tu tipo de cuenta no puede adquirir este plan"
+            detail="Los planes B2B son exclusivos para cuentas Enterprise. Si tu empresa necesita acceso a la bolsa de talento Hidden Security, contactanos para activar tu cuenta enterprise."
+        />
+    );
+
+    // Plan activo vigente — bloquea re-compra
+    if (activePlanInfo) {
+        const expiryStr = activePlanInfo.expiresAt.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+        return (
+            <PurchaseBlockedBanner
+                title={`Ya tenés el plan ${activePlanInfo.planId.toUpperCase()} activo`}
+                detail={`Tu plan está vigente hasta el ${expiryStr}. Podrás renovar o cambiar de plan una vez que finalice. Si querés agregar un voucher de certificación, podés hacerlo desde tu dashboard.`}
+            />
+        );
+    }
+
+    // Error genérico de backend
+    if (error) return <Error processMessage={error} />;
 
     const upgradeDiff = upgradePlan ? upgradePlan.price - selectedPlan.price : 0;
 
@@ -257,22 +361,12 @@ const Checkout = () => {
                             <div className="input-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px' }}>
                                 <div className="input-field">
                                     <label>ID_EMAIL</label>
-                                    {/* Email bloqueado — viene de la sesión */}
                                     <input value={user ? formData.email : '—'} disabled className="disabled-input" />
                                 </div>
-
                                 <div className="input-field">
                                     <label>TELÉFONO</label>
-                                    {/* ✅ corregido: ya no tiene disabled hardcodeado */}
-                                    <input
-                                        name="telefono"
-                                        placeholder="11-1234-5678"
-                                        value={formData.telefono}
-                                        onChange={handleChange}
-                                        disabled={!user}
-                                    />
+                                    <input name="telefono" placeholder="11-1234-5678" value={formData.telefono} onChange={handleChange} disabled={!user} />
                                 </div>
-
                                 <div className="input-field">
                                     <label>DNI</label>
                                     <input name="dni" placeholder="NÚMERO" onChange={handleChange} required disabled={!user} />
@@ -306,31 +400,24 @@ const Checkout = () => {
                     <div className="summary-sticky-content">
                         <CreditCard data={formData} isFlipped={isFlipped} />
 
-                        {/* PLAN SELECCIONADO */}
                         <div className="checkout-items-preview">
                             <span className="section-label">SISTEMA_PLAN_ACTIVO</span>
-
                             <div className="plan-preview-header">
                                 <span className="plan-preview-label">{selectedPlan.label}</span>
                                 <div className="plan-preview-title-row">
                                     <h3 className="plan-preview-title Montserrat-900">{selectedPlan.title}</h3>
-                                    <span className="plan-preview-price Montserrat-900">
-                                        ARS ${selectedPlan.price.toLocaleString()}
-                                    </span>
+                                    <span className="plan-preview-price Montserrat-900">ARS ${selectedPlan.price.toLocaleString()}</span>
                                 </div>
                                 <span className="plan-preview-period">// {selectedPlan.period}</span>
                             </div>
-
                             <ul className="plan-preview-features">
                                 {selectedPlan.features.map((f, i) => (
                                     <li key={i}><span className="preview-bullet">_</span> {f}</li>
                                 ))}
                             </ul>
-
                             {cuotasSeleccionadas <= selectedPlan.cuotas_sin_interes && cuotasSeleccionadas > 1 && (
                                 <span className="badge-benefit Montserrat-800">SIN_INTERES_ACTIVO</span>
                             )}
-
                             {voucherAdded && (
                                 <motion.div className="mini-item-container" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
                                     <div className="mini-item">
@@ -341,7 +428,7 @@ const Checkout = () => {
                             )}
                         </div>
 
-                        {/* UPSELL: UPGRADE */}
+                        {/* UPSELL UPGRADE */}
                         {upgradeInfo && upgradePlan && (
                             <motion.div className="upsell-block" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                                 <div className="upsell-header">
@@ -349,21 +436,14 @@ const Checkout = () => {
                                     <span className="upsell-plan-name">{upgradeInfo.targetTitle}</span>
                                 </div>
                                 <ul className="upsell-benefits">
-                                    {upgradeInfo.benefits.map((b, i) => (
-                                        <li key={i}><span className="upsell-bullet">+</span> {b}</li>
-                                    ))}
+                                    {upgradeInfo.benefits.map((b, i) => <li key={i}><span className="upsell-bullet">+</span> {b}</li>)}
                                 </ul>
-                                <div className="upsell-diff">
-                                    <span>DIFERENCIA</span>
-                                    <span>+ ${upgradeDiff.toLocaleString()}</span>
-                                </div>
-                                <a href={`/checkout/${upgradeInfo.targetId}`} className="upsell-cta Montserrat-900">
-                                    MEJORAR_PLAN →
-                                </a>
+                                <div className="upsell-diff"><span>DIFERENCIA</span><span>+ ${upgradeDiff.toLocaleString()}</span></div>
+                                <a href={`/checkout/${upgradeInfo.targetId}`} className="upsell-cta Montserrat-900">MEJORAR_PLAN →</a>
                             </motion.div>
                         )}
 
-                        {/* UPSELL: VOUCHER ADD-ON */}
+                        {/* UPSELL VOUCHER ADD-ON */}
                         {canAddVoucher && !voucherAdded && (
                             <motion.div className="upsell-block upsell-voucher" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
                                 <div className="upsell-header">
@@ -375,13 +455,8 @@ const Checkout = () => {
                                     <li><span className="upsell-bullet">+</span> Certificación oficial</li>
                                     <li><span className="upsell-bullet">+</span> Validez internacional</li>
                                 </ul>
-                                <div className="upsell-diff">
-                                    <span>ADICIONAL</span>
-                                    <span>+ ${VOUCHER_PLAN.price.toLocaleString()}</span>
-                                </div>
-                                <button type="button" className="upsell-cta Montserrat-900" onClick={() => setVoucherAdded(true)}>
-                                    AGREGAR_VOUCHER →
-                                </button>
+                                <div className="upsell-diff"><span>ADICIONAL</span><span>+ ${VOUCHER_PLAN.price.toLocaleString()}</span></div>
+                                <button type="button" className="upsell-cta Montserrat-900" onClick={() => setVoucherAdded(true)}>AGREGAR_VOUCHER →</button>
                             </motion.div>
                         )}
 
@@ -391,9 +466,7 @@ const Checkout = () => {
                                     <span className="upsell-tag">// ADD-ON_ACTIVO</span>
                                     <span className="upsell-plan-name">VOUCHER_EXAMEN ✓</span>
                                 </div>
-                                <button type="button" className="upsell-remove" onClick={() => setVoucherAdded(false)}>
-                                    QUITAR_VOUCHER
-                                </button>
+                                <button type="button" className="upsell-remove" onClick={() => setVoucherAdded(false)}>QUITAR_VOUCHER</button>
                             </motion.div>
                         )}
 

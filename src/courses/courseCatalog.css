@@ -1,0 +1,295 @@
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — courseCatalog.css
+   Pegar en su propio archivo courseCatalog.css e importar
+   en CourseCatalog.tsx
+══════════════════════════════════════════════════════════════ */
+
+.cc-wrap {
+  width:      100%;
+  box-sizing: border-box;
+}
+
+/* ── Breadcrumb ──────────────────────────────────────────────── */
+.cc-breadcrumb {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-bottom: 20px;
+}
+
+.cc-back-btn {
+  background:     transparent;
+  border:         none;
+  color:          var(--dm-accent);
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor:         pointer;
+  padding:        0;
+  transition:     opacity 0.2s;
+}
+.cc-back-btn:hover { opacity: 0.7; }
+
+.cc-breadcrumb-sep {
+  opacity:   0.3;
+  font-size: 0.75rem;
+}
+
+.cc-breadcrumb-current {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  opacity:        0.5;
+  text-transform: uppercase;
+}
+
+/* ── Header del catálogo ─────────────────────────────────────── */
+.cc-header {
+  margin-bottom: 32px;
+  border-left:   3px solid var(--dm-accent);
+  padding-left:  20px;
+}
+
+.cc-eyebrow {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 3px;
+  color:          var(--dm-accent);
+  display:        block;
+  margin-bottom:  6px;
+  opacity:        0.7;
+}
+
+.cc-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      clamp(1.4rem, 3vw, 2rem);
+  font-weight:    900;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  margin:         0 0 8px;
+  color:          var(--dm-text);
+}
+.cc-title span { color: var(--dm-accent); }
+
+.cc-subtitle {
+  font-size:   0.8rem;
+  font-weight: 500;
+  opacity:     0.55;
+  margin:      0;
+  line-height: 1.6;
+  max-width:   560px;
+}
+
+/* ── Grid de cursos ──────────────────────────────────────────── */
+.cc-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap:                   16px;
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.cc-card {
+  position:       relative;
+  border:         1px solid var(--dm-border);
+  background:     var(--dm-surface);
+  padding:        22px;
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+  cursor:         pointer;
+  transition:     border-color 0.2s, transform 0.15s;
+  overflow:       hidden;
+}
+
+.cc-card:hover:not(.cc-card--soon) {
+  border-color: var(--dm-accent);
+  transform:    translateY(-2px);
+}
+
+.cc-card--soon {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* ── Badges ──────────────────────────────────────────────────── */
+.cc-card-badges {
+  display:   flex;
+  gap:       6px;
+  flex-wrap: wrap;
+}
+
+.cc-badge {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.55rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding:        3px 8px;
+  border:         1px solid;
+}
+
+.cc-badge--available {
+  color:        var(--dm-accent);
+  border-color: rgba(204,255,0,0.25);
+  background:   rgba(204,255,0,0.06);
+}
+
+.dm-container.light .cc-badge--available {
+  color:        #ff5500;
+  border-color: rgba(255,85,0,0.25);
+  background:   rgba(255,85,0,0.06);
+}
+
+.cc-badge--soon {
+  color:        rgba(255,255,255,0.4);
+  border-color: rgba(255,255,255,0.1);
+  background:   transparent;
+}
+
+.dm-container.light .cc-badge--soon {
+  color:        rgba(0,0,0,0.3);
+  border-color: rgba(0,0,0,0.1);
+}
+
+/* ── Título de la card ───────────────────────────────────────── */
+.cc-card-title-wrap { display: flex; flex-direction: column; gap: 2px; }
+
+.cc-card-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      1.05rem;
+  font-weight:    900;
+  letter-spacing: -0.3px;
+  text-transform: uppercase;
+  margin:         0;
+  color:          var(--dm-text);
+  line-height:    1.1;
+}
+
+.cc-card-subtitle {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    700;
+  letter-spacing: 2px;
+  color:          var(--dm-accent);
+  opacity:        0.7;
+  margin:         0;
+}
+
+.dm-container.light .cc-card-subtitle { color: #ff5500; }
+
+/* ── Descripción ─────────────────────────────────────────────── */
+.cc-card-description {
+  font-size:   0.78rem;
+  font-weight: 500;
+  opacity:     0.65;
+  line-height: 1.65;
+  margin:      0;
+  flex:        1;
+}
+
+/* ── Tags ────────────────────────────────────────────────────── */
+.cc-card-tags {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       5px;
+}
+
+.cc-tag {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.55rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  padding:        2px 7px;
+  border:         1px solid var(--dm-border);
+  color:          var(--dm-text-mid);
+  text-transform: uppercase;
+}
+
+/* ── Footer de la card ───────────────────────────────────────── */
+.cc-card-footer {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding-top:     12px;
+  border-top:      1px solid var(--dm-border);
+  margin-top:      auto;
+}
+
+.cc-card-meta {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  opacity:        0.4;
+  text-transform: uppercase;
+}
+
+.cc-card-cta {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--dm-accent);
+  text-transform: uppercase;
+}
+
+.dm-container.light .cc-card-cta { color: #ff5500; }
+
+.cc-card-cta--soon {
+  color:   var(--dm-text-dim);
+  opacity: 0.5;
+}
+
+/* ── Overlay próximamente ────────────────────────────────────── */
+.cc-soon-overlay {
+  position:        absolute;
+  inset:           0;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             6px;
+  background:      rgba(0,0,0,0.45);
+  pointer-events:  none;
+  opacity:         0;
+  transition:      opacity 0.2s;
+}
+
+.dm-container.light .cc-soon-overlay {
+  background: rgba(245,245,245,0.65);
+}
+
+.cc-card--soon:hover .cc-soon-overlay { opacity: 1; }
+
+.cc-soon-icon {
+  font-size: 1.8rem;
+}
+
+.cc-soon-text {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 3px;
+  color:          var(--dm-text);
+  text-transform: uppercase;
+}
+
+.cc-soon-date {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.58rem;
+  font-weight:    700;
+  letter-spacing: 2px;
+  color:          var(--dm-accent);
+  opacity:        0.7;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .cc-grid    { grid-template-columns: 1fr; }
+  .cc-title   { font-size: 1.3rem; }
+  .cc-card    { padding: 18px; }
+}

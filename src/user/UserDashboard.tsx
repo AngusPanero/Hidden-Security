@@ -7,6 +7,7 @@ import { UseShopping }  from "../contexts/ShoppingContext";
 import { useMembership, formatDaysLeft, formatDesglose } from "../contexts/UsePlanAccess";
 import JobBoard  from "./JobBoard";
 import CvBuilder from "./CvBuilder";
+import CourseCatalog from "../courses/CourseCatalog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserNotification {
@@ -151,7 +152,7 @@ const UserDashboard = () => {
     const { theme } = UseTheme();
 
     const [expandedId,    setExpandedId]    = useState<string | null>(null);
-    const [activeTab,     setActiveTab]     = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv">("cuenta");
+    const [activeTab,     setActiveTab]     = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos">("cuenta");
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [unreadCount,   setUnreadCount]   = useState(0);
     const [toast,         setToast]         = useState<{ msg: string; color: string; bg: string } | null>(null);
@@ -325,6 +326,7 @@ const UserDashboard = () => {
             {/* ── TABS ── */}
             <div className="dm-tabs">
                 <button className={`dm-tab ${activeTab === "compras" ? "active" : ""}`} onClick={() => handleTabChange("compras")}>HISTORIAL</button>
+                <button className={`dm-tab ${activeTab === "cursos" ? "active" : ""}`} onClick={() => handleTabChange("cursos")}>CURSOS</button>
                 <button className={`dm-tab ${activeTab === "bolsa"   ? "active" : ""}`} onClick={() => handleTabChange("bolsa")}>BOLSA DE TRABAJO</button>
                 <button className={`dm-tab ${activeTab === "cv"      ? "active" : ""}`} onClick={() => handleTabChange("cv")}>MI CV</button>
                 {user.userCertificated && (
@@ -404,6 +406,7 @@ const UserDashboard = () => {
 
             {activeTab === "bolsa" && <JobBoard />}
             {activeTab === "cv"    && <div className="dm-section"><CvBuilder /></div>}
+            {activeTab === "cursos"    && <div className="dm-section"><CourseCatalog /></div>}
 
             {/* ══ NOTIFICACIONES ══ */}
             {activeTab === "notif" && (

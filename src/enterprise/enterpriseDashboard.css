@@ -29,7 +29,7 @@
 }
 
 .hs-mono {
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-weight:    800;
     letter-spacing: 2px;
     font-size:      0.7rem;
@@ -90,7 +90,7 @@
     display:        inline-flex;
     align-items:    center;
     gap:            8px;
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-size:      0.75rem;
     font-weight:    700;
     letter-spacing: 1px;
@@ -102,7 +102,7 @@
     display:        inline-flex;
     align-items:    center;
     gap:            6px;
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-size:      0.7rem;
     font-weight:    800;
     letter-spacing: 2px;
@@ -155,7 +155,7 @@
     border:         none;
     border-bottom:  2px solid transparent;
     color:          var(--h-muted);
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-size:      0.75rem;
     font-weight:    800;
     letter-spacing: 2px;
@@ -191,7 +191,7 @@
     padding:         0 5px;
     background:      var(--h-accent);
     color:           #000;
-    font-family:     'JetBrains Mono', monospace;
+    font-family:     'Montserrat', monospace;
     font-size:       0.65rem;
     font-weight:     800;
     border-radius:   99px;
@@ -377,7 +377,7 @@
 .hs-postulados-card-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 
 .hs-postulados-count {
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-size:      0.7rem;
     font-weight:    800;
     letter-spacing: 1px;
@@ -412,7 +412,7 @@
 }
 
 .hs-postulados-applicant-num {
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-size:      0.82rem;
     font-weight:    800;
     letter-spacing: 1px;
@@ -425,7 +425,7 @@
 .hs-postulados-applicant-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 
 .hs-postulados-applicant-uid {
-    font-family:   'JetBrains Mono', monospace;
+    font-family:   'Montserrat', monospace;
     font-size:     0.92rem;
     font-weight:   700;
     opacity:       0.75;
@@ -435,7 +435,7 @@
 }
 
 .hs-postulados-applicant-date {
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-size:      0.78rem;
     font-weight:    600;
     opacity:        0.35;
@@ -454,7 +454,7 @@
 .hs-postulados-status-select {
     background:     rgba(255,255,255,0.03);
     border:         1px solid;
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    'Montserrat', monospace;
     font-size:      0.8rem;
     font-weight:    800;
     letter-spacing: 1px;
@@ -504,7 +504,7 @@
   background:  rgba(255,255,255,0.03);
   border:      1px solid var(--h-border);
   color:       var(--h-text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Montserrat', monospace;
   font-size:   0.65rem;
   font-weight: 800;
   letter-spacing: 1px;
@@ -524,7 +524,7 @@
   background:     transparent;
   border:         1px solid var(--h-border);
   color:          var(--h-muted);
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    'Montserrat', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 1.5px;
@@ -636,7 +636,7 @@
 
 .hs-cv-contacts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 4px; }
 .hs-cv-contacts span {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Montserrat', monospace;
   font-size:   0.65rem;
   font-weight: 700;
   opacity:     0.55;
@@ -646,7 +646,7 @@
 
 .hs-cv-section-title {
   display:        block;
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    'Montserrat', monospace;
   font-size:      0.6rem;
   font-weight:    800;
   letter-spacing: 3px;
@@ -706,6 +706,794 @@
 .hs-admin.light .hs-action-btn:hover:not(:disabled) { border-color: #ff5500; color: #ff5500; }
 .hs-admin.light .hs-action-btn--accent       { border-color: rgba(255,85,0,0.4); color: #ff5500; }
 .hs-admin.light .hs-action-btn--accent:hover { background: rgba(255,85,0,0.06); }
+
+.hs-admin {
+    --h-bg:      #000000;
+    --h-text:    #ffffff;
+    --h-accent:  #ccff00;
+    --h-border:  rgba(255, 255, 255, 0.1);
+    --h-surface: rgba(255, 255, 255, 0.015);
+    --h-muted:   rgba(255, 255, 255, 0.45);
+
+    background:     var(--h-bg);
+    color:          var(--h-text);
+    font-family:    'Montserrat', sans-serif;
+    min-height:     100vh;
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    width:          100%;
+    box-sizing:     border-box;
+    overflow-x:     hidden;
+    padding-top:    100px;
+}
+
+.hs-admin.light {
+    --h-bg:      #f5f5f5;
+    --h-text:    #000000;
+    --h-accent:  #ff5500;
+    --h-border:  rgba(0, 0, 0, 0.12);
+    --h-surface: rgba(0, 0, 0, 0.02);
+    --h-muted:   rgba(0, 0, 0, 0.45);
+}
+
+.hs-mono {
+    font-family:    'Montserrat', monospace;
+    font-weight:    800;
+    letter-spacing: 2px;
+    font-size:      0.7rem;
+    color:          var(--h-accent);
+    text-transform: uppercase;
+}
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+.hs-header {
+    width:         100%;
+    background:    var(--h-surface);
+    border-bottom: 2px solid var(--h-accent);
+    box-sizing:    border-box;
+}
+
+.hs-header-inner {
+    max-width:       1400px;
+    margin:          0 auto;
+    padding:         28px 40px;
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             16px;
+}
+
+.hs-header-left {
+    display:        flex;
+    flex-direction: column;
+    gap:            4px;
+}
+
+.hs-eyebrow {
+    display: block;
+    opacity: 0.7;
+}
+
+.hs-header-title {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      clamp(1.4rem, 2.5vw, 2rem);
+    font-weight:    900;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    margin:         0;
+    line-height:    1;
+    color:          var(--h-text);
+}
+
+.hs-header-title span { color: var(--h-accent); }
+
+.hs-header-meta {
+    display:     flex;
+    align-items: center;
+    gap:         20px;
+    flex-shrink: 0;
+}
+
+.hs-header-user {
+    display:        inline-flex;
+    align-items:    center;
+    gap:            8px;
+    font-family:    'Montserrat', monospace;
+    font-size:      0.75rem;
+    font-weight:    700;
+    letter-spacing: 1px;
+    color:          var(--h-muted);
+    text-transform: uppercase;
+}
+
+.hs-sse-badge {
+    display:        inline-flex;
+    align-items:    center;
+    gap:            6px;
+    font-family:    'Montserrat', monospace;
+    font-size:      0.7rem;
+    font-weight:    800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color:          var(--h-accent);
+}
+
+@keyframes hs-blink {
+    0%, 100% { opacity: 1;   }
+    50%       { opacity: 0.2; }
+}
+
+.hs-live-dot {
+    width:       6px;
+    height:      6px;
+    background:  var(--h-accent);
+    flex-shrink: 0;
+    animation:   hs-blink 1.5s ease-in-out infinite;
+}
+
+/* ── TABS NAV ────────────────────────────────────────────────── */
+.hs-tabs-nav {
+    width:           100%;
+    background:      var(--h-surface);
+    border-bottom:   1px solid var(--h-border);
+    overflow-x:      auto;
+    scrollbar-width: none;
+    position:        sticky;
+    top:             0;
+    z-index:         100;
+    box-sizing:      border-box;
+}
+.hs-tabs-nav::-webkit-scrollbar { display: none; }
+
+.hs-tabs-inner {
+    display:         flex;
+    justify-content: center;
+    max-width:       1400px;
+    margin:          0 auto;
+    padding:         0 40px;
+    gap:             0;
+}
+
+.hs-tab-btn {
+    display:        inline-flex;
+    align-items:    center;
+    gap:            8px;
+    padding:        16px 24px;
+    background:     transparent;
+    border:         none;
+    border-bottom:  2px solid transparent;
+    color:          var(--h-muted);
+    font-family:    'Montserrat', monospace;
+    font-size:      0.75rem;
+    font-weight:    800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor:         pointer;
+    white-space:    nowrap;
+    transition:     color 0.2s, border-color 0.2s, background 0.2s;
+    position:       relative;
+}
+
+.hs-tab-btn:hover {
+    color:      var(--h-text);
+    background: rgba(204, 255, 0, 0.04);
+}
+
+.hs-admin.light .hs-tab-btn:hover { background: rgba(255, 85, 0, 0.04); }
+
+.hs-tab-btn.active {
+    color:               var(--h-accent);
+    border-bottom-color: var(--h-accent);
+}
+
+.hs-tab-icon         { display: flex; align-items: center; flex-shrink: 0; }
+.hs-tab-icon svg     { width: 15px; height: 15px; }
+
+/* ── BADGE ───────────────────────────────────────────────────── */
+.hs-tab-badge {
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    min-width:       20px;
+    height:          20px;
+    padding:         0 5px;
+    background:      var(--h-accent);
+    color:           #000;
+    font-family:     'Montserrat', monospace;
+    font-size:       0.65rem;
+    font-weight:     800;
+    border-radius:   99px;
+    line-height:     1;
+}
+
+/* ── CONTENIDO ───────────────────────────────────────────────── */
+.hs-content {
+    width:      100%;
+    flex:       1;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.hs-content > * {
+    width:      100%;
+    box-sizing: border-box;
+}
+
+/* ── TOAST ───────────────────────────────────────────────────── */
+@keyframes hs-slide-up {
+    from { transform: translateY(16px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+.hs-toast {
+    position:    fixed;
+    bottom:      28px;
+    right:       28px;
+    z-index:     9999;
+    border:      1px solid;          /* color via style prop */
+    padding:     14px 20px;
+    display:     flex;
+    align-items: center;
+    gap:         10px;
+    cursor:      pointer;
+    max-width:   420px;
+    font-family: 'Montserrat', sans-serif;
+    font-size:   0.82rem;
+    font-weight: 700;
+    line-height: 1.4;
+    animation:   hs-slide-up 0.3s ease;
+    box-shadow:  0 8px 32px rgba(0,0,0,0.5);
+}
+
+.hs-toast-dot {
+    width:         8px;
+    height:        8px;
+    border-radius: 50%;
+    flex-shrink:   0;
+    animation:     hs-blink 1.2s ease-in-out infinite;
+    /* color via style prop */
+}
+
+.hs-toast-msg   { flex: 1; }
+
+.hs-toast-close {
+    background:  transparent;
+    border:      none;
+    color:       rgba(255,255,255,0.5);
+    font-size:   18px;
+    line-height: 1;
+    cursor:      pointer;
+    padding:     0 0 0 8px;
+    flex-shrink: 0;
+    transition:  color 0.2s;
+}
+.hs-toast-close:hover      { color: #fff; }
+.hs-admin.light .hs-toast-close { color: rgba(0,0,0,0.4); }
+.hs-admin.light .hs-toast-close:hover { color: #000; }
+
+/* ── 401 NO AUTORIZADO ───────────────────────────────────────── */
+.hs-unauthorized {
+    display:         flex;
+    flex-direction:  column;
+    align-items:     center;
+    justify-content: center;
+    min-height:      100vh;
+    gap:             12px;
+    text-align:      center;
+}
+
+.hs-401 {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      8rem;
+    font-weight:    900;
+    letter-spacing: -4px;
+    color:          var(--h-accent);
+    margin:         0;
+    line-height:    1;
+}
+
+.hs-unauthorized p {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.8rem;
+    font-weight:    700;
+    letter-spacing: 3px;
+    color:          var(--h-muted);
+    text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════════════
+   POSTULADOS TAB
+══════════════════════════════════════════════════════ */
+.hs-postulados { padding: 55px 80px; }
+
+.hs-postulados-loading {
+    display:     flex;
+    align-items: center;
+    gap:         10px;
+    padding:     40px 0;
+    opacity:     0.5;
+    font-size:   0.8rem;
+    font-weight: 600;
+}
+
+.hs-postulados-summary {
+    display:       flex;
+    gap:           16px;
+    margin-bottom: 32px;
+    flex-wrap:     wrap;
+}
+
+.hs-postulados-stat {
+    border:         1px solid var(--h-border);
+    padding:        18px 24px;
+    display:        flex;
+    flex-direction: column;
+    gap:            2px;
+    min-width:      140px;
+}
+
+.hs-postulados-stat-value {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      2rem;
+    font-weight:    900;
+    letter-spacing: -2px;
+    line-height:    1;
+    color:          var(--h-accent);
+}
+
+.hs-postulados-stat-label { font-size: 0.72rem; font-weight: 600; opacity: 0.5; }
+
+.hs-postulados-empty { padding: 60px 0; text-align: center; opacity: 0.4; }
+.hs-postulados-empty p { font-size: 0.8rem; font-weight: 500; margin-top: 10px; }
+
+.hs-postulados-list { display: flex; flex-direction: column; gap: 12px; }
+
+.hs-postulados-card {
+    border:     1px solid var(--h-border);
+    background: var(--h-surface);
+    overflow:   hidden;
+}
+
+.hs-postulados-card-header {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    padding:         18px 22px;
+    cursor:          pointer;
+    transition:      background 0.2s;
+    gap:             12px;
+}
+
+.hs-postulados-card-header:hover          { background: rgba(204,255,0,0.03); }
+.hs-admin.light .hs-postulados-card-header:hover { background: rgba(255,85,0,0.03); }
+
+.hs-postulados-card-left  { display: flex; flex-direction: column; gap: 4px; }
+
+.hs-postulados-card-title {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.95rem;
+    font-weight:    900;
+    letter-spacing: -0.3px;
+    text-transform: uppercase;
+    margin:         0;
+}
+
+.hs-postulados-card-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+
+.hs-postulados-count {
+    font-family:    'Montserrat', monospace;
+    font-size:      0.7rem;
+    font-weight:    800;
+    letter-spacing: 1px;
+    color:          var(--h-accent);
+}
+
+.hs-postulados-chevron { font-size: 0.7rem; opacity: 0.4; }
+
+.hs-postulados-applicants {
+    border-top:     1px solid var(--h-border);
+    padding:        12px 22px 18px;
+    display:        flex;
+    flex-direction: column;
+    gap:            8px;
+    max-height:     320px;
+    overflow-y:     auto;
+}
+
+.hs-postulados-applicant-row {
+    display:     flex;
+    align-items: center;
+    gap:         12px;
+    padding:     10px 12px;
+    background:  rgba(255,255,255,0.02);
+    border:      1px solid rgba(255,255,255,0.05);
+    flex-wrap:   wrap;
+}
+
+.hs-admin.light .hs-postulados-applicant-row {
+    background:   rgba(0,0,0,0.02);
+    border-color: rgba(0,0,0,0.06);
+}
+
+.hs-postulados-applicant-num {
+    font-family:    'Montserrat', monospace;
+    font-size:      0.82rem;
+    font-weight:    800;
+    letter-spacing: 1px;
+    color:          var(--h-accent);
+    opacity:        0.6;
+    flex-shrink:    0;
+    min-width:      28px;
+}
+
+.hs-postulados-applicant-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+
+.hs-postulados-applicant-uid {
+    font-family:   'Montserrat', monospace;
+    font-size:     0.72rem;
+    font-weight:   700;
+    opacity:       0.75;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+    white-space:   nowrap;
+}
+
+.hs-postulados-applicant-date {
+    font-family:    'Montserrat', monospace;
+    font-size:      0.58rem;
+    font-weight:    600;
+    opacity:        0.35;
+    letter-spacing: 0.5px;
+}
+
+.hs-postulados-applicant-status { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.hs-postulados-status-dot {
+    width:         7px;
+    height:        7px;
+    border-radius: 50%;
+    flex-shrink:   0;
+}
+
+.hs-postulados-status-select {
+    background:     rgba(255,255,255,0.03);
+    border:         1px solid;
+    font-family:    'Montserrat', monospace;
+    font-size:      0.8rem;
+    font-weight:    800;
+    letter-spacing: 1px;
+    padding:        4px 8px;
+    cursor:         pointer;
+    outline:        none;
+    transition:     opacity 0.2s;
+}
+
+.hs-postulados-status-select option           { background: #111; color: #fff; }
+.hs-admin.light .hs-postulados-status-select option { background: #eee; color: #000; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .hs-header-inner { padding: 20px; }
+    .hs-header-meta  { display: none; }
+    .hs-tabs-inner   { padding: 0 12px; justify-content: flex-start; }
+    .hs-tab-btn      { padding: 14px 16px; }
+    .hs-tab-label    { display: none; }
+    .hs-tab-icon svg { width: 18px; height: 18px; }
+    .hs-tab-btn.active .hs-tab-label { display: inline; }
+    .hs-401          { font-size: 5rem; }
+    .hs-postulados   { padding: 24px 20px; }
+    .hs-toast        { right: 12px; bottom: 12px; max-width: calc(100vw - 24px); font-size: 0.72rem; }
+}
+
+@media (max-width: 480px) {
+    .hs-header-title { font-size: 1.2rem; }
+}
+
+/* ── Filtros postulados ───────────────────────────────────────── */
+.hs-filter-input {
+  background:  rgba(255,255,255,0.03);
+  border:      1px solid var(--h-border);
+  color:       var(--h-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.75rem;
+  font-weight: 600;
+  padding:     8px 12px;
+  outline:     none;
+  transition:  border-color 0.2s;
+}
+.hs-filter-input:focus { border-color: var(--h-accent); }
+.hs-admin.light .hs-filter-input { background: rgba(0,0,0,0.03); }
+
+.hs-filter-select {
+  background:  rgba(255,255,255,0.03);
+  border:      1px solid var(--h-border);
+  color:       var(--h-text);
+  font-family: 'Montserrat', monospace;
+  font-size:   0.65rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding:     8px 12px;
+  outline:     none;
+  cursor:      pointer;
+  appearance:  none;
+  transition:  border-color 0.2s;
+}
+.hs-filter-select:focus { border-color: var(--h-accent); }
+.hs-filter-select option { background: #111; color: #fff; }
+.hs-admin.light .hs-filter-select { background: rgba(0,0,0,0.03); }
+.hs-admin.light .hs-filter-select option { background: #eee; color: #000; }
+
+/* ── Botones de acción ───────────────────────────────────────── */
+.hs-action-btn {
+  background:     transparent;
+  border:         1px solid var(--h-border);
+  color:          var(--h-muted);
+  font-family:    'Montserrat', monospace;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding:        5px 11px;
+  cursor:         pointer;
+  transition:     all 0.2s;
+  white-space:    nowrap;
+}
+.hs-action-btn:hover:not(:disabled) { border-color: var(--h-accent); color: var(--h-accent); }
+.hs-action-btn:disabled             { opacity: 0.35; cursor: not-allowed; }
+
+.hs-action-btn--accent {
+  border-color: rgba(204,255,0,0.4);
+  color:        var(--h-accent);
+}
+.hs-action-btn--accent:hover { background: rgba(204,255,0,0.07); }
+.hs-admin.light .hs-action-btn--accent { border-color: rgba(255,85,0,0.4); color: #ff5500; }
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL VER CV — PostuladosTab
+══════════════════════════════════════════════════════════════ */
+
+/* Overlay */
+.hs-postulados-cv-overlay {
+  position:        fixed;
+  inset:           0;
+  z-index:         400;
+  background:      rgba(0,0,0,0.88);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         20px;
+  backdrop-filter: blur(4px);
+}
+
+/* Modal container */
+.hs-postulados-cv-modal {
+  background:     #000;
+  border:         1px solid var(--h-accent);
+  width:          100%;
+  max-width:      700px;
+  max-height:     90vh;
+  display:        flex;
+  flex-direction: column;
+  overflow:       hidden;
+}
+
+.hs-admin.light .hs-postulados-cv-modal {
+  background: #fff;
+  border-color: var(--h-accent);
+}
+
+/* Header del modal */
+.hs-postulados-cv-modal-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding:         18px 24px;
+  border-bottom:   1px solid rgba(204,255,0,0.15);
+  flex-shrink:     0;
+  gap:             12px;
+  flex-wrap:       wrap;
+}
+
+.hs-admin.light .hs-postulados-cv-modal-header {
+  border-bottom-color: rgba(255,85,0,0.15);
+}
+
+/* Botón cerrar */
+.hs-postulados-cv-close {
+  background:  transparent;
+  border:      none;
+  color:       rgba(255,255,255,0.4);
+  font-size:   24px;
+  line-height: 1;
+  cursor:      pointer;
+  padding:     0 4px;
+  transition:  color 0.2s;
+  flex-shrink: 0;
+}
+.hs-postulados-cv-close:hover        { color: #fff; }
+.hs-admin.light .hs-postulados-cv-close       { color: rgba(0,0,0,0.35); }
+.hs-admin.light .hs-postulados-cv-close:hover { color: #000; }
+
+/* Cuerpo scrolleable */
+.hs-postulados-cv-body {
+  overflow-y: auto;
+  padding:    28px 24px;
+  flex:       1;
+}
+
+/* ── CV viewer interno ───────────────────────────────────────── */
+
+/* Header nombre + foto */
+.hs-cv-header {
+  display:        flex;
+  align-items:    flex-start;
+  gap:            18px;
+  margin-bottom:  22px;
+  padding-bottom: 18px;
+  border-bottom:  1px solid var(--h-border);
+}
+
+.hs-cv-photo {
+  width:         80px;
+  height:        80px;
+  object-fit:    cover;
+  border:        2px solid rgba(204,255,0,0.35);
+  border-radius: 2px;
+  flex-shrink:   0;
+  display:       block;
+}
+
+.hs-admin.light .hs-cv-photo { border-color: rgba(255,85,0,0.35); }
+
+.hs-cv-header-info {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  flex:           1;
+  min-width:      0;
+}
+
+.hs-cv-name {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      1.25rem;
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  color:          var(--h-accent);
+  margin:         0;
+  line-height:    1.1;
+}
+
+.hs-cv-headline {
+  font-size:   0.78rem;
+  font-weight: 600;
+  opacity:     0.6;
+  margin:      0;
+  line-height: 1.4;
+}
+
+.hs-cv-contacts {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px 14px;
+  margin-top: 4px;
+}
+
+.hs-cv-contacts span {
+  font-family:    'Montserrat', monospace;
+  font-size:      0.65rem;
+  font-weight:    700;
+  opacity:        0.55;
+  letter-spacing: 0.5px;
+}
+
+/* Secciones del CV */
+.hs-cv-section {
+  margin-bottom: 20px;
+}
+
+.hs-cv-section-title {
+  display:        block;
+  font-family:    'Montserrat', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 3px;
+  color:          var(--h-accent);
+  text-transform: uppercase;
+  margin-bottom:  10px;
+  padding-bottom: 6px;
+  border-bottom:  1px solid rgba(204,255,0,0.12);
+}
+
+.hs-admin.light .hs-cv-section-title {
+  color:        var(--h-accent);
+  border-bottom-color: rgba(255,85,0,0.12);
+}
+
+/* Entradas (experiencia, educación, certs) */
+.hs-cv-entry {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom:  1px solid var(--h-border);
+}
+
+.hs-cv-entry:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.hs-cv-entry-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-start;
+  gap:             12px;
+  flex-wrap:       wrap;
+  margin-bottom:   5px;
+  font-size:       0.82rem;
+  font-weight:     700;
+}
+
+.hs-cv-entry-header strong {
+  font-weight:    900;
+  font-size:      0.85rem;
+  text-transform: uppercase;
+  letter-spacing: -0.2px;
+}
+
+/* Texto de descripción */
+.hs-cv-text {
+  font-size:   0.78rem;
+  font-weight: 500;
+  opacity:     0.72;
+  line-height: 1.75;
+  margin:      0;
+  white-space: pre-line;
+}
+
+/* Responsive del modal */
+@media (max-width: 768px) {
+  .hs-postulados-cv-modal { max-height: 95vh; }
+  .hs-postulados-cv-body  { padding: 18px 16px; }
+  .hs-postulados-cv-modal-header { padding: 14px 16px; }
+  .hs-cv-photo { width: 60px; height: 60px; }
+  .hs-cv-name  { font-size: 1rem; }
+}
+
+/* ── Plan B2B badge en header ────────────────────────────────── */
+.hs-plan-badge {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            6px;
+  padding:        5px 12px;
+  border:         1px solid rgba(204,255,0,0.2);
+  background:     rgba(204,255,0,0.04);
+  font-family:    'Montserrat', monospace;
+  font-size:      0.76rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space:    nowrap;
+}
+
+.hs-admin.light .hs-plan-badge {
+  border-color: rgba(255,85,0,0.2);
+  background:   rgba(255,85,0,0.04);
+}
+
+.hs-plan-badge-name  { color: var(--h-accent); }
+.hs-plan-badge-sep   { opacity: 0.25; }
+
+.hs-plan-badge-days  { color: var(--h-accent); }
+.hs-plan-badge-days--warn { color: #f97316; }  /* naranja si ≤30 días */
+
+.hs-plan-badge-slots { color: var(--h-muted); }
+
+/* Ocultar en mobile — el banner del VacancyManager ya lo muestra */
+@media (max-width: 768px) {
+  .hs-plan-badge { display: none; }
+}
 
 /* ── TABLET 1024px ───────────────────────────────────────────── */
 @media (max-width: 1024px) {

@@ -645,13 +645,39 @@ function PostuladosTab() {
 // ─── EnterpriseDashboard ──────────────────────────────────────────────────────
 const EnterpriseDashboard = () => {
   const { user }                         = UseSession();
-  const { /* allTickets, */ getAllTickets }     = UseShopping();
+  const { allTickets, getAllTickets }     = UseShopping();
   const { theme }                        = UseTheme();
 
   const [activeTab,       setActiveTab]       = useState("vacancy");
   const [toast,           setToast]           = useState<{ msg: string; color: string; bg: string } | null>(null);
   const [applicantCount,  setApplicantCount]  = useState(0);
-  const [/* newApplicants */,   setNewApplicants]   = useState<ApplicantEvent[]>([]);
+  const [newApplicants,   setNewApplicants]   = useState<ApplicantEvent[]>([]);
+
+  // ── Plan B2B info ─────────────────────────────────────────────
+  const [planInfo, setPlanInfo] = useState<{
+    plan:     string;
+    expiry:   Date;
+    limit:    number | null;
+    used:     number;
+    daysLeft: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const plan      = (user as any).enterprisePlan       ?? null;
+    const expiryStr = (user as any).enterprisePlanExpiry ?? null;
+    const limit     = (user as any).vacancyLimit         ?? null;
+    const used      = (user as any).vacanciesUsed        ?? 0;
+
+    if (!plan || !expiryStr) { setPlanInfo(null); return; }
+
+    const expiry   = new Date(expiryStr);
+    if (expiry <= new Date()) { setPlanInfo(null); return; }
+
+    const msLeft   = expiry.getTime() - Date.now();
+    const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+    setPlanInfo({ plan, expiry, limit, used, daysLeft });
+  }, [user]);
 
   const audioCtxRef        = useRef<AudioContext | null>(null);
   const toastTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -708,7 +734,7 @@ const EnterpriseDashboard = () => {
     setToast({ msg, color, bg });
     playSound();
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToast(null), 150000000);
+    toastTimerRef.current = setTimeout(() => setToast(null), 15000);
   }, [playSound]);
 
   useEffect(() => { showToastRef.current = showToast; }, [showToast]);
@@ -834,6 +860,26 @@ const EnterpriseDashboard = () => {
             <h1 className="hs-header-title">ENTERPRISE_<span>DASHBOARD</span></h1>
           </div>
           <div className="hs-header-meta">
+            {/* Plan B2B activo */}
+            {planInfo && (
+              <div className="hs-plan-badge">
+                <span className="hs-plan-badge-name">
+                  {planInfo.plan.toUpperCase()}
+                </span>
+                <span className="hs-plan-badge-sep">·</span>
+                <span className={`hs-plan-badge-days${planInfo.daysLeft <= 30 ? " hs-plan-badge-days--warn" : ""}`}>
+                  {planInfo.daysLeft}d
+                </span>
+                {planInfo.limit !== null && (
+                  <>
+                    <span className="hs-plan-badge-sep">·</span>
+                    <span className="hs-plan-badge-slots">
+                      {planInfo.used}/{planInfo.limit} pub.
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
             <span className="hs-header-user">
               <span className="hs-live-dot" />
               {user?.email}
