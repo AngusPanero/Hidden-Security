@@ -142,7 +142,7 @@ const Home = () => {
       tl.to(welcomeTextRef.current, {
         autoAlpha: 1,
         y:         0,
-        filter:    "blur(0px)",
+        /* filter:    "blur(0px)", */
         duration:  0.35,
         ease:      "power2.out",
         zIndex:    10,

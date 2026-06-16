@@ -5,6 +5,7 @@ import { UseSession } from "../contexts/SessionContext";
 import { UseShopping } from "../contexts/ShoppingContext";
 import { UseTheme } from "../contexts/ThemeContext";
 import VacancyManager from "./VacancyManager";
+import UsersDatabase from "./usersDataBase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ApplicantEvent {
@@ -834,6 +835,11 @@ const EnterpriseDashboard = () => {
       icon: (<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M2 17c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M14 9l1.5 1.5L18 8"/></svg>),
       badge: applicantCount,
     },
+    {
+      id: "usuariosDb", label: "USUARIOS_DB",
+      icon: (<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M2 17c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M14 9l1.5 1.5L18 8"/></svg>),
+      badge: applicantCount,
+    },
   ];
 
   return (
@@ -913,6 +919,7 @@ const EnterpriseDashboard = () => {
       <main className="hs-content">
         {activeTab === "vacancy"    && <VacancyManager />}
         {activeTab === "postulados" && <PostuladosTab />}
+        {activeTab === "usuariosDb" && <UsersDatabase />}
       </main>
 
     </div>
