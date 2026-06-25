@@ -70,7 +70,6 @@
 .promo-off .kaleida-header {
     padding: 20px 60px;
     background: var(--k-bg-dark); /* Usamos la variable para el color de fondo */
-    backdrop-filter: blur(15px);
     border-bottom: 1px solid var(--k-border);
 }
 

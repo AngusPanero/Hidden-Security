@@ -16,6 +16,7 @@ interface SessionContextType {
     handleLogin: (email: string, password: string) => Promise<boolean | undefined>;
     handleLogout: () => Promise<void>;
     handleResetPassword: (email: string) => Promise<void>;
+    resendVerificationEmail: (email: string) => Promise<void>;
     error: string | boolean | null | number;
     setError: React.Dispatch<React.SetStateAction<string | boolean | null | number>>;
     loading: string | boolean | null | number;
@@ -26,6 +27,9 @@ interface SessionContextType {
     handleUnbanUser: (uid: any) => Promise<void>
     handleBanUser: (email: any) => Promise<void>
     verifyIsAdmin: () => void
+    // ── Nuevo estado para email no verificado ─────────────────────────────────
+    emailNotVerified: boolean;
+    setEmailNotVerified: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const SessionProvider = ({ children }: ProviderProps) => {
@@ -33,17 +37,16 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     const timeRef = useRef<any>(null);
     const { texts, language } = UseLanguage()
 
-    const [ error, setError ] = useState<string | boolean | null | number>(false)
-    const [ loading, setLoading ] = useState<string | boolean | null | number>(false)
-    const [ user, setUser ] = useState<unknown>(null)
-    const [ isAdmin, setIsAdmin ] = useState<boolean | null>(null)
+    const [ error,            setError ]            = useState<string | boolean | null | number>(false)
+    const [ loading,          setLoading ]          = useState<string | boolean | null | number>(false)
+    const [ user,             setUser ]             = useState<unknown>(null)
+    const [ isAdmin,          setIsAdmin ]          = useState<boolean | null>(null)
+    const [ emailNotVerified, setEmailNotVerified ] = useState(false)
 
     // Auto Logout
     useEffect(() => {
         if (!user) return;
-
-        const timeout = 15 * 60 * 1000; // 15 minutos
-
+        const timeout = 15 * 60 * 1000;
         const resetTimer = () => {
             if (timeRef.current) clearTimeout(timeRef.current);
             timeRef.current = setTimeout(async () => {
@@ -53,10 +56,8 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             }, timeout);
         };
         resetTimer();
-
         const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"];
         events.forEach((event) => window.addEventListener(event, resetTimer));
-
         return () => {
             events.forEach((event) => window.removeEventListener(event, resetTimer));
             if (timeRef.current) clearTimeout(timeRef.current);
@@ -70,8 +71,6 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             setLoading(true)
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/register`, { email, password })
             if(response.status === 201){
-                /* console.log(`User created successfully! 🟢`); */
-                
                 registerOpen(false)
                 loginOpen(true)
             }
@@ -81,7 +80,6 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 return
             }
             setError(true)
-            /* console.error("Internal error creating user! 🔴", error) */
         } finally {
             setLoading(false)
         }
@@ -92,27 +90,19 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         try {
             setLoading(true);
             setError(null);
+            setEmailNotVerified(false);
 
-            // 1. Llamada única al backend (Él decide si auditar o loguear)
             const response = await axios.post(
                 `${import.meta.env.VITE_API_URL}/login`, 
                 { email, password }, 
                 { withCredentials: true }
             );
 
-            // 2. Si llegamos aquí, las credenciales son válidas
             if (response.status === 200) {
                 const { user, isAdmin, isEnterprise } = response.data;
-
-                const mergedUser = { 
-                    ...user, 
-                    isEnterprise: isEnterprise, 
-                    admin: isAdmin 
-                };
-
+                const mergedUser = { ...user, isEnterprise, admin: isAdmin };
                 setUser(mergedUser);
 
-                // Redirección Táctica
                 if (isAdmin) {
                     navigate("/admin");
                 } else if (isEnterprise === true) { 
@@ -126,12 +116,23 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         } catch (error: any) {
             console.log("LOGIN ERROR FAILED", error);
             
-            // Extraemos la información de auditoría que el backend ya procesó
             const serverData = error.response?.data;
             const serverCode = serverData?.code;
-            const attempts = serverData?.attempts;
+            const attempts   = serverData?.attempts;
 
-            // 3. Manejo de errores basado en la respuesta del Servidor
+            // ── Email no verificado ────────────────────────────────────────────
+            if (serverCode === "auth/email-not-verified") {
+                setEmailNotVerified(true);
+                setError("Verificá tu email antes de ingresar. Revisá tu casilla de correo.");
+                return;
+            }
+
+            // ── Email no registrado ────────────────────────────────────────────
+            if (serverCode === "auth/user-not-found" || error.response?.status === 404) {
+                setError("No existe ninguna cuenta registrada con ese email.");
+                return;
+            }
+
             if (serverCode === "auth/too-many-attempts" || serverData?.banned) {
                 setError(texts[language].sessionErrors.loginTooManyAttempts);
                 return;
@@ -143,7 +144,6 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             }
 
             if (serverCode === "auth/invalid-credential" || error.response?.status === 401) {
-                // Si el backend nos envió el número de intentos, lo mostramos
                 if (attempts && attempts < 5) {
                     setError(`${texts[language].sessionErrors.loginAttemptsLeft} ${5 - attempts} ${texts[language].sessionErrors.loginAttemptsLeftAfter}`);
                 } else {
@@ -152,10 +152,25 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 return;
             }
 
-            // Error genérico de sistema
             console.error("LOG_CRITICAL // Login failure:", error);
             setError(texts[language].sessionErrors.loginGeneralError);
             
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ── Reenviar email de verificación ────────────────────────────────────────
+    const resendVerificationEmail = async (email: string) => {
+        try {
+            setLoading(true);
+            setError(null);
+            await axios.post(`${import.meta.env.VITE_API_URL}/resend-verification`, { email });
+            setEmailNotVerified(false);
+            alert("Email de verificación reenviado. Revisá tu casilla.");
+        } catch (err: any) {
+            const msg = err.response?.data?.message || "Error al reenviar el email.";
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -166,20 +181,14 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         try {
             setError(false)
             setLoading(true);
-            /* console.log("CURRENT USER", auth.currentUser);
-            
-            const idToken = await auth.currentUser?.getIdToken(true);
-            console.log("LOGOUT", idToken); */
-            
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/logout`, { }, { withCredentials: true });
-
             if (response.status === 200) {
                 await auth.signOut()
                 setUser(null)
                 navigate("/");
             }
         } catch (error: any) {
-            setError(texts[language].sessionErrors.logoutError); // Error al cerrar
+            setError(texts[language].sessionErrors.logoutError);
             console.error("Error logging out session 🔴", error);
         } finally {
             setLoading(false)
@@ -190,25 +199,23 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     const handleResetPassword = async (email: string) => {
         try {
             if(!email){
-                alert(texts[language].sessionErrors.resetEmailRequired); // Ingresá mail
+                alert(texts[language].sessionErrors.resetEmailRequired);
                 return;
             } else {
                 await sendPasswordResetEmail(auth, email);
-                alert(texts[language].sessionErrors.resetEmailSent); // Mail enviado
+                alert(texts[language].sessionErrors.resetEmailSent);
             }
-            
         } catch (error: any) {
             console.error("Error al enviar el email:", error.code);
-
             switch (error.code) {
                 case "auth/user-not-found":
-                    alert(texts[language].sessionErrors.resetUserNotFound); // No Existe usuario
+                    alert(texts[language].sessionErrors.resetUserNotFound);
                     break;
                 case "auth/invalid-email":
-                    alert(texts[language].sessionErrors.resetInvalidEmail); // Formato mail invalido
+                    alert(texts[language].sessionErrors.resetInvalidEmail);
                     break;
                 case "auth/too-many-requests":
-                    alert(texts[language].sessionErrors.resetTooManyRequests); // Demasiados Intentos
+                    alert(texts[language].sessionErrors.resetTooManyRequests);
                     break;
                 default:
                     alert("Default Error.");
@@ -218,15 +225,12 @@ export const SessionProvider = ({ children }: ProviderProps) => {
 
     const handleBanUser = async (email: string) => {
         const confirmUnban = confirm("¿Estás seguro de que quieres bannear este usuario?");
-            if(confirmUnban){
-                try {
+        if(confirmUnban){
+            try {
                 setError(false)
                 setLoading(true)
-
                 const response = await axios.post(`${import.meta.env.VITE_API_URL}/admin/ban-user`, { email }, { withCredentials: true })
-                if(response.status === 200){
-                    navigate("/admin")
-                }
+                if(response.status === 200){ navigate("/admin") }
             } catch (error: any) {
                 setError(true)
                 console.error("Error al bannear usuario! 🔴", error)
@@ -236,58 +240,39 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         }
     }
 
-     const handleUnbanUser = async (uid: any) => {
+    const handleUnbanUser = async (uid: any) => {
         const confirmUnban = confirm("¿Estás seguro de que quieres desbannear este usuario?");
         if(confirmUnban){
             try {
-            setError(false)
-            setLoading(true)
-
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/unban-user`, { uid }, { withCredentials: true })
-            if(response.status === 200){
-                navigate("/admin")
+                setError(false)
+                setLoading(true)
+                const response = await axios.post(`${import.meta.env.VITE_API_URL}/unban-user`, { uid }, { withCredentials: true })
+                if(response.status === 200){ navigate("/admin") }
+            } catch (error: any) {
+                setError(true)
+                console.error("Error al desbannear usuario! 🔴", error)
+            } finally{
+                setLoading(false)
             }
-        } catch (error: any) {
-            setError(true)
-            console.error("Error al desbannear usuario! 🔴", error)
-        } finally{
-            setLoading(false)
-        }
         }
     }
 
-    // Para el renderizado del ul li del nav
     const verifyIsAdmin = async () => {
         const customClaims = await auth.currentUser?.getIdTokenResult();
-        {/* Doble negación forza a undefined y null a ser falsos, para solo trabajar con booleanos */}
-        const isAdmin = !!customClaims?.claims.admin; // Esto es TRUE como si no tuviera los signos de exclamación
-
-        if(isAdmin){
-            setIsAdmin(true)
-        } else {
-            setIsAdmin(false)
-        }
+        const isAdmin = !!customClaims?.claims.admin;
+        if(isAdmin){ setIsAdmin(true) } else { setIsAdmin(false) }
     }
 
-   // Refresh
+    // Refresh
     useEffect(() => {
         const checkSession = async () => {
             try {
                 setLoading(true);
-                
-                // Llamamos a nuestro backend para ver si la cookie es válida
                 const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/check-auth`, { withCredentials: true });
-
                 if (data.authenticated) {
-                    setUser({ 
-                        ...data.user, 
-                        isEnterprise: data.isEnterprise, 
-                        admin: data.isAdmin               
-                    });
+                    setUser({ ...data.user, isEnterprise: data.isEnterprise, admin: data.isAdmin });
                     console.log("USER AUTENTIADO REFRESH", data);
-                    
-                }
-                else {
+                } else {
                     setUser(null);
                 }
             } catch (error) {
@@ -297,12 +282,18 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 setLoading(false);
             }
         };
-
         checkSession();
     }, []);
 
     return(
-        <SessionContext.Provider value={{ handleRegister , handleLogin, handleLogout, handleResetPassword, error, setError, loading, setLoading, user, setUser, handleUnbanUser, verifyIsAdmin, isAdmin, handleBanUser }}>
+        <SessionContext.Provider value={{
+            handleRegister, handleLogin, handleLogout, handleResetPassword,
+            resendVerificationEmail,
+            error, setError, loading, setLoading,
+            user, setUser,
+            handleUnbanUser, verifyIsAdmin, isAdmin, handleBanUser,
+            emailNotVerified, setEmailNotVerified,
+        }}>
             { children }
         </SessionContext.Provider>
     )
@@ -310,10 +301,6 @@ export const SessionProvider = ({ children }: ProviderProps) => {
 
 export const UseSession = () => {
   const context = useContext(SessionContext);
-
-  if (!context) {
-    throw new Error("useSession debe ser usado dentro de un SessionProvider");
-  }
+  if (!context) throw new Error("useSession debe ser usado dentro de un SessionProvider");
   return context; 
 };
-

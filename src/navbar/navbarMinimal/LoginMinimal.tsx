@@ -13,13 +13,22 @@ interface LoginProps {
 
 const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
     const { theme } = UseTheme();
-    const { handleLogin, loading, error, handleResetPassword } = UseSession();
+    const {
+        handleLogin,
+        loading,
+        error,
+        handleResetPassword,
+        emailNotVerified,
+        resendVerificationEmail,
+    } = UseSession();
     const loginRef = useRef<HTMLDivElement>(null);
 
-    const [exit, setExit] = useState(false);
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [visiblePassword, setVisiblePassword] = useState<boolean>(false);
+    const [exit,             setExit]             = useState(false);
+    const [email,            setEmail]            = useState("");
+    const [password,         setPassword]         = useState("");
+    const [visiblePassword,  setVisiblePassword]  = useState<boolean>(false);
+    const [resendLoading,    setResendLoading]    = useState(false);
+    const [resendSuccess,    setResendSuccess]    = useState(false);
 
     const handleClose = () => {
         setExit(true);
@@ -42,6 +51,20 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
         if (response) { closeLogin(); }
     };
 
+    const handleResend = async () => {
+        if (!email) return;
+        setResendLoading(true);
+        setResendSuccess(false);
+        try {
+            await resendVerificationEmail(email);
+            setResendSuccess(true);
+        } catch {
+            // el error ya lo maneja el context
+        } finally {
+            setResendLoading(false);
+        }
+    };
+
     if (loading) return <Loader />;
 
     return (
@@ -50,7 +73,6 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
                 ref={loginRef} 
                 className={`kaleida-auth-panel ${theme} ${exit ? "panel-exit" : ""}`}
             >
-                {/* LÍNEA DE PROGRESO DECORATIVA ARRIBA */}
                 <div className="auth-edge-line"></div>
 
                 <div className="auth-internal-padding">
@@ -85,7 +107,7 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
                                     <input 
                                         type="email" 
                                         className="auth-input"
-                                        placeholder="user@deepdev.systems"
+                                        placeholder="user@hidden.com"
                                         value={email} 
                                         onChange={(e) => setEmail(e.target.value)} 
                                         required 
@@ -126,7 +148,39 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
                                 </button>
                             </div>
 
-                            {error && <div className="auth-error-msg">{error}</div>}
+                            {/* ── Error genérico ── */}
+                            {error && !emailNotVerified && (
+                                <div className="auth-error-msg">{error}</div>
+                            )}
+
+                            {/* ── Banner email no verificado ── */}
+                            {emailNotVerified && (
+                                <div className="auth-verification-banner">
+                                    <span className="auth-verification-icon">✉</span>
+                                    <div className="auth-verification-body">
+                                        <p className="auth-verification-title">
+                                            EMAIL_NO_VERIFICADO
+                                        </p>
+                                        <p className="auth-verification-text">
+                                            Revisá tu casilla de correo y hacé click en el link de activación que te enviamos al registrarte.
+                                        </p>
+                                        {resendSuccess ? (
+                                            <p className="auth-verification-success">
+                                                ✓ Email reenviado correctamente.
+                                            </p>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="auth-resend-btn"
+                                                onClick={handleResend}
+                                                disabled={resendLoading || !email}
+                                            >
+                                                {resendLoading ? "ENVIANDO..." : "REENVIAR EMAIL DE VERIFICACIÓN →"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             <button type="submit" className="auth-primary-btn">
                                 <span className="btn-label">INGRESAR</span>

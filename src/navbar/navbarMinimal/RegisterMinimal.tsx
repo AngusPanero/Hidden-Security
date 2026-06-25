@@ -104,7 +104,7 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
                                         type="email" 
                                         value={email} 
                                         onChange={(e) => setEmail(e.target.value)} 
-                                        placeholder="ENTITY_ID@DEEPDEV.COM" 
+                                        placeholder="email@hidden.com" 
                                         required 
                                         className="auth-input"
                                     />
