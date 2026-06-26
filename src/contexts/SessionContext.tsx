@@ -271,7 +271,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/check-auth`, { withCredentials: true });
                 if (data.authenticated) {
                     setUser({ ...data.user, isEnterprise: data.isEnterprise, admin: data.isAdmin });
-                    console.log("USER AUTENTIADO REFRESH", data);
+                    /* console.log("USER AUTENTIADO REFRESH", data); */
                 } else {
                     setUser(null);
                 }
