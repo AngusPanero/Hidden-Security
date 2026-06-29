@@ -230,7 +230,7 @@ export const LanguageProvider = ({ children }: ProviderProps) => {
 
              A web presence is often the first point of contact between your brand and your users. A well-built website not only communicates who you are, but also converts visitors into clients, centralizes your services, and allows your business to grow with flexibility and control. 
 
-             Whether you need to showcase your brand, sell products online or manage information and users through a custom platform, web applications provide a scalable and accessible solution available from any device.`,
+             Whether you need to showcase your brand, sell products ONLINE or manage information and users through a custom platform, web applications provide a scalable and accessible solution available from any device.`,
             appTitle: `iOS & Android Mobile Apps.`,
             appText: `We design and build mobile applications for iOS and Android from focused business apps and MVPs to fully featured products ready for real users. 
             
@@ -665,7 +665,7 @@ export const LanguageProvider = ({ children }: ProviderProps) => {
             webTitle: `Sviluppiamo Applicazioni Web`,
             webText: `Offriamo soluzioni web moderne progettate per i tuoi obiettivi. Dalle landing page ai sistemi eCommerce e piattaforme personalizzate, trasformiamo ogni tua idea in uno strumento digitale potente, funzionale e pronto a scalare.
 
-            La presenza online è il primo contatto tra brand e utenti. Un sito web ben costruito comunica la tua identità e lavora per convertire i visitatori in clienti, centralizzando i servizi e permettendo al tuo business di crescere con controllo.
+            La presenza ONLINE è il primo contatto tra brand e utenti. Un sito web ben costruito comunica la tua identità e lavora per convertire i visitatori in clienti, centralizzando i servizi e permettendo al tuo business di crescere con controllo.
 
             Sviluppiamo infrastrutture sicure e veloci utilizzando le tecnologie più avanzate. Garantiamo un'esperienza utente impeccabile su ogni dispositivo, ottimizzando i processi digitali per mantenere il tuo business sempre un passo avanti rispetto alla concorrenza.`,
 

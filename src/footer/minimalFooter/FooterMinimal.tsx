@@ -41,7 +41,7 @@ const FooterMinimal = () => {
                     <div className="footer-column">
                         <h4 className="column-title">ACADEMIA</h4>
                         <nav className="footer-nav">
-                            <a href="/cursos">Cursos Online</a>
+                            <a href="/cursos">Cursos ONLINE</a>
                             <a href="/bootcamps">Bootcamps</a>
                             <a href="/bolsa-trabajo">Bolsa de Trabajo</a>
                             <a href="/certificaciones">Certificaciones</a>

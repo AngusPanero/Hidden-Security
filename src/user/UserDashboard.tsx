@@ -278,7 +278,7 @@ const UserDashboard = () => {
                     {user.userCertificated && (
                         <span className="dm-live-badge">
                             <span className="dm-live-dot" />
-                            EN_VIVO
+                            ONLINE
                         </span>
                     )}
                 </div>

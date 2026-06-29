@@ -889,7 +889,7 @@ const EnterpriseDashboard = () => {
             </span>
             <span className="hs-sse-badge">
               <span className="hs-live-dot" />
-              EN_VIVO
+              ONLINE
             </span>
           </div>
         </div>
