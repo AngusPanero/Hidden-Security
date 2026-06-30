@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom"; 
-import "./cursosParams.css";
+import "./cursoParam.css";
 
 // Assets
 import img1 from "../assets/soc-photo1.jpg"; 
