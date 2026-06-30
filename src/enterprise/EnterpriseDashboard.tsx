@@ -692,7 +692,6 @@ const EnterpriseDashboard = () => {
   useEffect(() => { getAllTicketsRef.current = getAllTickets; });
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
-  /* const uncheckedCount = allTickets.filter((t) => !t.checked).length; */
 
   // Inicializar AudioContext en el primer click — requerido por los browsers
   useEffect(() => {
