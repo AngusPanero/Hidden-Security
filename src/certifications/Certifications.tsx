@@ -3,7 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UseTheme } from "../contexts/ThemeContext";
 import "./certifications.css";
-import insignia1 from "../../public/insignias/insignia1.png";
+import insigniaIR from "../../public/insignias/Insignia HS IR.png";
+import insigniPEN from "../../public/insignias/Insignia HS PEN.png";
+import insigniaSOC from "../../public/insignias/Insignia HS SOC.png";
+import insigniaTH from "../../public/insignias/Insignia HS TH.png";
+import insigniaTI from "../../public/insignias/Insignia HS TI.png";
+
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 export interface CertificationData {
@@ -24,7 +29,7 @@ export const CERTIFICATIONS: CertificationData[] = [
     slug:       "soc-analyst",
     name:       "SOC ANALYST CERTIFICATION",
     subtitle:   "Validación de habilidades para el SOC moderno",
-    img: insignia1,
+    img: insigniaSOC,
     difficulty: 3,
     timeLimit:  "90 MIN",
     modules:    8,
@@ -35,7 +40,7 @@ export const CERTIFICATIONS: CertificationData[] = [
     slug:       "threat-hunting",
     name:       "THREAT HUNTING CERTIFICATION",
     subtitle:   "Evaluación de capacidades de búsqueda proactiva de amenazas.",
-    img: insignia1,
+    img: insigniaTH,
     difficulty: 4,
     timeLimit:  "120 MIN",
     modules:    6,
@@ -46,7 +51,7 @@ export const CERTIFICATIONS: CertificationData[] = [
     slug:       "incident-response",
     name:       "INCIDENT RESPONSE CERTIFICATION",
     subtitle:   "Validación de competencias para la gestión técnica de incidentes de seguridad.",
-    img: insignia1,
+    img: insigniaIR,
     difficulty: 4,
     timeLimit:  "120 MIN",
     modules:    7,
@@ -57,7 +62,7 @@ export const CERTIFICATIONS: CertificationData[] = [
     slug:       "threat-intelligence",
     name:       "THREAT INTELLIGENCE CERTIFICATION",
     subtitle:   "Evaluación del análisis de inteligencia, actores de amenaza y generación de inteligencia accionable.",
-    img: insignia1,
+    img: insigniaTI,
     difficulty: 3,
     timeLimit:  "90 MIN",
     modules:    5,
@@ -68,7 +73,7 @@ export const CERTIFICATIONS: CertificationData[] = [
     slug:       "pentesting",
     name:       "PENTESTING CERTIFICATION",
     subtitle:   "Validación de habilidades en evaluación ofensiva de la seguridad.",
-    img: insignia1,
+    img: insigniPEN,
     difficulty: 5,
     timeLimit:  "150 MIN",
     modules:    9,

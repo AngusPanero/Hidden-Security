@@ -76,13 +76,13 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 loginOpen(true)
             }
         } catch (error: any) {
+            setLoading(false)
             if(error.response?.status === 409){
-                setLoading(false)
-                setError(true)
+                setError("EMAIL_YA_REGISTRADO") 
                 return
             }
             setError(true)
-        } 
+        }
     }
 
     // Login

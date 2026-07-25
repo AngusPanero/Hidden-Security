@@ -84,7 +84,7 @@
 
 /* ── Card ── */
 .cert-card {
-    background:    var(--cert-card-bg);
+    /* background:    var(--cert-card-bg); */
     border:        1px solid var(--cert-border);
     display:       flex;
     flex-direction: column;
@@ -111,9 +111,10 @@
 .cert-card-img-wrap {
     position:      relative;
     width:         100%;
-    height:        200px;
+    height:        250px;
     overflow:      hidden;
     flex-shrink:   0;
+    
 }
 
 .cert-card-img {
@@ -131,7 +132,7 @@
 .cert-card-img-overlay {
     position: absolute;
     inset:    0;
-    background: linear-gradient(to top, var(--cert-card-bg) 0%, transparent 60%);
+    /* background: linear-gradient(to top, var(--cert-card-bg) 0%, transparent 60%); */
 }
 
 .cert-card-badge {

@@ -57,6 +57,7 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
     }, []);
 
     if(loading) return <Loader />
+    if(error === "EMAIL_YA_REGISTRADO") return (<Error processMessage="Este email ya está registrado." />)
     if(error) return <Error processMessage={`${texts[language].register.errorRegister}`} />
 
     return (
