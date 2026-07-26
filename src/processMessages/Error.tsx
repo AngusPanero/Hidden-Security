@@ -55,7 +55,8 @@ const ProcessOk = ({ processMessage }: ProcessOkProps) => {
                     <div className="redirect-bar">
                         <div className="redirect-fill"></div>
                     </div>
-                    <span className="redirect-text">REDIRECCIONANDO_AL_DASHBOARD...</span>
+                    <span className="redirect-text">REDIRECCIONANDO_AL_DASHBOARD...</span><br /><br />
+                    <a href="/"><span className="redirect-text">IR AL INICIO</span></a>
                 </div>
 
                 <div className="studio-tag">
