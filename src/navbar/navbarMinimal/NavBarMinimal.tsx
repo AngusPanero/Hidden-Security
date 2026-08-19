@@ -152,7 +152,7 @@ const NavBarMinimal = () => {
                             <div className="auth-wrap">
                                 {user ? (
                                     <button onClick={() => handleLogout()} className="btn-kaleida logout">
-                                        Cerar
+                                        Cerrar
                                     </button>
                                 ) : (
                                     <button onClick={() => setLoginOpen(true)} className="btn-kaleida login">

@@ -89,7 +89,7 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ them
                 <div className="kaleida-auth-box">
                     {user ? (
                         <button onClick={() => { handleLogout(); closeMenu(); }} className="btn-mobile-auth">
-                            LOGOUT
+                            CERRAR
                         </button>
                     ) : (
                         <button onClick={() => { openLogin(); closeMenu(); }} className="btn-mobile-auth primary">
