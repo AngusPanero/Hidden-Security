@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { UseTheme } from "../contexts/ThemeContext";
 import { UseSession } from "../contexts/SessionContext";
+import { HS_SKILLS } from "../skills/Skills"; // ⚠️ ajustá esta ruta si difiere de la del CV Builder
 import "./vacancyManager.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -9,6 +10,7 @@ type Status = "active" | "paused" | "closed";
 type ExperienceLevel = "Junior" | "Semi-Senior" | "Senior" | "Lead" | "Manager";
 type Modality = "Remoto" | "Presencial" | "Híbrido";
 type ContractType = "Full-time" | "Part-time" | "Freelance" | "Pasantía";
+type SkillCategory = "roles" | "habilidades" | "herramientas";
 
 interface SalaryRange {
   min: string;
@@ -17,12 +19,19 @@ interface SalaryRange {
   visible: boolean;
 }
 
+// Skills requeridas por la vacante — mismo árbol que HS_SKILLS (skills.ts)
+interface SkillsSelection {
+  roles:        string[]; // HS_SKILLS.AREAS_Y_ROLES
+  habilidades:  string[]; // HS_SKILLS.HABILIDADES
+  herramientas: string[]; // HS_SKILLS.HERRAMIENTAS
+}
+
 interface Vacancy {
   _id: string;
   title: string;
   description: string;
   requirements: string;
-  skills: string[];
+  skills: SkillsSelection;
   experienceLevel: ExperienceLevel;
   modality: Modality;
   contractType: ContractType;
@@ -38,32 +47,46 @@ interface Vacancy {
 
 type VacancyForm = Omit<Vacancy, "_id" | "applicants" | "status" | "publishedBy">;
 
-// ─── Constantes ───────────────────────────────────────────────────────────────
-const IT_SKILLS: string[] = [
-  "JavaScript","TypeScript","Python","Java","C#","C++","Go","Rust","PHP","Ruby",
-  "React","Vue.js","Angular","Next.js","Nuxt.js","Svelte",
-  "Node.js","Express.js","NestJS","Django","FastAPI","Spring Boot","Laravel",
-  "MongoDB","PostgreSQL","MySQL","Redis","Elasticsearch","Firebase",
-  "Docker","Kubernetes","AWS","Google Cloud","Azure","Terraform",
-  "Git","GitHub","GitLab","CI/CD","Jenkins","GitHub Actions",
-  "Linux","Bash","PowerShell",
-  "REST APIs","GraphQL","WebSockets","gRPC","Microservices",
-  "Cybersecurity","Ethical Hacking","Pentesting","OSINT","SOC","SIEM",
-  "Networking","TCP/IP","Firewalls","VPN","SSL/TLS",
-  "Machine Learning","Deep Learning","TensorFlow","PyTorch","Data Science",
-  "Agile","Scrum","Kanban","Jira","Confluence",
-  "React Native","Flutter","iOS","Android",
-  "Figma","UI/UX","Tailwind CSS","SASS",
-  "Selenium","Cypress","Jest","Testing","QA",
-  "Blockchain","Web3","Solidity",
-  "SAP","Salesforce","Power BI","Tableau",
-];
+// ─── Catálogo de skills — las 3 ramas de HS_SKILLS ─────────────────────────────
+const CATEGORY_LABELS: Record<SkillCategory, string> = {
+  roles:        "Áreas y roles",
+  habilidades:  "Habilidades",
+  herramientas: "Herramientas",
+};
+
+const CATEGORY_CATALOGS: Record<SkillCategory, Record<string, readonly string[]>> = {
+  roles:        HS_SKILLS.AREAS_Y_ROLES,
+  habilidades:  HS_SKILLS.HABILIDADES,
+  herramientas: HS_SKILLS.HERRAMIENTAS,
+};
+
+const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"];
+
+function emptySkills(): SkillsSelection {
+  return { roles: [], habilidades: [], herramientas: [] };
+}
+
+function flattenSkills(s: SkillsSelection | undefined | null): string[] {
+  if (!s) return [];
+  return [...(s.roles ?? []), ...(s.habilidades ?? []), ...(s.herramientas ?? [])];
+}
+
+// Compat: vacantes creadas antes de este cambio tenían "skills" como array
+// plano. Todo lo que no reconocemos cae en "herramientas" para no perder data.
+function normalizeSkills(raw: any): SkillsSelection {
+  if (Array.isArray(raw)) return { roles: [], habilidades: [], herramientas: raw };
+  return {
+    roles:        raw?.roles        ?? [],
+    habilidades:  raw?.habilidades  ?? [],
+    herramientas: raw?.herramientas ?? [],
+  };
+}
 
 const BLANK_FORM: VacancyForm = {
   title: "",
   description: "",
   requirements: "",
-  skills: [],
+  skills: emptySkills(),
   experienceLevel: "Junior",
   modality: "Remoto",
   contractType: "Full-time",
@@ -80,64 +103,129 @@ const STATUS_LABELS: Record<Status, string> = {
   closed: "CERRADA",
 };
 
-// ─── SkillSelector ────────────────────────────────────────────────────────────
-interface SkillSelectorProps {
-  selected: string[];
-  onChange: (skills: string[]) => void;
+// ─── VacancySkillPicker (colapsable a 2 niveles) ──────────────────────────────
+// Nivel 1: la rama entera (Áreas y roles / Habilidades / Herramientas) arranca
+// CERRADA — solo título + badge con cantidad. Al abrirla aparecen las tags
+// seleccionadas + el acordeón de subgrupos (nivel 2: cada subgrupo tiene su
+// propio buscador de 16px + sus opciones).
+function buildGroupMap(catalog: Record<string, readonly string[]>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [group, items] of Object.entries(catalog)) {
+    for (const item of items) map[item] = group;
+  }
+  return map;
 }
 
-function SkillSelector({ selected, onChange }: SkillSelectorProps) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+function VacancySkillPicker({
+  title,
+  catalog,
+  selected,
+  onChange,
+}: {
+  title: string;
+  catalog: Record<string, readonly string[]>;
+  selected: string[];
+  onChange: (s: string[]) => void;
+}) {
+  const [mainOpen,  setMainOpen]  = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [groupQuery, setGroupQuery] = useState<Record<string, string>>({});
+  const groupMap = useMemo(() => buildGroupMap(catalog), [catalog]);
 
-  const filtered = IT_SKILLS.filter(
-    (s) => !selected.includes(s) && s.toLowerCase().includes(query.toLowerCase())
-  );
+  const toggleItem = (name: string) => {
+    onChange(selected.includes(name) ? selected.filter(x => x !== name) : [...selected, name]);
+  };
+  const removeItem = (name: string) => onChange(selected.filter(x => x !== name));
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const add = (skill: string) => { onChange([...selected, skill]); setQuery(""); };
-  const remove = (skill: string) => onChange(selected.filter((s) => s !== skill));
+  const toggleMain = () => {
+    setMainOpen(o => !o);
+    if (mainOpen) setOpenGroup(null);
+  };
 
   return (
-    <div ref={wrapRef} className="hs-skill-selector">
-      <div className="hs-skill-input-box" onClick={() => setOpen(true)}>
-        {selected.map((skill) => (
-          <span key={skill} className="hs-skill-tag">
-            {skill}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); remove(skill); }}
-              className="hs-skill-remove"
-            >×</button>
-          </span>
-        ))}
-        <input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          placeholder={selected.length === 0 ? "Buscar y agregar skills..." : ""}
-          className="hs-skill-search"
-        />
-      </div>
-      {open && filtered.length > 0 && (
-        <div className="hs-skill-dropdown">
-          {filtered.slice(0, 30).map((skill) => (
-            <div
-              key={skill}
-              onMouseDown={(e) => { e.preventDefault(); add(skill); }}
-              className="hs-skill-option"
-            >
-              {skill}
+    <div className={`hs-catalog-group${mainOpen ? " open" : ""}`}>
+      <button type="button" className="hs-catalog-main-header" onClick={toggleMain}>
+        <span className="hs-catalog-group-title">{title}</span>
+        <span className="hs-catalog-main-header-right">
+          {selected.length > 0 && <span className="hs-catalog-main-badge">{selected.length}</span>}
+          <span className="hs-catalog-main-chevron">{mainOpen ? "−" : "+"}</span>
+        </span>
+      </button>
+
+      {mainOpen && (
+        <div className="hs-catalog-body">
+          {selected.length > 0 ? (
+            <div className="hs-catalog-selected">
+              {selected.map(name => (
+                <span key={name} className="hs-skill-tag hs-catalog-tag">
+                  <span className="hs-catalog-tag-group">{groupMap[name] ?? ""}</span>
+                  <span className="hs-catalog-tag-name">{name}</span>
+                  <button type="button" className="hs-skill-remove" onClick={() => removeItem(name)}>×</button>
+                </span>
+              ))}
             </div>
-          ))}
+          ) : (
+            <p className="hs-field-hint">Ninguna seleccionada todavía. Tocá un subgrupo para ver sus opciones.</p>
+          )}
+
+          <div className="hs-accordion">
+            {Object.entries(catalog).map(([group, items]) => {
+              const isOpen = openGroup === group;
+              const query = (groupQuery[group] ?? "").trim().toLowerCase();
+              const filteredItems = query.length === 0
+                ? items
+                : items.filter(name => name.toLowerCase().includes(query));
+              const selectedInGroup = items.filter(name => selected.includes(name)).length;
+
+              return (
+                <div className={`hs-accordion-item${isOpen ? " open" : ""}`} key={group}>
+                  <button
+                    type="button"
+                    className="hs-accordion-header"
+                    onClick={() => setOpenGroup(isOpen ? null : group)}
+                  >
+                    <span className="hs-accordion-header-name">{group}</span>
+                    <span className="hs-accordion-header-right">
+                      {selectedInGroup > 0 && <span className="hs-catalog-main-badge">{selectedInGroup}</span>}
+                      <span className="hs-accordion-chevron">{isOpen ? "−" : "+"}</span>
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="hs-accordion-body">
+                      <input
+                        className="hs-input hs-catalog-input"
+                        type="text"
+                        value={groupQuery[group] ?? ""}
+                        onChange={e => setGroupQuery(q => ({ ...q, [group]: e.target.value }))}
+                        placeholder={`Buscar en ${group.toLowerCase()}...`}
+                        autoFocus
+                      />
+                      <div className="hs-accordion-options">
+                        {filteredItems.length === 0 && (
+                          <p className="hs-field-hint hs-accordion-no-results">Sin resultados.</p>
+                        )}
+                        {filteredItems.map(name => {
+                          const isSelected = selected.includes(name);
+                          return (
+                            <button
+                              type="button"
+                              key={name}
+                              className={`hs-accordion-option${isSelected ? " selected" : ""}`}
+                              onClick={() => toggleItem(name)}
+                            >
+                              <span className="hs-accordion-option-check">{isSelected ? "✓" : ""}</span>
+                              <span>{name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -184,7 +272,7 @@ function VacancyModal({ initial, onSave, onClose }: VacancyModalProps) {
           title:           initial.title,
           description:     initial.description,
           requirements:    initial.requirements,
-          skills:          initial.skills,
+          skills:          initial.skills, // ya viene normalizado desde fetchVacancies
           experienceLevel: initial.experienceLevel,
           modality:        initial.modality,
           contractType:    initial.contractType,
@@ -204,6 +292,9 @@ function VacancyModal({ initial, onSave, onClose }: VacancyModalProps) {
 
   const setSalary = (key: keyof SalaryRange, value: string | boolean) =>
     setForm((f) => ({ ...f, salaryRange: { ...f.salaryRange, [key]: value } }));
+
+  const setSkillsBranch = (branch: SkillCategory, value: string[]) =>
+    setForm((f) => ({ ...f, skills: { ...f.skills, [branch]: value } }));
 
   const validate = () => {
     const e: typeof errors = {};
@@ -282,9 +373,26 @@ function VacancyModal({ initial, onSave, onClose }: VacancyModalProps) {
             />
           </Field>
 
-          {/* Skills */}
-          <Field label="Skills requeridas" hint="Escribí para filtrar · Click para agregar">
-            <SkillSelector selected={form.skills} onChange={(v) => set("skills", v)} />
+          {/* Skills — árbol HS_SKILLS: áreas/roles, habilidades, herramientas */}
+          <Field label="Skills requeridas" hint="Elegí las áreas, habilidades y herramientas que buscás para este puesto.">
+            <VacancySkillPicker
+              title={CATEGORY_LABELS.roles}
+              catalog={CATEGORY_CATALOGS.roles}
+              selected={form.skills.roles}
+              onChange={(s) => setSkillsBranch("roles", s)}
+            />
+            <VacancySkillPicker
+              title={CATEGORY_LABELS.habilidades}
+              catalog={CATEGORY_CATALOGS.habilidades}
+              selected={form.skills.habilidades}
+              onChange={(s) => setSkillsBranch("habilidades", s)}
+            />
+            <VacancySkillPicker
+              title={CATEGORY_LABELS.herramientas}
+              catalog={CATEGORY_CATALOGS.herramientas}
+              selected={form.skills.herramientas}
+              onChange={(s) => setSkillsBranch("herramientas", s)}
+            />
           </Field>
 
           {/* Nivel · Modalidad · Contrato */}
@@ -407,6 +515,7 @@ interface VacancyCardProps {
 
 function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const allSkills = flattenSkills(vacancy.skills);
 
   const isExpired = vacancy.closesAt
     ? new Date(vacancy.closesAt) < new Date()
@@ -456,13 +565,13 @@ function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardP
       </div>
 
       {/* Skills */}
-      {vacancy.skills.length > 0 && (
+      {allSkills.length > 0 && (
         <div className="hs-card-skills">
-          {vacancy.skills.slice(0, 7).map((s) => (
+          {allSkills.slice(0, 7).map((s) => (
             <span key={s} className="hs-card-skill">{s}</span>
           ))}
-          {vacancy.skills.length > 7 && (
-            <span className="hs-card-skill-more">+{vacancy.skills.length - 7}</span>
+          {allSkills.length > 7 && (
+            <span className="hs-card-skill-more">+{allSkills.length - 7}</span>
           )}
         </div>
       )}
@@ -598,7 +707,10 @@ export default function VacancyManager() {
   const fetchVacancies = () => {
     axios
       .get(`${import.meta.env.VITE_API_URL}/api/vacancies`, { withCredentials: true })
-      .then(({ data }) => setVacancies(Array.isArray(data.data) ? data.data : []))
+      .then(({ data }) => {
+        const list = Array.isArray(data.data) ? data.data : [];
+        setVacancies(list.map((v: any) => ({ ...v, skills: normalizeSkills(v.skills) })));
+      })
       .catch(() => notify("Error al cargar vacantes", "error"));
   };
 

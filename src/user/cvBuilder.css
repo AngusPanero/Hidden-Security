@@ -642,3 +642,303 @@
 
   .cv-toast { right: 10px; bottom: 10px; max-width: calc(100vw - 20px); font-size: 0.72rem; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES 2 — Catálogo de skills (HS_SKILLS) — acordeón por grupo
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+.cv-catalog-group {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  padding-bottom: 22px;
+  margin-bottom:  4px;
+  border-bottom:  1px solid var(--cv-border);
+}
+
+.cv-catalog-group:last-child { border-bottom: none; padding-bottom: 0; }
+
+.cv-catalog-group-title {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.92rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color:          var(--cv-accent);
+}
+
+.cv-catalog-placeholder {
+  font-size:   0.78rem;
+  opacity:     0.45;
+  font-family: 'Montserrat', sans-serif;
+  margin:      0;
+}
+
+/* ── Seleccionadas (tags removibles, siempre visibles) ──────────── */
+.cv-catalog-selected {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.cv-catalog-tag {
+  flex-direction: column;
+  align-items:    flex-start;
+  gap:            1px;
+  padding:        6px 22px 6px 10px;
+  position:       relative;
+}
+
+.cv-catalog-tag-group {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.55rem;
+  font-weight:    700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity:        0.55;
+}
+
+.cv-catalog-tag-name {
+  font-size:   0.68rem;
+  font-weight: 800;
+}
+
+.cv-catalog-tag button {
+  position: absolute;
+  top:      2px;
+  right:    5px;
+}
+
+.cv-catalog-count {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.62rem;
+  font-weight:    700;
+  opacity:        0.4;
+  letter-spacing: 1px;
+}
+
+/* ── Acordeón de grupos ──────────────────────────────────────────── */
+.cv-accordion {
+  display:        flex;
+  flex-direction: column;
+  border:         1px solid var(--cv-border);
+}
+
+.cv-accordion-item { border-bottom: 1px solid var(--cv-border); }
+.cv-accordion-item:last-child { border-bottom: none; }
+
+.cv-accordion-header {
+  width:           100%;
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  gap:             12px;
+  background:      var(--cv-surface);
+  border:          none;
+  cursor:          pointer;
+  padding:         12px 14px;
+  text-align:      left;
+  transition:      background 0.15s;
+}
+
+.cv-accordion-header-name{ color: var(--cv-text); }
+
+.cv-accordion-header:hover { background: rgba(204,255,0,0.05); }
+.cv-builder.light .cv-accordion-header:hover { background: rgba(255,85,0,0.05); }
+
+.cv-accordion-item.open .cv-accordion-header {
+  background: rgba(204,255,0,0.06);
+}
+
+.cv-builder.light .cv-accordion-item.open .cv-accordion-header {
+  background: rgba(255,85,0,0.06);
+}
+
+.cv-accordion-header-name {
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.82rem;
+  font-weight: 700;
+}
+
+.cv-accordion-header-right {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex-shrink: 0;
+}
+
+.cv-accordion-badge {
+  background:     var(--cv-accent);
+  color:          #000;
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  padding:        2px 7px;
+  line-height:    1.4;
+}
+
+.cv-accordion-chevron {
+  font-family: 'JetBrains Mono', monospace;
+  font-size:   1rem;
+  font-weight: 800;
+  color:       var(--cv-accent);
+  width:       16px;
+  text-align:  center;
+}
+
+/* Body del acordeón — se despliega justo debajo del grupo, no al final de la página */
+.cv-accordion-body {
+  padding:        14px;
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  background:     var(--cv-bg);
+}
+
+/* Input de búsqueda — 16px fijo para no disparar zoom automático en iOS */
+.cv-catalog-input {
+  font-size: 16px !important;
+}
+
+.cv-accordion-options {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  max-height:     260px;
+  overflow-y:     auto;
+  border:         1px solid var(--cv-border);
+}
+
+.cv-accordion-no-results { padding: 12px; }
+
+.cv-accordion-option {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  background:  transparent;
+  border:      none;
+  border-bottom: 1px solid var(--cv-border);
+  color:       var(--cv-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.78rem;
+  font-weight: 600;
+  text-align:  left;
+  padding:     9px 12px;
+  cursor:      pointer;
+  transition:  background 0.15s;
+}
+
+.cv-accordion-option:last-child { border-bottom: none; }
+
+.cv-accordion-option:hover { background: rgba(204,255,0,0.06); }
+.cv-builder.light .cv-accordion-option:hover { background: rgba(255,85,0,0.06); }
+
+.cv-accordion-option.selected {
+  color:      var(--cv-accent);
+  background: rgba(204,255,0,0.08);
+}
+
+.cv-builder.light .cv-accordion-option.selected {
+  color:      #ff5500;
+  background: rgba(255,85,0,0.08);
+}
+
+.cv-accordion-option-check {
+  width:       14px;
+  flex-shrink: 0;
+  font-weight: 900;
+}
+
+.cv-builder.light .cv-catalog-group-title { color: #ff5500; }
+
+@media (max-width: 768px) {
+  .cv-accordion-options { max-height: 220px; }
+}
+
+/* SOLAPADO GENERAL DE LOS 3 GRUPOS PRINCIPALES */
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES 3 — Toggle principal para cada rama de skills
+   (Áreas y roles / Habilidades / Herramientas) — arranca cerrada
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+/* El contenedor de rama ya no tiene padding/border-bottom fijo —
+   ahora se comporta como un acordeón de primer nivel también */
+.cv-catalog-group {
+  padding-bottom: 0;
+  border-bottom:  none;
+  border:         1px solid var(--cv-border);
+}
+
+.cv-catalog-group + .cv-catalog-group { margin-top: 10px; }
+
+.cv-catalog-main-header {
+  width:           100%;
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  gap:             12px;
+  background:      var(--cv-surface);
+  border:          none;
+  cursor:          pointer;
+  padding:         14px 16px;
+  text-align:      left;
+  transition:      background 0.15s;
+}
+
+.cv-catalog-main-header:hover { background: rgba(204,255,0,0.05); }
+.cv-builder.light .cv-catalog-main-header:hover { background: rgba(255,85,0,0.05); }
+
+.cv-catalog-group.open .cv-catalog-main-header {
+  background:    rgba(204,255,0,0.07);
+  border-bottom: 1px solid var(--cv-border);
+}
+
+.cv-builder.light .cv-catalog-group.open .cv-catalog-main-header {
+  background: rgba(255,85,0,0.07);
+}
+
+.cv-catalog-group-title {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.72rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color:          var(--cv-accent);
+}
+
+.cv-catalog-main-header-right {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex-shrink: 0;
+}
+
+.cv-catalog-main-badge {
+  background:     var(--cv-accent);
+  color:          #000;
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.62rem;
+  font-weight:    800;
+  padding:        2px 8px;
+  line-height:    1.4;
+}
+
+.cv-catalog-main-chevron {
+  font-family: 'JetBrains Mono', monospace;
+  font-size:   1.1rem;
+  font-weight: 800;
+  color:       var(--cv-accent);
+  width:       18px;
+  text-align:  center;
+}
+
+.cv-catalog-body {
+  padding:        16px;
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+}
+
+.cv-builder.light .cv-catalog-group-title { color: #ff5500; } 

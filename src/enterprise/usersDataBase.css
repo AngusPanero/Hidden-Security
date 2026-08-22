@@ -763,3 +763,124 @@
   .udb-detail-footer { flex-direction: column; align-items: stretch; }
   .udb-download-btn  { width: 100%; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Dropdowns de skills por rama (Áreas/Habilidades/Herramientas)
+   Reusa .udb-filter-dropdown / .udb-filter-btn / .udb-filter-menu / .udb-filter-checkbox
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+.udb-skillgroup-menu {
+  display:        flex;
+  flex-direction: column;
+  gap:            8px;
+  min-width:      280px;
+  max-height:     360px;
+}
+
+/* Buscador propio de cada rama — 16px fijo, evita zoom en iOS */
+.udb-skillgroup-search {
+  background:  transparent;
+  border:      1px solid var(--udb-border);
+  color:       var(--udb-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size:   16px;
+  font-weight: 600;
+  padding:     8px 10px;
+  outline:     none;
+  transition:  border-color 0.2s;
+  width:       100%;
+  box-sizing:  border-box;
+  flex-shrink: 0;
+}
+.udb-skillgroup-search:focus { border-color: var(--udb-accent); }
+
+.udb-skillgroup-results {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  overflow-y:     auto;
+}
+
+.udb-filter-checkbox--result {
+  justify-content: space-between;
+}
+
+.udb-skillgroup-option-name { flex: 1; }
+
+.udb-skillgroup-option-group {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity:        0.4;
+  white-space:    nowrap;
+  flex-shrink:    0;
+}
+
+/* Acordeón de subgrupos dentro del dropdown */
+.udb-skillgroup-accordion {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  overflow-y:     auto;
+}
+
+.udb-skillgroup-item { border-bottom: 1px solid var(--udb-border); }
+.udb-skillgroup-item:last-child { border-bottom: none; }
+
+.udb-skillgroup-item-header {
+  width:           100%;
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  gap:             10px;
+  background:      transparent;
+  border:          none;
+  cursor:          pointer;
+  padding:         8px 10px;
+  text-align:      left;
+  font-family:     'Montserrat', sans-serif;
+  font-size:       0.74rem;
+  font-weight:     700;
+  color:           var(--udb-text);
+  opacity:         0.75;
+  transition:      background 0.15s, opacity 0.15s;
+  border-radius:   2px;
+}
+
+.udb-skillgroup-item-header:hover { background: rgba(204,255,0,0.05); opacity: 1; }
+.udb-wrap.light .udb-skillgroup-item-header:hover { background: rgba(255,85,0,0.05); }
+
+.udb-skillgroup-item.open .udb-skillgroup-item-header {
+  opacity: 1;
+  color:   var(--udb-accent);
+}
+
+.udb-skillgroup-item-right {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex-shrink: 0;
+}
+
+.udb-skillgroup-chevron {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  width:       12px;
+  text-align:  center;
+}
+
+.udb-skillgroup-options {
+  display:        flex;
+  flex-direction: column;
+  gap:            1px;
+  padding-left:   8px;
+  max-height:     180px;
+  overflow-y:     auto;
+}
+
+@media (max-width: 768px) {
+  .udb-skillgroup-menu { min-width: 0; }
+}

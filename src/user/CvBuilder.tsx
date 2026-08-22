@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 /* import { UseSession } from "../contexts/SessionContext"; */
 import { UseTheme } from "../contexts/ThemeContext";
+import { HS_SKILLS } from "../skills/Skills"; 
 import "./cvBuilder.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,12 +38,19 @@ interface WorkPreferences {
   salaryMin: number | null; salaryMax: number | null; currency: string;
 }
 
+// Selección de skills basada en el árbol de HS_SKILLS (skills.ts)
+interface SkillsSelection {
+  roles:        string[]; // HS_SKILLS.AREAS_Y_ROLES
+  habilidades:  string[]; // HS_SKILLS.HABILIDADES
+  herramientas: string[]; // HS_SKILLS.HERRAMIENTAS
+}
+
 interface CVData {
   personalInfo:   PersonalInfo;
   experience:     Experience[];
   education:      Education[];
   certifications: Certification[];
-  skills:         string[];
+  skills:         SkillsSelection;
   languages:      Language[];
   projects:       Project[];
   availability:   string;
@@ -50,6 +58,8 @@ interface CVData {
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
+// Catálogo aparte solo para "Tecnologías usadas" dentro de Proyectos
+// (no tiene relación con el árbol HS_SKILLS del CV)
 const IT_SKILLS = [
   "JavaScript","TypeScript","Python","Java","C#","C++","Go","Rust","PHP","Ruby",
   "React","Vue.js","Angular","Next.js","Node.js","Express.js","NestJS","Django","FastAPI",
@@ -81,7 +91,11 @@ const BLANK_CV: CVData = {
   experience:     [],
   education:      [],
   certifications: [],
-  skills:         [],
+  skills: {
+    roles:        [],
+    habilidades:  [],
+    herramientas: [],
+  },
   languages:      [],
   projects:       [],
   availability:    "Inmediata",
@@ -142,7 +156,7 @@ function CardBlock({ children, onRemove }: { children: React.ReactNode; onRemove
   );
 }
 
-// ─── SkillSelector ────────────────────────────────────────────────────────────
+// ─── SkillSelector (uso genérico — hoy solo para "Tecnologías" de Proyectos) ──
 function SkillSelector({ selected, onChange }: { selected: string[]; onChange: (s: string[]) => void }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -180,6 +194,138 @@ function SkillSelector({ selected, onChange }: { selected: string[]; onChange: (
               {s}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CatalogSkillPicker (colapsable a 2 niveles) ──────────────────────────────
+// Nivel 1: la rama entera (Áreas y roles / Habilidades / Herramientas) arranca
+// CERRADA — solo se ve el título y cuántas seleccionaste. Al tocarla se abre
+// y ahí aparecen las tags seleccionadas + el acordeón de subgrupos (nivel 2,
+// el mismo de antes: tocás un subgrupo, se despliega su buscador + opciones).
+function buildGroupMap(catalog: Record<string, readonly string[]>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [group, items] of Object.entries(catalog)) {
+    for (const item of items) map[item] = group;
+  }
+  return map;
+}
+
+function CatalogSkillPicker({
+  title,
+  catalog,
+  selected,
+  onChange,
+}: {
+  title: string;
+  catalog: Record<string, readonly string[]>;
+  selected: string[];
+  onChange: (s: string[]) => void;
+}) {
+  const [mainOpen,  setMainOpen]  = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [groupQuery, setGroupQuery] = useState<Record<string, string>>({});
+  const groupMap = useMemo(() => buildGroupMap(catalog), [catalog]);
+
+  const toggleItem = (name: string) => {
+    onChange(selected.includes(name) ? selected.filter(x => x !== name) : [...selected, name]);
+  };
+
+  const removeItem = (name: string) => onChange(selected.filter(x => x !== name));
+
+  const toggleMain = () => {
+    setMainOpen(o => !o);
+    if (mainOpen) setOpenGroup(null); // al cerrar la rama, cerramos también el subgrupo abierto
+  };
+
+  return (
+    <div className={`cv-catalog-group${mainOpen ? " open" : ""}`}>
+      <button type="button" className="cv-catalog-main-header" onClick={toggleMain}>
+        <span className="cv-catalog-group-title">{title}</span>
+        <span className="cv-catalog-main-header-right">
+          {selected.length > 0 && <span className="cv-catalog-main-badge">{selected.length}</span>}
+          <span className="cv-catalog-main-chevron">{mainOpen ? "−" : "+"}</span>
+        </span>
+      </button>
+
+      {mainOpen && (
+        <div className="cv-catalog-body">
+          {/* Seleccionadas — siempre visibles mientras la rama está abierta */}
+          {selected.length > 0 ? (
+            <div className="cv-catalog-selected">
+              {selected.map(name => (
+                <span key={name} className="cv-skill-tag cv-catalog-tag">
+                  <span className="cv-catalog-tag-group">{groupMap[name] ?? ""}</span>
+                  <span className="cv-catalog-tag-name">{name}</span>
+                  <button type="button" onClick={() => removeItem(name)}>×</button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="cv-catalog-placeholder">Ninguna seleccionada todavía. Tocá un subgrupo para ver sus opciones.</p>
+          )}
+
+          {/* Acordeón de subgrupos */}
+          <div className="cv-accordion">
+            {Object.entries(catalog).map(([group, items]) => {
+              const isOpen = openGroup === group;
+              const query = (groupQuery[group] ?? "").trim().toLowerCase();
+              const filteredItems = query.length === 0
+                ? items
+                : items.filter(name => name.toLowerCase().includes(query));
+              const selectedInGroup = items.filter(name => selected.includes(name)).length;
+
+              return (
+                <div className={`cv-accordion-item${isOpen ? " open" : ""}`} key={group}>
+                  <button
+                    type="button"
+                    className="cv-accordion-header"
+                    onClick={() => setOpenGroup(isOpen ? null : group)}
+                  >
+                    <span className="cv-accordion-header-name">{group}</span>
+                    <span className="cv-accordion-header-right">
+                      {selectedInGroup > 0 && <span className="cv-accordion-badge">{selectedInGroup}</span>}
+                      <span className="cv-accordion-chevron">{isOpen ? "−" : "+"}</span>
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="cv-accordion-body">
+                      <input
+                        className="cv-input cv-catalog-input"
+                        type="text"
+                        value={groupQuery[group] ?? ""}
+                        onChange={e => setGroupQuery(q => ({ ...q, [group]: e.target.value }))}
+                        placeholder={`Buscar en ${group.toLowerCase()}...`}
+                        autoFocus
+                      />
+                      <div className="cv-accordion-options">
+                        {filteredItems.length === 0 && (
+                          <p className="cv-catalog-placeholder cv-accordion-no-results">Sin resultados.</p>
+                        )}
+                        {filteredItems.map(name => {
+                          const isSelected = selected.includes(name);
+                          return (
+                            <button
+                              type="button"
+                              key={name}
+                              className={`cv-accordion-option${isSelected ? " selected" : ""}`}
+                              onClick={() => toggleItem(name)}
+                            >
+                              <span className="cv-accordion-option-check">{isSelected ? "✓" : ""}</span>
+                              <span>{name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -257,12 +403,30 @@ function CVPreview({ cv }: { cv: CVData }) {
         </div>
       )}
 
-      {/* Skills */}
-      {cv.skills.length > 0 && (
+      {/* Skills — separadas lógicamente por rama del catálogo */}
+      {cv.skills.roles.length > 0 && (
         <div className="cvp-section">
-          <h2 className="cvp-section-title">SKILLS TÉCNICAS</h2>
+          <h2 className="cvp-section-title">ÁREAS Y ROLES</h2>
           <div className="cvp-skills">
-            {cv.skills.map(s => <span key={s} className="cvp-skill">{s}</span>)}
+            {cv.skills.roles.map(s => <span key={s} className="cvp-skill">{s}</span>)}
+          </div>
+        </div>
+      )}
+
+      {cv.skills.habilidades.length > 0 && (
+        <div className="cvp-section">
+          <h2 className="cvp-section-title">HABILIDADES</h2>
+          <div className="cvp-skills">
+            {cv.skills.habilidades.map(s => <span key={s} className="cvp-skill">{s}</span>)}
+          </div>
+        </div>
+      )}
+
+      {cv.skills.herramientas.length > 0 && (
+        <div className="cvp-section">
+          <h2 className="cvp-section-title">HERRAMIENTAS</h2>
+          <div className="cvp-skills">
+            {cv.skills.herramientas.map(s => <span key={s} className="cvp-skill">{s}</span>)}
           </div>
         </div>
       )}
@@ -391,7 +555,25 @@ export default function CVBuilder() {
   // Cargar CV existente
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_API_URL}/api/cv/me`, { withCredentials: true })
-      .then(({ data }) => { if (data.data) setCV({ ...BLANK_CV, ...data.data }); })
+      .then(({ data }) => {
+        if (data.data) {
+          const incoming = data.data;
+
+          // Compat: si el CV se guardó antes de este cambio, "skills" venía
+          // como array plano. Lo migramos on-the-fly a la nueva estructura
+          // (todo cae en "herramientas" para no perder lo que ya cargó).
+          const legacySkills = Array.isArray(incoming.skills) ? incoming.skills : null;
+          const normalizedSkills: SkillsSelection = legacySkills
+            ? { roles: [], habilidades: [], herramientas: legacySkills }
+            : {
+                roles:        incoming.skills?.roles        ?? [],
+                habilidades:  incoming.skills?.habilidades  ?? [],
+                herramientas: incoming.skills?.herramientas ?? [],
+              };
+
+          setCV({ ...BLANK_CV, ...incoming, skills: normalizedSkills });
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -428,10 +610,13 @@ export default function CVBuilder() {
     const entryBlock = (inner: string) =>
       `<div style="page-break-inside:avoid;margin-bottom:18px;">${inner}</div>`;
 
-    // ── Skills ──────────────────────────────────────────────────
-    const skillTags = cv.skills.map(s =>
-      `<span style="display:inline-block;border:1.5px solid #111;color:#111;font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${s}</span>`
-    ).join("");
+    // ── Skills — un generador de tags reutilizado por las 3 ramas ─
+    const skillTag = (s: string) =>
+      `<span style="display:inline-block;border:1.5px solid #111;color:#111;font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${s}</span>`;
+
+    const rolesTagsHTML        = cv.skills.roles.map(skillTag).join("");
+    const habilidadesTagsHTML  = cv.skills.habilidades.map(skillTag).join("");
+    const herramientasTagsHTML = cv.skills.herramientas.map(skillTag).join("");
 
     // ── Experiencia ─────────────────────────────────────────────
     const experienceHTML = cv.experience.map(e => entryBlock(`
@@ -563,8 +748,10 @@ export default function CVBuilder() {
   <!-- EDUCACIÓN ───────────────────────────────────── -->
   ${cv.education.length > 0 ? section("EDUCACIÓN", educationHTML) : ""}
 
-  <!-- SKILLS ──────────────────────────────────────── -->
-  ${cv.skills.length > 0 ? section("SKILLS TÉCNICAS", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${skillTags}</div>`) : ""}
+  <!-- SKILLS — separadas por rama ─────────────────── -->
+  ${cv.skills.roles.length > 0 ? section("ÁREAS Y ROLES", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${rolesTagsHTML}</div>`) : ""}
+  ${cv.skills.habilidades.length > 0 ? section("HABILIDADES", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${habilidadesTagsHTML}</div>`) : ""}
+  ${cv.skills.herramientas.length > 0 ? section("HERRAMIENTAS", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${herramientasTagsHTML}</div>`) : ""}
 
   <!-- PROYECTOS ───────────────────────────────────── -->
   ${cv.projects.length > 0 ? section("PROYECTOS", projectsHTML) : ""}
@@ -610,6 +797,11 @@ export default function CVBuilder() {
   const setLang= (i: number, k: keyof Language,    v: any) => setCV(c => { const a = [...c.languages];      a[i] = { ...a[i], [k]: v }; return { ...c, languages:      a }; });
   const setProj= (i: number, k: keyof Project,     v: any) => setCV(c => { const a = [...c.projects];       a[i] = { ...a[i], [k]: v }; return { ...c, projects:        a }; });
   const setWP  = (k: keyof WorkPreferences, v: any)         => setCV(c => ({ ...c, workPreferences: { ...c.workPreferences, [k]: v } }));
+
+  // Setters de skills por rama del catálogo
+  const setSkillsRoles        = (s: string[]) => setCV(c => ({ ...c, skills: { ...c.skills, roles: s } }));
+  const setSkillsHabilidades  = (s: string[]) => setCV(c => ({ ...c, skills: { ...c.skills, habilidades: s } }));
+  const setSkillsHerramientas = (s: string[]) => setCV(c => ({ ...c, skills: { ...c.skills, herramientas: s } }));
 
   const toggleWP = (k: "modality"|"contractType", v: string) =>
     setWP(k, cv.workPreferences[k].includes(v)
@@ -776,15 +968,32 @@ export default function CVBuilder() {
           </div>
         )}
 
-        {/* ── SKILLS ── */}
+        {/* ── SKILLS (árbol HS_SKILLS: áreas/roles, habilidades, herramientas) ── */}
         {activeTab === "skills" && (
           <div className="cv-section">
             <SectionHeader title="// SKILLS_TÉCNICAS" />
-            <p className="cv-hint">Escribí para filtrar y hacé click para agregar. Podés seleccionar cuantas quieras.</p>
-            <SkillSelector selected={cv.skills} onChange={s => setCV(c => ({ ...c, skills: s }))} />
-            {cv.skills.length > 0 && (
-              <p className="cv-skills-count">{cv.skills.length} skill{cv.skills.length !== 1 ? "s" : ""} seleccionada{cv.skills.length !== 1 ? "s" : ""}</p>
-            )}
+            <p className="cv-hint">Tocá una categoría para ver sus opciones, buscá y hacé click para agregar. Podés sacarlas desde las etiquetas de arriba.</p>
+
+            <CatalogSkillPicker
+              title="Áreas y roles"
+              catalog={HS_SKILLS.AREAS_Y_ROLES}
+              selected={cv.skills.roles}
+              onChange={setSkillsRoles}
+            />
+
+            <CatalogSkillPicker
+              title="Habilidades"
+              catalog={HS_SKILLS.HABILIDADES}
+              selected={cv.skills.habilidades}
+              onChange={setSkillsHabilidades}
+            />
+
+            <CatalogSkillPicker
+              title="Herramientas"
+              catalog={HS_SKILLS.HERRAMIENTAS}
+              selected={cv.skills.herramientas}
+              onChange={setSkillsHerramientas}
+            />
           </div>
         )}
 

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import axios from "axios";
 import { UseTheme } from "../contexts/ThemeContext";
+import { HS_SKILLS } from "../skills/Skills"; // ⚠️ ajustá esta ruta si difiere de la del CV Builder
 import "./usersDataBase.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -43,10 +44,17 @@ interface WorkPreferences {
   salaryMin: number | null; salaryMax: number | null; currency: string;
 }
 
+// Skills declaradas por el candidato — mismo árbol que HS_SKILLS (skills.ts)
+interface SkillsSelection {
+  roles:        string[]; // HS_SKILLS.AREAS_Y_ROLES
+  habilidades:  string[]; // HS_SKILLS.HABILIDADES
+  herramientas: string[]; // HS_SKILLS.HERRAMIENTAS
+}
+
 interface CandidateCV {
   id:                      string;
   personalInfo:            PersonalInfo;
-  skills:                  string[];
+  skills:                  SkillsSelection;
   experience:              ExperienceItem[];
   education:               EducationItem[];
   certifications:          CertificationItem[];
@@ -60,7 +68,7 @@ interface CandidateCV {
 }
 
 interface ApiResponse {
-  data: CandidateCV[];
+  data: any[]; // normalizamos "skills" al llegar (ver fetchCandidates)
   meta: { total: number; page: number; limit: number; totalPages: number };
   unmatchedSkills: { declared: string[]; certified: string[] };
 }
@@ -72,6 +80,44 @@ interface SkillsSummary {
 
 const AVAILABILITY_OPTIONS = ["Inmediata", "2 semanas", "1 mes", "No disponible"];
 const MODALITY_OPTIONS     = ["Remoto", "Presencial", "Híbrido"];
+
+// ── Ramas de skills — mismas 3 que en el CV Builder ────────────────────────
+type SkillCategory = "roles" | "habilidades" | "herramientas";
+
+const CATEGORY_LABELS: Record<SkillCategory, string> = {
+  roles:        "Áreas y roles",
+  habilidades:  "Habilidades",
+  herramientas: "Herramientas",
+};
+
+const CATEGORY_CATALOGS: Record<SkillCategory, Record<string, readonly string[]>> = {
+  roles:        HS_SKILLS.AREAS_Y_ROLES,
+  habilidades:  HS_SKILLS.HABILIDADES,
+  herramientas: HS_SKILLS.HERRAMIENTAS,
+};
+
+const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"];
+
+function emptySkills(): SkillsSelection {
+  return { roles: [], habilidades: [], herramientas: [] };
+}
+
+function flattenSkills(s: SkillsSelection | undefined | null): string[] {
+  if (!s) return [];
+  return [...(s.roles ?? []), ...(s.habilidades ?? []), ...(s.herramientas ?? [])];
+}
+
+// Compat: candidatos guardados antes del cambio de estructura tenían
+// "skills" como array plano. Todo lo que no reconocemos cae en "herramientas"
+// para no perder data — igual que hicimos en el CV Builder.
+function normalizeSkills(raw: any): SkillsSelection {
+  if (Array.isArray(raw)) return { roles: [], habilidades: [], herramientas: raw };
+  return {
+    roles:        raw?.roles        ?? [],
+    habilidades:  raw?.habilidades  ?? [],
+    herramientas: raw?.herramientas ?? [],
+  };
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Sub-componente: chip de skill (declarada vs certificada)
@@ -86,11 +132,140 @@ function SkillChip({ label, certified }: { label: string; certified?: boolean })
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Sub-componente: dropdown de una rama de skills (Áreas/Habilidades/Herramientas)
+//  Buscador propio (16px) arriba; sin búsqueda activa, acordeón por subgrupo.
+// ══════════════════════════════════════════════════════════════════════════════
+function SkillBranchDropdown({
+  label,
+  catalog,
+  selected,
+  onToggle,
+  isOpen,
+  onOpen,
+  onClose,
+}: {
+  label: string;
+  catalog: Record<string, readonly string[]>;
+  selected: string[];
+  onToggle: (skill: string) => void;
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [openSubgroup, setOpenSubgroup] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  // Al cerrar el dropdown, reseteamos búsqueda y subgrupo abierto
+  useEffect(() => {
+    if (!isOpen) { setQuery(""); setOpenSubgroup(null); }
+  }, [isOpen]);
+
+  const trimmed = query.trim().toLowerCase();
+  const searchResults = trimmed.length === 0
+    ? []
+    : Object.entries(catalog).flatMap(([group, items]) =>
+        items
+          .filter(name => name.toLowerCase().includes(trimmed))
+          .map(name => ({ group, name }))
+      );
+
+  return (
+    <div className="udb-filter-dropdown" ref={ref}>
+      <button
+        className={`udb-filter-btn${selected.length > 0 ? " udb-filter-btn--active" : ""}`}
+        onClick={() => (isOpen ? onClose() : onOpen())}
+      >
+        {label.toUpperCase()}
+        {selected.length > 0 && <span className="udb-filter-count">{selected.length}</span>}
+      </button>
+
+      {isOpen && (
+        <div className="udb-filter-menu udb-skillgroup-menu">
+          <input
+            className="udb-skillgroup-search"
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={`Buscar en ${label.toLowerCase()}...`}
+            autoFocus
+          />
+
+          {trimmed.length > 0 ? (
+            searchResults.length === 0 ? (
+              <p className="udb-filter-empty">Sin resultados.</p>
+            ) : (
+              <div className="udb-skillgroup-results">
+                {searchResults.slice(0, 60).map(({ group, name }) => (
+                  <button
+                    key={name}
+                    className={`udb-filter-checkbox udb-filter-checkbox--result${selected.includes(name) ? " udb-filter-checkbox--active" : ""}`}
+                    onClick={() => onToggle(name)}
+                  >
+                    <span className="udb-filter-checkbox-dot" />
+                    <span className="udb-skillgroup-option-name">{name}</span>
+                    <span className="udb-skillgroup-option-group">{group}</span>
+                  </button>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="udb-skillgroup-accordion">
+              {Object.entries(catalog).map(([group, items]) => {
+                const open = openSubgroup === group;
+                const selectedInGroup = items.filter(i => selected.includes(i)).length;
+                return (
+                  <div key={group} className={`udb-skillgroup-item${open ? " open" : ""}`}>
+                    <button
+                      type="button"
+                      className="udb-skillgroup-item-header"
+                      onClick={() => setOpenSubgroup(open ? null : group)}
+                    >
+                      <span>{group}</span>
+                      <span className="udb-skillgroup-item-right">
+                        {selectedInGroup > 0 && <span className="udb-filter-count">{selectedInGroup}</span>}
+                        <span className="udb-skillgroup-chevron">{open ? "−" : "+"}</span>
+                      </span>
+                    </button>
+                    {open && (
+                      <div className="udb-skillgroup-options">
+                        {items.map(name => (
+                          <button
+                            key={name}
+                            className={`udb-filter-checkbox${selected.includes(name) ? " udb-filter-checkbox--active" : ""}`}
+                            onClick={() => onToggle(name)}
+                          >
+                            <span className="udb-filter-checkbox-dot" />
+                            <span>{name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  Sub-componente: panel de filtros
 // ══════════════════════════════════════════════════════════════════════════════
 interface FiltersState {
   search:          string;
-  declaredSkills:  string[];
+  declaredSkills:  Record<SkillCategory, string[]>;
   certifiedSkills: string[];
   certifiedOnly:   boolean;
   availability:    string;
@@ -98,8 +273,12 @@ interface FiltersState {
 }
 
 const EMPTY_FILTERS: FiltersState = {
-  search: "", declaredSkills: [], certifiedSkills: [],
-  certifiedOnly: false, availability: "", modality: "",
+  search: "",
+  declaredSkills: { roles: [], habilidades: [], herramientas: [] },
+  certifiedSkills: [],
+  certifiedOnly: false,
+  availability: "",
+  modality: "",
 };
 
 function FiltersPanel({
@@ -110,26 +289,30 @@ function FiltersPanel({
   skillsSummary: SkillsSummary | null;
   unmatchedSkills: { declared: string[]; certified: string[] };
 }) {
-  const [showDeclared,  setShowDeclared]  = useState(false);
-  const [showCertified, setShowCertified] = useState(false);
-  const declaredRef  = useRef<HTMLDivElement>(null);
+  // Un solo estado de "cuál dropdown está abierto" — abrir uno cierra el resto
+  const [openBranch, setOpenBranch] = useState<SkillCategory | "certified" | null>(null);
   const certifiedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (declaredRef.current && !declaredRef.current.contains(e.target as Node)) setShowDeclared(false);
-      if (certifiedRef.current && !certifiedRef.current.contains(e.target as Node)) setShowCertified(false);
+      if (openBranch === "certified" && certifiedRef.current && !certifiedRef.current.contains(e.target as Node)) {
+        setOpenBranch(null);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [openBranch]);
 
-  const toggleDeclared = (skill: string) => {
+  const toggleDeclared = (category: SkillCategory, skill: string) => {
+    const current = filters.declaredSkills[category];
     setFilters({
       ...filters,
-      declaredSkills: filters.declaredSkills.includes(skill)
-        ? filters.declaredSkills.filter(s => s !== skill)
-        : [...filters.declaredSkills, skill],
+      declaredSkills: {
+        ...filters.declaredSkills,
+        [category]: current.includes(skill)
+          ? current.filter(s => s !== skill)
+          : [...current, skill],
+      },
     });
   };
 
@@ -142,8 +325,13 @@ function FiltersPanel({
     });
   };
 
+  const totalDeclaredCount =
+    filters.declaredSkills.roles.length +
+    filters.declaredSkills.habilidades.length +
+    filters.declaredSkills.herramientas.length;
+
   const hasActiveFilters =
-    filters.search || filters.declaredSkills.length > 0 || filters.certifiedSkills.length > 0
+    filters.search || totalDeclaredCount > 0 || filters.certifiedSkills.length > 0
     || filters.certifiedOnly || filters.availability || filters.modality;
 
   return (
@@ -158,49 +346,32 @@ function FiltersPanel({
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
         />
 
-        {/* Skills declaradas — dropdown checkbox */}
-        <div className="udb-filter-dropdown" ref={declaredRef}>
-          <button
-            className={`udb-filter-btn${filters.declaredSkills.length > 0 ? " udb-filter-btn--active" : ""}`}
-            onClick={() => setShowDeclared(p => !p)}
-          >
-            SKILLS DECLARADAS
-            {filters.declaredSkills.length > 0 && (
-              <span className="udb-filter-count">{filters.declaredSkills.length}</span>
-            )}
-          </button>
-          {showDeclared && (
-            <div className="udb-filter-menu">
-              {!skillsSummary || skillsSummary.declaredSkills.length === 0 ? (
-                <p className="udb-filter-empty">Sin skills registradas aún</p>
-              ) : (
-                skillsSummary.declaredSkills.map(skill => (
-                  <button
-                    key={skill}
-                    className={`udb-filter-checkbox${filters.declaredSkills.includes(skill) ? " udb-filter-checkbox--active" : ""}`}
-                    onClick={() => toggleDeclared(skill)}
-                  >
-                    <span className="udb-filter-checkbox-dot" />
-                    <span>{skill}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+        {/* Las 3 ramas de skills declaradas — cada una con su propio buscador */}
+        {CATEGORY_ORDER.map(category => (
+          <SkillBranchDropdown
+            key={category}
+            label={CATEGORY_LABELS[category]}
+            catalog={CATEGORY_CATALOGS[category]}
+            selected={filters.declaredSkills[category]}
+            onToggle={(skill) => toggleDeclared(category, skill)}
+            isOpen={openBranch === category}
+            onOpen={() => setOpenBranch(category)}
+            onClose={() => setOpenBranch(prev => (prev === category ? null : prev))}
+          />
+        ))}
 
-        {/* Skills certificadas por Hidden — dropdown checkbox */}
+        {/* Skills certificadas por Hidden — se mantiene como antes */}
         <div className="udb-filter-dropdown" ref={certifiedRef}>
           <button
             className={`udb-filter-btn udb-filter-btn--gold${filters.certifiedSkills.length > 0 ? " udb-filter-btn--active" : ""}`}
-            onClick={() => setShowCertified(p => !p)}
+            onClick={() => setOpenBranch(openBranch === "certified" ? null : "certified")}
           >
             ✓ CERTIFICADAS HIDDEN
             {filters.certifiedSkills.length > 0 && (
               <span className="udb-filter-count">{filters.certifiedSkills.length}</span>
             )}
           </button>
-          {showCertified && (
+          {openBranch === "certified" && (
             <div className="udb-filter-menu">
               {!skillsSummary || skillsSummary.certifiedSkills.length === 0 ? (
                 <p className="udb-filter-empty">Aún no hay skills certificadas en la plataforma</p>
@@ -257,13 +428,15 @@ function FiltersPanel({
       </div>
 
       {/* Chips activos */}
-      {(filters.declaredSkills.length > 0 || filters.certifiedSkills.length > 0) && (
+      {(totalDeclaredCount > 0 || filters.certifiedSkills.length > 0) && (
         <div className="udb-active-chips">
-          {filters.declaredSkills.map(s => (
-            <span key={`d-${s}`} className="udb-active-chip" onClick={() => toggleDeclared(s)}>
-              {s} ×
-            </span>
-          ))}
+          {CATEGORY_ORDER.map(category =>
+            filters.declaredSkills[category].map(s => (
+              <span key={`${category}-${s}`} className="udb-active-chip" onClick={() => toggleDeclared(category, s)}>
+                {s} ×
+              </span>
+            ))
+          )}
           {filters.certifiedSkills.map(s => (
             <span key={`c-${s}`} className="udb-active-chip udb-active-chip--gold" onClick={() => toggleCertified(s)}>
               ✓ {s} ×
@@ -300,6 +473,15 @@ function FiltersPanel({
 // ══════════════════════════════════════════════════════════════════════════════
 function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; onDownload: () => void }) {
   const p = candidate.personalInfo;
+  const allDeclared = useMemo(() => flattenSkills(candidate.skills), [candidate.skills]);
+
+  const extraCertified = candidate.skillsCertifiedByHidden.filter(s => !allDeclared.includes(s));
+
+  const skillGroups: { key: SkillCategory; title: string; items: string[] }[] = [
+    { key: "roles",        title: "// ÁREAS Y ROLES",   items: candidate.skills.roles        ?? [] },
+    { key: "habilidades",  title: "// HABILIDADES",     items: candidate.skills.habilidades  ?? [] },
+    { key: "herramientas", title: "// HERRAMIENTAS",    items: candidate.skills.herramientas ?? [] },
+  ];
 
   return (
     <div className="udb-detail">
@@ -312,39 +494,44 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
         </div>
       )}
 
-      {/* Skills declaradas vs certificadas */}
-      <div className="udb-detail-section">
-        <span className="udb-detail-section-title">// SKILLS DECLARADAS POR EL CANDIDATO</span>
-        {candidate.skills.length === 0 ? (
+      {/* Skills declaradas vs certificadas — separadas por rama */}
+      {allDeclared.length === 0 ? (
+        <div className="udb-detail-section">
+          <span className="udb-detail-section-title">// SKILLS DECLARADAS POR EL CANDIDATO</span>
           <p className="udb-detail-empty">Sin skills registradas</p>
-        ) : (
-          <div className="udb-skills-row">
-            {candidate.skills.map(skill => (
-              <SkillChip
-                key={skill}
-                label={skill}
-                certified={candidate.skillsCertifiedByHidden.includes(skill)}
-              />
-            ))}
+        </div>
+      ) : (
+        skillGroups.map(g => g.items.length > 0 && (
+          <div className="udb-detail-section" key={g.key}>
+            <span className="udb-detail-section-title">{g.title}</span>
+            <div className="udb-skills-row">
+              {g.items.map(skill => (
+                <SkillChip
+                  key={skill}
+                  label={skill}
+                  certified={candidate.skillsCertifiedByHidden.includes(skill)}
+                />
+              ))}
+            </div>
           </div>
-        )}
+        ))
+      )}
+      {allDeclared.length > 0 && (
         <p className="udb-detail-hint">
           <span className="udb-skill-chip-icon">✓</span> = validado por Hidden Security
         </p>
-      </div>
+      )}
 
       {/* Skills certificadas que el candidato NO declaró (caso edge importante) */}
-      {candidate.skillsCertifiedByHidden.some(s => !candidate.skills.includes(s)) && (
+      {extraCertified.length > 0 && (
         <div className="udb-detail-section">
           <span className="udb-detail-section-title udb-detail-section-title--gold">
             // CERTIFICACIONES ADICIONALES (no declaradas por el candidato)
           </span>
           <div className="udb-skills-row">
-            {candidate.skillsCertifiedByHidden
-              .filter(s => !candidate.skills.includes(s))
-              .map(skill => (
-                <SkillChip key={skill} label={skill} certified />
-              ))}
+            {extraCertified.map(skill => (
+              <SkillChip key={skill} label={skill} certified />
+            ))}
           </div>
         </div>
       )}
@@ -580,8 +767,17 @@ export default function UsersDatabase() {
     setLoading(true);
     const params: Record<string, string> = { page: String(page), limit: "15" };
 
+    // El backend matchea por nombre de skill sin importar la categoría,
+    // así que juntamos las 3 ramas seleccionadas en un solo CSV — igual
+    // contrato que antes cuando "declaredSkills" era una lista plana.
+    const flatDeclared = [
+      ...filters.declaredSkills.roles,
+      ...filters.declaredSkills.habilidades,
+      ...filters.declaredSkills.herramientas,
+    ];
+
     if (filters.search)                     params.search          = filters.search;
-    if (filters.declaredSkills.length > 0)  params.declaredSkills   = filters.declaredSkills.join(",");
+    if (flatDeclared.length > 0)            params.declaredSkills   = flatDeclared.join(",");
     if (filters.certifiedSkills.length > 0) params.certifiedSkills  = filters.certifiedSkills.join(",");
     if (filters.certifiedOnly)              params.certifiedOnly    = "true";
     if (filters.availability)               params.availability     = filters.availability;
@@ -590,7 +786,12 @@ export default function UsersDatabase() {
     axios
       .get<ApiResponse>(`${import.meta.env.VITE_API_URL}/api/users-database`, { params, withCredentials: true })
       .then(({ data }) => {
-        setCandidates(data.data);
+        // Normalizamos "skills" por candidato (compat con el formato viejo)
+        const normalized: CandidateCV[] = data.data.map((c: any) => ({
+          ...c,
+          skills: normalizeSkills(c.skills),
+        }));
+        setCandidates(normalized);
         setMeta(data.meta);
         setUnmatchedSkills(data.unmatchedSkills);
       })
@@ -607,6 +808,7 @@ export default function UsersDatabase() {
   const handleDownload = (candidate: CandidateCV) => {
     const p        = candidate.personalInfo;
     const filename = `CV_${(p.firstName + "_" + p.lastName).replace(/\s+/g, "_")}`;
+    const allDeclared = flattenSkills(candidate.skills);
 
     const section = (title: string, content: string) => !content.trim() ? "" : `
       <div style="page-break-inside:avoid;margin-bottom:28px;">
@@ -618,10 +820,15 @@ export default function UsersDatabase() {
 
     const entry = (inner: string) => `<div style="page-break-inside:avoid;margin-bottom:18px;">${inner}</div>`;
 
-    const skillTags = candidate.skills.map(s => {
+    // Genera los tags de una lista de skills, marcando las certificadas
+    const skillTagsFor = (list: string[]) => list.map(s => {
       const isCert = candidate.skillsCertifiedByHidden.includes(s);
       return `<span style="display:inline-block;border:1.5px solid ${isCert ? "#999" : "#111"};background:${isCert ? "#111" : "transparent"};color:${isCert ? "#fff" : "#111"};font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${isCert ? "✓ " : ""}${s}</span>`;
     }).join("");
+
+    const rolesTags        = skillTagsFor(candidate.skills.roles        ?? []);
+    const habilidadesTags  = skillTagsFor(candidate.skills.habilidades  ?? []);
+    const herramientasTags = skillTagsFor(candidate.skills.herramientas ?? []);
 
     const experienceHTML = candidate.experience.map(e => entry(`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
@@ -718,7 +925,9 @@ export default function UsersDatabase() {
       ${p.summary ? section("PERFIL PROFESIONAL", `<p style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;color:#222;line-height:1.85;border-left:3px solid #000;padding-left:16px;">${p.summary}</p>`) : ""}
       ${experienceHTML ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
       ${educationHTML  ? section("EDUCACIÓN",           educationHTML)  : ""}
-      ${skillTags      ? section("SKILLS TÉCNICAS — ✓ = CERTIFICADA POR HIDDEN", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${skillTags}</div>`) : ""}
+      ${rolesTags        ? section("ÁREAS Y ROLES — ✓ = CERTIFICADA POR HIDDEN", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${rolesTags}</div>`) : ""}
+      ${habilidadesTags  ? section("HABILIDADES — ✓ = CERTIFICADA POR HIDDEN", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${habilidadesTags}</div>`) : ""}
+      ${herramientasTags ? section("HERRAMIENTAS — ✓ = CERTIFICADA POR HIDDEN", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${herramientasTags}</div>`) : ""}
       ${projectsHTML   ? section("PROYECTOS",           projectsHTML)   : ""}
       ${certsHTML      ? section("CERTIFICACIONES",     certsHTML)      : ""}
       ${candidate.languages.length > 0 ? section("IDIOMAS", langsHTML) : ""}

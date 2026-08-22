@@ -897,3 +897,235 @@
   .hs-salary-row .hs-input     { width: 100%; }
   .hs-select--narrow           { width: 100%; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Catálogo de skills (HS_SKILLS) para vacantes
+   Acordeón a 2 niveles: rama colapsable + subgrupo con buscador propio
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+/* ── Rama principal (Áreas y roles / Habilidades / Herramientas) ────────── */
+.hs-catalog-group {
+  border: 1px solid var(--h-border);
+  margin-bottom: 12px;
+}
+.hs-catalog-group:last-child { margin-bottom: 0; }
+
+.hs-catalog-main-header {
+  width:           100%;
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  gap:             12px;
+  background:      var(--h-surface);
+  border:          none;
+  cursor:          pointer;
+  padding:         13px 16px;
+  text-align:      left;
+  transition:      background 0.15s;
+}
+
+.hs-catalog-main-header:hover { background: var(--h-accent-hover); }
+
+.hs-catalog-group.open .hs-catalog-main-header {
+  background:    var(--h-accent-bg);
+  border-bottom: 1px solid var(--h-border);
+}
+
+.hs-catalog-group-title {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.7rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color:          var(--h-accent);
+}
+
+.hs-catalog-main-header-right {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex-shrink: 0;
+}
+
+.hs-catalog-main-badge {
+  background:     var(--h-accent);
+  color:          #000;
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  padding:        2px 8px;
+  line-height:    1.4;
+}
+
+.hs-catalog-main-chevron {
+  font-family: 'JetBrains Mono', monospace;
+  font-size:   1rem;
+  font-weight: 800;
+  color:       var(--h-accent);
+  width:       16px;
+  text-align:  center;
+}
+
+.hs-catalog-body {
+  padding:        16px;
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+}
+
+/* ── Seleccionadas (tags removibles, siempre visibles con la rama abierta) ── */
+.hs-catalog-selected {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.hs-catalog-tag {
+  flex-direction: column;
+  align-items:    flex-start;
+  gap:            1px;
+  padding:        6px 22px 6px 10px;
+  position:       relative;
+}
+
+.hs-catalog-tag-group {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.55rem;
+  font-weight:    700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity:        0.55;
+}
+
+.hs-catalog-tag-name {
+  font-size:   0.65rem;
+  font-weight: 800;
+}
+
+.hs-catalog-tag .hs-skill-remove {
+  position: absolute;
+  top:      2px;
+  right:    5px;
+}
+
+/* ── Acordeón de subgrupos ───────────────────────────────────────────────── */
+.hs-accordion {
+  display:        flex;
+  flex-direction: column;
+  border:         1px solid var(--h-border);
+}
+
+.hs-accordion-item { border-bottom: 1px solid var(--h-border); }
+.hs-accordion-item:last-child { border-bottom: none; }
+
+.hs-accordion-header {
+  width:           100%;
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  gap:             12px;
+  background:      transparent;
+  border:          none;
+  cursor:          pointer;
+  padding:         11px 14px;
+  text-align:      left;
+  transition:      background 0.15s;
+}
+
+.hs-accordion-header:hover { background: var(--h-accent-hover); }
+
+.hs-accordion-item.open .hs-accordion-header { background: var(--h-accent-bg); }
+
+.hs-accordion-header-name {
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.8rem;
+  font-weight: 700;
+}
+
+.hs-accordion-header-right {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex-shrink: 0;
+}
+
+.hs-accordion-chevron {
+  font-family: 'JetBrains Mono', monospace;
+  font-size:   1rem;
+  font-weight: 800;
+  color:       var(--h-accent);
+  width:       16px;
+  text-align:  center;
+}
+
+.hs-accordion-body {
+  padding:        13px;
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  background:     var(--h-bg);
+}
+
+/* Buscador de cada subgrupo — 16px fijo, no dispara zoom automático en iOS */
+.hs-catalog-input {
+  font-size: 16px !important;
+}
+
+.hs-accordion-options {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  max-height:     240px;
+  overflow-y:     auto;
+  border:         1px solid var(--h-border);
+}
+
+.hs-accordion-no-results { padding: 12px; margin: 0; }
+
+.hs-accordion-option {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  background:    transparent;
+  border:        none;
+  border-bottom: 1px solid var(--h-border-subtle);
+  color:         var(--h-text);
+  font-family:   'Montserrat', sans-serif;
+  font-size:     0.78rem;
+  font-weight:   600;
+  text-align:    left;
+  padding:       9px 12px;
+  cursor:        pointer;
+  transition:    background 0.15s, color 0.15s;
+}
+
+.hs-accordion-option:last-child { border-bottom: none; }
+
+.hs-accordion-option:hover { background: var(--h-accent-hover); color: var(--h-accent); }
+
+.hs-accordion-option.selected {
+  color:      var(--h-accent);
+  background: var(--h-accent-bg);
+}
+
+.hs-accordion-option-check {
+  width:       14px;
+  flex-shrink: 0;
+  font-weight: 900;
+  color:       var(--h-accent);
+}
+
+/* ── LIGHT MODE ──────────────────────────────────────────────────────────── */
+.hs-vacancy-manager.light .hs-catalog-group        { border-color: rgba(0,0,0,0.12); }
+.hs-vacancy-manager.light .hs-catalog-main-header:hover { background: rgba(255,85,0,0.06); }
+.hs-vacancy-manager.light .hs-catalog-group.open .hs-catalog-main-header { background: rgba(255,85,0,0.06); }
+.hs-vacancy-manager.light .hs-accordion-header:hover     { background: rgba(255,85,0,0.06); }
+.hs-vacancy-manager.light .hs-accordion-item.open .hs-accordion-header  { background: rgba(255,85,0,0.06); }
+.hs-vacancy-manager.light .hs-accordion-option:hover     { background: rgba(255,85,0,0.06); color: #ff5500; }
+.hs-vacancy-manager.light .hs-accordion-option.selected  { color: #ff5500; background: rgba(255,85,0,0.06); }
+
+/* ── MOBILE ──────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hs-accordion-options { max-height: 200px; }
+}
