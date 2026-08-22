@@ -98,9 +98,9 @@ const CATEGORY_CATALOGS: Record<SkillCategory, Record<string, readonly string[]>
 
 const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"];
 
-function emptySkills(): SkillsSelection {
+/* function emptySkills(): SkillsSelection {
   return { roles: [], habilidades: [], herramientas: [] };
-}
+} */
 
 function flattenSkills(s: SkillsSelection | undefined | null): string[] {
   if (!s) return [];
@@ -808,7 +808,7 @@ export default function UsersDatabase() {
   const handleDownload = (candidate: CandidateCV) => {
     const p        = candidate.personalInfo;
     const filename = `CV_${(p.firstName + "_" + p.lastName).replace(/\s+/g, "_")}`;
-    const allDeclared = flattenSkills(candidate.skills);
+    /* const allDeclared = flattenSkills(candidate.skills); */
 
     const section = (title: string, content: string) => !content.trim() ? "" : `
       <div style="page-break-inside:avoid;margin-bottom:28px;">

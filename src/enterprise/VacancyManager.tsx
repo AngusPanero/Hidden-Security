@@ -60,7 +60,7 @@ const CATEGORY_CATALOGS: Record<SkillCategory, Record<string, readonly string[]>
   herramientas: HS_SKILLS.HERRAMIENTAS,
 };
 
-const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"];
+/* const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"]; */
 
 function emptySkills(): SkillsSelection {
   return { roles: [], habilidades: [], herramientas: [] };
