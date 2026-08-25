@@ -19,7 +19,7 @@ const Courses: React.FC = () => {
 
     const handleDownloadPDF = () => {
         const link = document.createElement('a');
-        link.href = "/pdf/prueba.pdf";
+        link.href = "/pdf/curso-soc.pdf";
         link.download = data.pdfName;
         document.body.appendChild(link);
         link.click();

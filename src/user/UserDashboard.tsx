@@ -285,7 +285,7 @@ const UserDashboard = () => {
             </div>
 
             {/* ── STATS ── */}
-            <div className="dm-stats">
+            {/* <div className="dm-stats">
                 <div className="dm-stat">
                     <span className="dm-stat-label">ÓRDENES</span>
                     <span className="dm-stat-value">{totalOrdenes}</span>
@@ -298,7 +298,7 @@ const UserDashboard = () => {
                     <span className="dm-stat-label">ÚLTIMA COMPRA</span>
                     <span className="dm-stat-value dm-stat-small">{ultimaCompra}</span>
                 </div>
-            </div>
+            </div> */}
 
             {/* ── TABS ── */}
             <div className="dm-tabs">
