@@ -6,6 +6,8 @@ import "react-pdf/dist/Page/TextLayer.css";
 import "./soc1Course.css";
 import { UseSession } from "../../../contexts/SessionContext";
 import { UseTheme } from "../../../contexts/ThemeContext";
+import pdfPrueba from "../../../../public/pdf/curso-soc.pdf"; 
+import videoPrueba from "./video-curso.mp4"; 
 
 // Worker de PDF.js — apunta al archivo en node_modules
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -51,12 +53,12 @@ const COURSE_STEPS: CourseStep[] = [
     type:        "video",
     title:       "Módulo 1 — ¿Qué es un SOC?",
     description: "Estructura y funciones de un Centro de Operaciones de Seguridad.",
-    src:         "/videos/soc1/modulo1_que_es_soc.mp4",
+    src: videoPrueba,
   },
   {
     type:    "pdf",
     title:   "Material de lectura — Fundamentos SOC",
-    pdfSrc:  "/pdfs/soc1/modulo1_fundamentos.pdf",
+    pdfSrc: pdfPrueba,
     pages:   12,
   },
   {
@@ -171,12 +173,12 @@ const COURSE_STEPS: CourseStep[] = [
     type:        "video",
     title:       "Módulo 2 — Tipos de amenazas",
     description: "Malware, phishing, ransomware y vectores de ataque comunes.",
-    src:         "/videos/soc1/modulo2_amenazas.mp4",
+    src: videoPrueba,
   },
   {
     type:    "pdf",
     title:   "Material de lectura — Vectores de ataque",
-    pdfSrc:  "/pdfs/soc1/modulo2_vectores.pdf",
+    pdfSrc: pdfPrueba,
     pages:   18,
   },
   {
@@ -291,12 +293,12 @@ const COURSE_STEPS: CourseStep[] = [
     type:        "video",
     title:       "Módulo 3 — Herramientas del analista",
     description: "SIEM, IDS/IPS, threat intelligence y plataformas de respuesta.",
-    src:         "/videos/soc1/modulo3_herramientas.mp4",
+    src: videoPrueba,
   },
   {
     type:    "pdf",
     title:   "Material de lectura — Splunk y análisis de logs",
-    pdfSrc:  "/pdfs/soc1/modulo3_splunk.pdf",
+    pdfSrc: pdfPrueba,
     pages:   22,
   },
   {
@@ -411,12 +413,12 @@ const COURSE_STEPS: CourseStep[] = [
     type:        "video",
     title:       "Módulo 4 — Respuesta a incidentes",
     description: "Metodología de triage, contención, erradicación y recuperación.",
-    src:         "/videos/soc1/modulo4_respuesta.mp4",
+    src: videoPrueba,
   },
   {
     type:    "pdf",
     title:   "Material de lectura — Playbooks de respuesta",
-    pdfSrc:  "/pdfs/soc1/modulo4_playbooks.pdf",
+    pdfSrc: pdfPrueba,
     pages:   16,
   },
   {
@@ -888,9 +890,9 @@ function CompletionScreen({ startedAt, completedAt }: { startedAt: string; compl
           Accedé a la bolsa de trabajo y empezá a construir tu camino en ciberseguridad.
         </p>
       </div>
-      <a href="/dashboard?tab=bolsa" className="sc-btn sc-btn--accent sc-btn--lg">
+{/*       <a href="/dashboard?tab=bolsa" className="sc-btn sc-btn--accent sc-btn--lg">
         VER BOLSA DE TRABAJO →
-      </a>
+      </a> */}
     </div>
   );
 }
@@ -942,6 +944,11 @@ export default function Soc1Course() {
   }, [activeStep]);
 
   // ── Avanzar step (video / pdf / intro) ───────────────────────────────────
+  // ⚠️ Esta ruta pega a /progress/step, que el backend RECHAZA con 400 si el
+  // stepIndex enviado corresponde a un quiz (course.quizSteps.includes(...)).
+  // Los quizzes avanzan exclusivamente por /progress/quiz (ver handleQuizSubmit),
+  // que ya deja guardado el avance de progreso en esa misma request. Por eso
+  // handleNext NUNCA debe llamarse con activeStep apuntando a un step de quiz.
   const handleNext = async () => {
     if (!progress || saving) return;
     setSaving(true);
@@ -1164,50 +1171,60 @@ export default function Soc1Course() {
             />
           )}
 
-          {/* Botón siguiente */}
-          {step?.type !== "quiz" && (
-            <div className="sc-nav">
-              {activeStep > 0 && (
-                <button
-                  className="sc-btn sc-btn--ghost"
-                  onClick={() => setActiveStep(prev => Math.max(0, prev - 1))}
-                >
-                  ← ANTERIOR
-                </button>
-              )}
-              {!isLastStep && (
-                <button
-                  className="sc-btn sc-btn--accent"
-                  onClick={handleNext}
-                  disabled={!canAdvance() || saving}
-                >
-                  {saving ? "GUARDANDO..." : "SIGUIENTE →"}
-                </button>
-              )}
-              {isLastStep && canAdvance() && (
-                <button
-                  className="sc-btn sc-btn--accent sc-btn--lg"
-                  onClick={handleNext}
-                  disabled={saving}
-                >
-                  {saving ? "GUARDANDO..." : "FINALIZAR CURSO ✓"}
-                </button>
-              )}
-            </div>
-          )}
+          {/* ── Navegación unificada ──────────────────────────────────────
+              "← ANTERIOR" se muestra siempre que haya un step previo, sin
+              importar el tipo del step actual (antes solo aparecía para
+              steps no-quiz, dejando al quiz sin forma de volver atrás).
 
-          {/* En quiz, el botón siguiente aparece solo si aprobó */}
-          {step?.type === "quiz" && canAdvance() && !isLastStep && (
-            <div className="sc-nav">
+              El botón de avance se resuelve según el tipo:
+              - no-quiz, no último step  → "SIGUIENTE →" vía handleNext
+                (pega a /progress/step, válido para intro/video/pdf)
+              - no-quiz, último step     → "FINALIZAR CURSO ✓" vía handleNext
+              - quiz aprobado, no último → "SIGUIENTE →" SOLO mueve activeStep
+                local (nunca handleNext — ver comentario arriba de handleNext)
+              - quiz aprobado, último step → no se renderiza ningún botón:
+                progress.isCompleted ya llegó en true en la respuesta de
+                /progress/quiz, así que el componente entero ya saltó al
+                render de <CompletionScreen /> antes de llegar acá. ──────── */}
+          <div className="sc-nav">
+            {activeStep > 0 && (
+              <button
+                className="sc-btn sc-btn--ghost"
+                onClick={() => setActiveStep(prev => Math.max(0, prev - 1))}
+              >
+                ← ANTERIOR
+              </button>
+            )}
+
+            {step?.type !== "quiz" && !isLastStep && (
               <button
                 className="sc-btn sc-btn--accent"
                 onClick={handleNext}
-                disabled={saving}
+                disabled={!canAdvance() || saving}
               >
                 {saving ? "GUARDANDO..." : "SIGUIENTE →"}
               </button>
-            </div>
-          )}
+            )}
+
+            {step?.type !== "quiz" && isLastStep && canAdvance() && (
+              <button
+                className="sc-btn sc-btn--accent sc-btn--lg"
+                onClick={handleNext}
+                disabled={saving}
+              >
+                {saving ? "GUARDANDO..." : "FINALIZAR CURSO ✓"}
+              </button>
+            )}
+
+            {step?.type === "quiz" && canAdvance() && !isLastStep && (
+              <button
+                className="sc-btn sc-btn--accent"
+                onClick={() => setActiveStep(prev => Math.min(prev + 1, TOTAL_STEPS - 1))}
+              >
+                SIGUIENTE →
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

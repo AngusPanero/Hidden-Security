@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { UseTheme } from "../contexts/ThemeContext";
 import { HS_SKILLS } from "../skills/Skills"; // ⚠️ ajustá esta ruta si difiere de la del CV Builder
@@ -65,6 +65,12 @@ interface CandidateCV {
   updatedAt:               string;
   userCertificated:        boolean;
   skillsCertifiedByHidden: string[];
+  // Skills otorgadas por completar un curso — derivadas en el backend
+  // directamente desde CourseProgress.isCompleted en Mongo (no vive en
+  // ninguna claim de Firebase, ver usersDatabaseRouter.js).
+  // Distinto de skillsCertifiedByHidden: esto es "vio el curso y aprobó
+  // los quizzes", no un examen controlado de certificación.
+  modernSocSkills:         string[];
 }
 
 interface ApiResponse {
@@ -98,6 +104,16 @@ const CATEGORY_CATALOGS: Record<SkillCategory, Record<string, readonly string[]>
 
 const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"];
 
+const CATEGORY_TITLES: Record<SkillCategory, string> = {
+  roles:        "// ÁREAS Y ROLES",
+  habilidades:  "// HABILIDADES",
+  herramientas: "// HERRAMIENTAS",
+};
+
+// Cuántas skills se muestran por página dentro de cada grupo del detalle
+// del candidato — el botón "Ver más" suma de a este tamaño.
+const SKILLS_PAGE_SIZE = 20;
+
 /* function emptySkills(): SkillsSelection {
   return { roles: [], habilidades: [], herramientas: [] };
 } */
@@ -105,6 +121,39 @@ const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"]
 function flattenSkills(s: SkillsSelection | undefined | null): string[] {
   if (!s) return [];
   return [...(s.roles ?? []), ...(s.habilidades ?? []), ...(s.herramientas ?? [])];
+}
+
+// Aplana un catálogo { grupo: [items] } (como HS_SKILLS.AREAS_Y_ROLES) a un
+// array plano de nombres — se usa para saber a qué rama (roles/habilidades/
+// herramientas) pertenece cada skill que otorgó un curso, y para armar el
+// catálogo de sugerencias del buscador general.
+function flattenCatalog(catalog: Record<string, readonly string[]>): string[] {
+  return Object.values(catalog).flat();
+}
+
+// Mapea cada skill a su subgrupo dentro de un catálogo (ej: "Linux" →
+// "Tecnologías") — se usa para separar visualmente por "Fundamentos",
+// "Operaciones SOC", etc. dentro de cada rama.
+function buildSkillGroupMap(catalog: Record<string, readonly string[]>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [group, items] of Object.entries(catalog)) {
+    for (const item of items) map[item] = group;
+  }
+  return map;
+}
+
+// Catálogo completo (las 3 ramas juntas, sin duplicados) — solo para armar
+// las sugerencias del buscador general por nombre de skill.
+const ALL_SKILLS_SEARCHABLE: string[] = Array.from(
+  new Set(CATEGORY_ORDER.flatMap(cat => flattenCatalog(CATEGORY_CATALOGS[cat])))
+);
+
+// Quita acentos y pasa a minúsculas para comparar sin distinguir "gestion"
+// de "gestión" — se usa solo para filtrar las sugerencias del buscador en
+// el frontend; el backend resuelve el mismo problema con su propio regex
+// tolerante a acentos (buildFlexibleRegex en usersDatabaseRouter.js).
+function normalizeForMatch(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 // Compat: candidatos guardados antes del cambio de estructura tenían
@@ -120,12 +169,21 @@ function normalizeSkills(raw: any): SkillsSelection {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Sub-componente: chip de skill (declarada vs certificada)
+//  Sub-componente: chip de skill (declarada / certificada Hidden / curso SOC)
 // ══════════════════════════════════════════════════════════════════════════════
-function SkillChip({ label, certified }: { label: string; certified?: boolean }) {
+// Tres estados posibles, no excluyentes entre sí:
+// - certified: examen controlado de Hidden Security (skillsCertifiedByHidden)
+// - courseValidated: la skill fue otorgada por completar un curso
+//   (modernSocSkills) — sin importar si el candidato también la había
+//   declarado en su CV o si se agregó solo porque el curso la otorgó.
+// Un skill puede tener ambos indicadores a la vez si coincide con las dos fuentes.
+function SkillChip({ label, certified, courseValidated }: { label: string; certified?: boolean; courseValidated?: boolean }) {
   return (
-    <span className={`udb-skill-chip${certified ? " udb-skill-chip--certified" : ""}`}>
-      {certified && <span className="udb-skill-chip-icon">✓</span>}
+    <span
+      className={`udb-skill-chip${certified ? " udb-skill-chip--certified" : ""}${courseValidated ? " udb-skill-chip--course" : ""}`}
+    >
+      {certified && <span className="udb-skill-chip-icon" title="Certificado por examen de Hidden Security">✓</span>}
+      {courseValidated && <span className="udb-skill-chip-icon udb-skill-chip-icon--course" title="Obtenida al completar un curso de Hidden Security">🎓</span>}
       {label}
     </span>
   );
@@ -169,12 +227,12 @@ function SkillBranchDropdown({
     if (!isOpen) { setQuery(""); setOpenSubgroup(null); }
   }, [isOpen]);
 
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = normalizeForMatch(query.trim());
   const searchResults = trimmed.length === 0
     ? []
     : Object.entries(catalog).flatMap(([group, items]) =>
         items
-          .filter(name => name.toLowerCase().includes(trimmed))
+          .filter(name => normalizeForMatch(name).includes(trimmed))
           .map(name => ({ group, name }))
       );
 
@@ -289,14 +347,23 @@ function FiltersPanel({
   skillsSummary: SkillsSummary | null;
   unmatchedSkills: { declared: string[]; certified: string[] };
 }) {
-  // Un solo estado de "cuál dropdown está abierto" — abrir uno cierra el resto
+  // Un solo estado de "cuál dropdown de rama está abierto" — abrir uno cierra el resto
   const [openBranch, setOpenBranch] = useState<SkillCategory | "certified" | null>(null);
   const certifiedRef = useRef<HTMLDivElement>(null);
+
+  // Sugerencias del buscador general — muestra nombres de skills que
+  // coinciden con lo tipeado, para que el reclutador pueda buscar por
+  // skill puntual desde el mismo input de nombre/email/headline.
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (openBranch === "certified" && certifiedRef.current && !certifiedRef.current.contains(e.target as Node)) {
         setOpenBranch(null);
+      }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearchSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -334,17 +401,41 @@ function FiltersPanel({
     filters.search || totalDeclaredCount > 0 || filters.certifiedSkills.length > 0
     || filters.certifiedOnly || filters.availability || filters.modality;
 
+  const searchTrimmed = normalizeForMatch(filters.search.trim());
+  const searchSuggestions = searchTrimmed.length === 0
+    ? []
+    : ALL_SKILLS_SEARCHABLE.filter(s => normalizeForMatch(s).includes(searchTrimmed)).slice(0, 60);
+
   return (
     <div className="udb-filters">
       <div className="udb-filters-row">
 
-        {/* Búsqueda */}
-        <input
-          className="udb-search-input"
-          placeholder="Buscar por nombre, email o headline..."
-          value={filters.search}
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-        />
+        {/* Búsqueda general — también busca por skill puntual, con
+            sugerencias scrolleables mientras se tipea */}
+        <div className="udb-search-wrap" ref={searchRef}>
+          <input
+            className="udb-search-input"
+            placeholder="Buscar por nombre, email, headline o skill..."
+            value={filters.search}
+            onChange={(e) => { setFilters({ ...filters, search: e.target.value }); setShowSearchSuggestions(true); }}
+            onFocus={() => setShowSearchSuggestions(true)}
+          />
+          {showSearchSuggestions && searchSuggestions.length > 0 && (
+            <div className="udb-search-suggestions">
+              {searchSuggestions.map(skill => (
+                <button
+                  key={skill}
+                  type="button"
+                  className="udb-search-suggestion-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setFilters({ ...filters, search: skill }); setShowSearchSuggestions(false); }}
+                >
+                  {skill}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Las 3 ramas de skills declaradas — cada una con su propio buscador */}
         {CATEGORY_ORDER.map(category => (
@@ -473,15 +564,52 @@ function FiltersPanel({
 // ══════════════════════════════════════════════════════════════════════════════
 function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; onDownload: () => void }) {
   const p = candidate.personalInfo;
-  const allDeclared = useMemo(() => flattenSkills(candidate.skills), [candidate.skills]);
+  const allDeclared  = flattenSkills(candidate.skills);
+  const courseSkills = candidate.modernSocSkills ?? [];
+
+  // Cuántas skills se muestran por rama — arranca en 20, el botón "Ver más"
+  // suma de a SKILLS_PAGE_SIZE. Al colapsar la fila el componente se
+  // desmonta (ver CandidateRow), así que este estado siempre arranca fresco.
+  const [visibleCounts, setVisibleCounts] = useState<Record<SkillCategory, number>>({
+    roles:        SKILLS_PAGE_SIZE,
+    habilidades:  SKILLS_PAGE_SIZE,
+    herramientas: SKILLS_PAGE_SIZE,
+  });
 
   const extraCertified = candidate.skillsCertifiedByHidden.filter(s => !allDeclared.includes(s));
 
-  const skillGroups: { key: SkillCategory; title: string; items: string[] }[] = [
-    { key: "roles",        title: "// ÁREAS Y ROLES",   items: candidate.skills.roles        ?? [] },
-    { key: "habilidades",  title: "// HABILIDADES",     items: candidate.skills.habilidades  ?? [] },
-    { key: "herramientas", title: "// HERRAMIENTAS",    items: candidate.skills.herramientas ?? [] },
-  ];
+  // Por cada rama: unión de declaradas + otorgadas por curso (aunque no las
+  // haya declarado), ordenadas por subgrupo (Fundamentos, Operaciones SOC,
+  // etc.) y, dentro de cada subgrupo, las de curso primero.
+  const skillGroups = CATEGORY_ORDER.map(key => {
+    const catalog      = CATEGORY_CATALOGS[key];
+    const catalogFlat  = flattenCatalog(catalog);
+    const groupMap     = buildSkillGroupMap(catalog);
+
+    const declaredItems         = candidate.skills[key] ?? [];
+    const courseItemsInCategory = courseSkills.filter(s => catalogFlat.includes(s));
+    const items = Array.from(new Set([...courseItemsInCategory, ...declaredItems]));
+
+    items.sort((a, b) => {
+      const ga = groupMap[a] ?? "";
+      const gb = groupMap[b] ?? "";
+      if (ga !== gb) return ga.localeCompare(gb);
+      const aCourse = courseItemsInCategory.includes(a) ? 0 : 1;
+      const bCourse = courseItemsInCategory.includes(b) ? 0 : 1;
+      if (aCourse !== bCourse) return aCourse - bCourse;
+      return a.localeCompare(b);
+    });
+
+    return {
+      key,
+      title: CATEGORY_TITLES[key],
+      items,
+      groupMap,
+      courseMatchCount: courseItemsInCategory.length,
+    };
+  });
+
+  const totalItemsAcrossGroups = skillGroups.reduce((acc, g) => acc + g.items.length, 0);
 
   return (
     <div className="udb-detail">
@@ -494,31 +622,76 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
         </div>
       )}
 
-      {/* Skills declaradas vs certificadas — separadas por rama */}
-      {allDeclared.length === 0 ? (
+      {/* Skills por rama — declaradas + otorgadas por curso, combinadas,
+          paginadas de a SKILLS_PAGE_SIZE y separadas por subgrupo (título
+          en gris chico antes de cada bloque de chips). Las que provienen de
+          un curso (declaradas o no) van en celeste con 🎓; las declaradas
+          sin relación a ningún curso quedan con el color normal. */}
+      {totalItemsAcrossGroups === 0 ? (
         <div className="udb-detail-section">
           <span className="udb-detail-section-title">// SKILLS DECLARADAS POR EL CANDIDATO</span>
           <p className="udb-detail-empty">Sin skills registradas</p>
         </div>
       ) : (
-        skillGroups.map(g => g.items.length > 0 && (
-          <div className="udb-detail-section" key={g.key}>
-            <span className="udb-detail-section-title">{g.title}</span>
-            <div className="udb-skills-row">
-              {g.items.map(skill => (
-                <SkillChip
-                  key={skill}
-                  label={skill}
-                  certified={candidate.skillsCertifiedByHidden.includes(skill)}
-                />
+        skillGroups.map(g => {
+          if (g.items.length === 0) return null;
+
+          const visibleCount = visibleCounts[g.key];
+          const visibleItems = g.items.slice(0, visibleCount);
+          const remaining    = g.items.length - visibleCount;
+
+          // Partir la lista visible en bloques contiguos por subgrupo, para
+          // mostrar el título del subgrupo una sola vez por bloque
+          const segments: { group: string; skills: string[] }[] = [];
+          visibleItems.forEach(skill => {
+            const group = g.groupMap[skill] ?? "Otros";
+            const last  = segments[segments.length - 1];
+            if (last && last.group === group) last.skills.push(skill);
+            else segments.push({ group, skills: [skill] });
+          });
+
+          return (
+            <div className="udb-detail-section" key={g.key}>
+              <span className="udb-detail-section-title">{g.title}</span>
+              {g.courseMatchCount > 0 && (
+                <p className="udb-detail-hint udb-detail-hint--course">
+                  <span className="udb-skill-chip-icon udb-skill-chip-icon--course">🎓</span>
+                  Las skills en celeste fueron obtenidas al completar un curso de Hidden Security
+                </p>
+              )}
+
+              {segments.map(seg => (
+                <div key={seg.group} className="udb-skill-subgroup">
+                  <span className="udb-skill-subgroup-title">{seg.group}</span>
+                  <div className="udb-skills-row">
+                    {seg.skills.map(skill => (
+                      <SkillChip
+                        key={skill}
+                        label={skill}
+                        certified={candidate.skillsCertifiedByHidden.includes(skill)}
+                        courseValidated={courseSkills.includes(skill)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
+
+              {remaining > 0 && (
+                <button
+                  type="button"
+                  className="udb-skill-more-btn"
+                  onClick={() => setVisibleCounts(prev => ({ ...prev, [g.key]: prev[g.key] + SKILLS_PAGE_SIZE }))}
+                >
+                  Ver {Math.min(SKILLS_PAGE_SIZE, remaining)} más ({remaining} restantes)
+                </button>
+              )}
             </div>
-          </div>
-        ))
+          );
+        })
       )}
       {allDeclared.length > 0 && (
         <p className="udb-detail-hint">
-          <span className="udb-skill-chip-icon">✓</span> = validado por Hidden Security
+          <span className="udb-skill-chip-icon">✓</span> = certificado por examen de Hidden Security
         </p>
       )}
 
@@ -786,10 +959,13 @@ export default function UsersDatabase() {
     axios
       .get<ApiResponse>(`${import.meta.env.VITE_API_URL}/api/users-database`, { params, withCredentials: true })
       .then(({ data }) => {
-        // Normalizamos "skills" por candidato (compat con el formato viejo)
+        // Normalizamos "skills" por candidato (compat con el formato viejo).
+        // modernSocSkills ya viene como array plano desde el backend — no
+        // necesita normalización, solo un fallback a [] por si falta.
         const normalized: CandidateCV[] = data.data.map((c: any) => ({
           ...c,
           skills: normalizeSkills(c.skills),
+          modernSocSkills: c.modernSocSkills ?? [],
         }));
         setCandidates(normalized);
         setMeta(data.meta);
@@ -808,7 +984,7 @@ export default function UsersDatabase() {
   const handleDownload = (candidate: CandidateCV) => {
     const p        = candidate.personalInfo;
     const filename = `CV_${(p.firstName + "_" + p.lastName).replace(/\s+/g, "_")}`;
-    /* const allDeclared = flattenSkills(candidate.skills); */
+    const courseSkills = candidate.modernSocSkills ?? [];
 
     const section = (title: string, content: string) => !content.trim() ? "" : `
       <div style="page-break-inside:avoid;margin-bottom:28px;">
@@ -820,15 +996,27 @@ export default function UsersDatabase() {
 
     const entry = (inner: string) => `<div style="page-break-inside:avoid;margin-bottom:18px;">${inner}</div>`;
 
-    // Genera los tags de una lista de skills, marcando las certificadas
+    // Genera los tags de una lista de skills, marcando certificadas y las
+    // otorgadas por curso — igual criterio visual que en pantalla.
     const skillTagsFor = (list: string[]) => list.map(s => {
-      const isCert = candidate.skillsCertifiedByHidden.includes(s);
-      return `<span style="display:inline-block;border:1.5px solid ${isCert ? "#999" : "#111"};background:${isCert ? "#111" : "transparent"};color:${isCert ? "#fff" : "#111"};font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${isCert ? "✓ " : ""}${s}</span>`;
+      const isCert   = candidate.skillsCertifiedByHidden.includes(s);
+      const isCourse = courseSkills.includes(s);
+      const prefix   = `${isCert ? "✓ " : ""}${isCourse ? "🎓 " : ""}`;
+      return `<span style="display:inline-block;border:1.5px solid ${isCert ? "#999" : "#111"};background:${isCert ? "#111" : "transparent"};color:${isCert ? "#fff" : "#111"};font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${prefix}${s}</span>`;
     }).join("");
 
-    const rolesTags        = skillTagsFor(candidate.skills.roles        ?? []);
-    const habilidadesTags  = skillTagsFor(candidate.skills.habilidades  ?? []);
-    const herramientasTags = skillTagsFor(candidate.skills.herramientas ?? []);
+    // Igual criterio que en pantalla: unión de declaradas + otorgadas por
+    // curso para cada rama (aunque no hayan sido declaradas).
+    const buildGroupItems = (key: SkillCategory) => {
+      const catalogFlat   = flattenCatalog(CATEGORY_CATALOGS[key]);
+      const declaredItems = candidate.skills[key] ?? [];
+      const courseItems   = courseSkills.filter(s => catalogFlat.includes(s));
+      return Array.from(new Set([...courseItems, ...declaredItems]));
+    };
+
+    const rolesTags        = skillTagsFor(buildGroupItems("roles"));
+    const habilidadesTags  = skillTagsFor(buildGroupItems("habilidades"));
+    const herramientasTags = skillTagsFor(buildGroupItems("herramientas"));
 
     const experienceHTML = candidate.experience.map(e => entry(`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
@@ -925,9 +1113,9 @@ export default function UsersDatabase() {
       ${p.summary ? section("PERFIL PROFESIONAL", `<p style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;color:#222;line-height:1.85;border-left:3px solid #000;padding-left:16px;">${p.summary}</p>`) : ""}
       ${experienceHTML ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
       ${educationHTML  ? section("EDUCACIÓN",           educationHTML)  : ""}
-      ${rolesTags        ? section("ÁREAS Y ROLES — ✓ = CERTIFICADA POR HIDDEN", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${rolesTags}</div>`) : ""}
-      ${habilidadesTags  ? section("HABILIDADES — ✓ = CERTIFICADA POR HIDDEN", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${habilidadesTags}</div>`) : ""}
-      ${herramientasTags ? section("HERRAMIENTAS — ✓ = CERTIFICADA POR HIDDEN", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${herramientasTags}</div>`) : ""}
+      ${rolesTags        ? section("ÁREAS Y ROLES — ✓ CERTIFICADA HIDDEN · 🎓 CURSO", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${rolesTags}</div>`) : ""}
+      ${habilidadesTags  ? section("HABILIDADES — ✓ CERTIFICADA HIDDEN · 🎓 CURSO", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${habilidadesTags}</div>`) : ""}
+      ${herramientasTags ? section("HERRAMIENTAS — ✓ CERTIFICADA HIDDEN · 🎓 CURSO", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${herramientasTags}</div>`) : ""}
       ${projectsHTML   ? section("PROYECTOS",           projectsHTML)   : ""}
       ${certsHTML      ? section("CERTIFICACIONES",     certsHTML)      : ""}
       ${candidate.languages.length > 0 ? section("IDIOMAS", langsHTML) : ""}
@@ -955,7 +1143,9 @@ export default function UsersDatabase() {
         <p className="udb-subtitle">
           Explorá los perfiles de candidatos certificados por Hidden Security. Las skills con{" "}
           <span className="udb-skill-chip udb-skill-chip--certified udb-skill-chip--sm">✓</span>{" "}
-          fueron validadas por nuestra plataforma.
+          fueron validadas por examen, y las que tienen{" "}
+          <span className="udb-skill-chip udb-skill-chip--course udb-skill-chip--sm">🎓</span>{" "}
+          se obtuvieron al completar uno de nuestros cursos.
         </p>
       </div>
 

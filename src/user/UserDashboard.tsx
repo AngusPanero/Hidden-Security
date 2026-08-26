@@ -68,6 +68,8 @@ const UserDashboard = () => {
 
     // Cargar notificaciones desde DB al montar
     useEffect(() => {
+        console.log("USER", user);
+        
         if (!user?.userCertificated) return;
         axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, { withCredentials: true })
             .then(({ data }) => {
