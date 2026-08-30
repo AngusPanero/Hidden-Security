@@ -425,7 +425,7 @@
   align-items: flex-end;
 }
 .cex-webcam-box {
-  width: 160px; height: 120px;
+  width: 260px; height: auto;
   border: 1px solid var(--cex-accent);
   overflow: hidden;
   background: #000;
@@ -448,4 +448,35 @@
   .cex-exam-layout { grid-template-columns: 1fr; }
   .cex-sidebar { position: static; }
   .cex-media-dock { position: static; flex-direction: row; margin-top: 16px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Overlay de violación de integridad — segundo monitor detectado
+   durante el examen, con cuenta regresiva de 30s
+══════════════════════════════════════════════════════════════ */
+.cex-violation-overlay {
+  position: fixed; inset: 0; z-index: 998;
+  background: rgba(0,0,0,0.96);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; text-align: center; padding: 20px;
+}
+.cex-violation-icon { font-size: 3rem; }
+.cex-violation-text { max-width: 460px; font-size: 0.9rem; opacity: 0.85; line-height: 1.6; }
+.cex-violation-countdown {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--cex-danger);
+}
+.cex-violation-sub { font-size: 0.75rem; opacity: 0.55; }
+
+.cex-suspended {
+  max-width: 560px; margin: 60px auto; text-align: center;
+  padding: 48px 36px; border: 1px solid var(--cex-danger);
+}
+.cex-suspended-badge {
+  width: 84px; height: 84px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.4rem; margin: 0 auto 20px;
+  background: rgba(244,63,94,0.12); color: var(--cex-danger);
 }

@@ -328,6 +328,18 @@ const Checkout = () => {
         );
     }
 
+    // Voucher disponible sin usar — no importa si vino de comprar pro/elite
+    const hasAvailableVoucher = user?.purchases?.includes("voucher") ?? false;
+
+    if (hasAvailableVoucher) {
+        return (
+            <PurchaseBlockedBanner
+                title="Ya tenés un voucher de certificación disponible"
+                detail="Tenés un voucher sin usar en tu cuenta — ya sea de un plan Pro/Elite o de una compra individual. Usalo para rendir tu certificación antes de comprar uno nuevo, o hacelo desde tu dashboard."
+            />
+        );
+    }
+
     // Error genérico de backend
     if (error) return <Error processMessage={error} />;
 

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import { UseSession } from "../contexts/SessionContext"; // ⚠️ ajustá esta ruta según dónde quede esta carpeta
+import { UseSession } from "../contexts/SessionContext"; // ⚠️ ajustá según dónde quede esta carpeta
 import { UseTheme } from "../contexts/ThemeContext";     // ⚠️ ídem
 import "./certificationExam.css";
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  TIPOS — reflejan lo que devuelve certificationRouter.js
+//  TIPOS
 // ══════════════════════════════════════════════════════════════════════════════
 interface CertQuestion { id: number; moduleId: number; question: string; options: string[]; }
 interface CertModule   { id: number; title: string; }
@@ -33,25 +33,21 @@ interface SubmitResult {
   showConfetti: boolean; confettiColors: ConfettiColors;
 }
 
-// Las reglas se muestran mapeando este array — agregar una nueva regla es
-// sumar un string acá, no hace falta tocar el JSX.
 const EXAM_RULES: string[] = [
   "¿Estás seguro/a que deseás canjear tu voucher para rendir esta certificación? Esta acción consume un ticket de tu cuenta.",
   "Una vez que ingreses, el examen comenzará: no podrá pausarse ni continuarse en otro momento.",
   "Vas a disponer de un tiempo límite para completar el examen. Cuando se agote, se enviará automáticamente con las respuestas que hayas cargado hasta ese momento.",
   "Antes de enviar el examen a validación vas a poder revisar las preguntas que hayas marcado con dudas.",
-  "Se verificará que no estés usando un segundo monitor ni tengas otras pestañas de este examen abiertas, para garantizar la integridad de la evaluación.",
+  "Se verificará de forma continua que no estés usando un segundo monitor ni tengas otras pestañas de este examen abiertas — la verificación no se hace una sola vez, sino durante todo el examen.",
   "El examen debe rendirse en una computadora de escritorio o notebook (Windows, Linux o macOS) — no está disponible en celulares ni tablets.",
   "Si tu dispositivo cuenta con cámara y/o micrófono, se solicitará permiso para usarlos durante el examen, con el fin de validar que lo estés rindiendo vos y sin ayuda de terceros.",
 ];
 
+const VIOLATION_GRACE_SECONDS = 30;
+
 type Phase = "loading" | "mobile_blocked" | "rules" | "device_check" | "permissions" | "ready" | "exam" | "review" | "result";
 type CheckStatus = "pending" | "ok" | "fail" | "unknown";
 
-// ── Helpers de detección de dispositivo ─────────────────────────────────────
-// No hay forma de detectar OS con certeza total sin navigator.userAgentData
-// (poco soportado) — nos apoyamos en UA + puntero para distinguir mobile de
-// desktop, que es lo que realmente pide la regla (excluir celulares/tablets).
 function isMobileDevice(): boolean {
   const ua = navigator.userAgent || "";
   const uaMobile = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua);
@@ -59,9 +55,6 @@ function isMobileDevice(): boolean {
   return uaMobile || coarsePointer;
 }
 
-// Segundo monitor — Window Management API (solo Chromium reciente). En
-// navegadores sin soporte no podemos saberlo: devolvemos "unknown" en vez
-// de bloquear por un falso negativo del navegador.
 async function checkSecondMonitor(): Promise<CheckStatus> {
   try {
     const anyWindow = window as any;
@@ -74,13 +67,10 @@ async function checkSecondMonitor(): Promise<CheckStatus> {
     }
     return "unknown";
   } catch {
-    return "unknown"; // permiso denegado o API no soportada
+    return "unknown";
   }
 }
 
-// Segunda pestaña de ESTE examen — vía BroadcastChannel. Cada pestaña que
-// entra a este mismo examen escucha "ping" y responde "pong"; si al mandar
-// nuestro propio ping recibimos una respuesta, hay otra pestaña abierta.
 function pingForDuplicateTab(channel: BroadcastChannel): Promise<CheckStatus> {
   return new Promise((resolve) => {
     let resolved = false;
@@ -111,8 +101,16 @@ function formatDuration(ms: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function violationReasonLabel(reason: string): string {
+  switch (reason) {
+    case "second_monitor_connected": return "Se detectó un segundo monitor conectado durante el examen.";
+    case "duplicate_tab_detected":   return "Se detectó otra pestaña de este examen abierta.";
+    default: return "Se detectó una infracción de integridad durante el examen.";
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
-//  Sub-componente: espectro de audio (canvas + AnalyserNode)
+//  Sub-componente: espectro de audio
 // ══════════════════════════════════════════════════════════════════════════════
 function AudioSpectrum({ stream }: { stream: MediaStream }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,7 +160,7 @@ function AudioSpectrum({ stream }: { stream: MediaStream }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Sub-componente: confetti (canvas, sin dependencias externas)
+//  Sub-componente: confetti
 // ══════════════════════════════════════════════════════════════════════════════
 function ConfettiBurst({ colors }: { colors: string[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -193,7 +191,7 @@ function ConfettiBurst({ colors }: { colors: string[] }) {
 
     let rafId: number;
     let frame = 0;
-    const MAX_FRAMES = 260; // ~4.3s a 60fps
+    const MAX_FRAMES = 260;
 
     const draw = () => {
       frame++;
@@ -219,7 +217,7 @@ function ConfettiBurst({ colors }: { colors: string[] }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  COMPONENTE PRINCIPAL — motor genérico de examen de certificación
+//  COMPONENTE PRINCIPAL
 // ══════════════════════════════════════════════════════════════════════════════
 export default function CertificationExam({ certId, title }: { certId: string; title: string }) {
   const { user }  = UseSession();
@@ -230,20 +228,18 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [attempt,  setAttempt]  = useState<AttemptPayload | null>(null);
+  const [resuming, setResuming] = useState(false);
 
-  // ── Checks de dispositivo ──────────────────────────────────────────────
   const [tabCheck,     setTabCheck]     = useState<CheckStatus>("pending");
   const [monitorCheck, setMonitorCheck] = useState<CheckStatus>("pending");
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
-  // ── Permisos de cámara/micrófono ───────────────────────────────────────
   const [needsCamera, setNeedsCamera] = useState(false);
   const [needsMic,    setNeedsMic]    = useState(false);
   const [camGranted,  setCamGranted]  = useState<CheckStatus>("pending");
   const [micGranted,  setMicGranted]  = useState<CheckStatus>("pending");
   const streamRef = useRef<MediaStream | null>(null);
 
-  // ── Examen en curso ─────────────────────────────────────────────────────
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [flagged, setFlagged] = useState<number[]>([]);
@@ -253,10 +249,15 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const [fullscreenLost, setFullscreenLost] = useState(false);
   const submittingRef = useRef(false);
 
+  // ── Violación de integridad (segundo monitor detectado durante el examen) ─
+  const [violationCountdown, setViolationCountdown] = useState<number | null>(null);
+  const violationActiveRef = useRef(false); // evita disparar el countdown más de una vez en simultáneo
+  const [suspendedReason, setSuspendedReason] = useState<string | null>(null);
+
   const [result, setResult] = useState<SubmitResult | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Carga inicial — ¿hay un examen en curso? (permite reanudar sin re-cobrar)
+  //  Carga inicial
   // ═══════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!user) return;
@@ -272,8 +273,11 @@ export default function CertificationExam({ certId, title }: { certId: string; t
           setAttempt(data);
           setAnswers(data.answers ?? {});
           setFlagged(data.flagged ?? []);
-        
-          setPhase("device_check"); // reanudando — se saltea la pantalla de reglas/canje
+          setResuming(true);
+          // Reanudando: se saltea la pantalla de reglas/canje (ya se pagó el
+          // voucher), pero SÍ se revalida device_check y permissions — la
+          // cámara/micrófono no persisten entre refrescos de página.
+          setPhase("device_check");
         } else {
           setPhase("rules");
         }
@@ -282,7 +286,8 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   }, [user, certId]);
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Device check — segundo monitor + pestaña duplicada
+  //  Device check inicial (pestaña duplicada + monitor) — corre una vez al
+  //  entrar a la fase, o al tocar "volver a verificar"
   // ═══════════════════════════════════════════════════════════════════════
   const runDeviceChecks = useCallback(async () => {
     setTabCheck("pending");
@@ -291,7 +296,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     const channelName = `cert-${certId}-${user?.uid ?? "anon"}`;
     if (!broadcastRef.current) {
       broadcastRef.current = new BroadcastChannel(channelName);
-      // Responder los pings de otras pestañas para que ELLAS también nos detecten
       broadcastRef.current.onmessage = (ev) => {
         if (ev.data === "ping") broadcastRef.current?.postMessage("pong");
       };
@@ -313,15 +317,94 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const deviceChecksPassed = tabCheck === "ok" && (monitorCheck === "ok" || monitorCheck === "unknown");
 
   // ═══════════════════════════════════════════════════════════════════════
+  //  Watcher CONTINUO de segundo monitor — corre en todas las fases desde
+  //  que se pasó la verificación inicial hasta que termina el examen.
+  //  Antes de arrancar (permissions/ready): si detecta el monitor, patea de
+  //  vuelta a device_check (no se gastó voucher, no hace falta gracia).
+  //  Durante el examen (exam/review): dispara el overlay de 30s de gracia.
+  // ═══════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const watchedPhases: Phase[] = ["permissions", "ready", "exam", "review"];
+    if (!watchedPhases.includes(phase)) return;
+
+    let cancelled = false;
+    let screenDetailsCleanup: (() => void) | null = null;
+
+    const handleCheck = async () => {
+      const status = await checkSecondMonitor();
+      if (cancelled) return;
+
+      if (status === "fail") {
+        setMonitorCheck("fail");
+
+        if (phase === "exam" || phase === "review") {
+          if (!violationActiveRef.current) {
+            violationActiveRef.current = true;
+            logEvent("second_monitor_detected_during_exam");
+            setViolationCountdown(VIOLATION_GRACE_SECONDS);
+          }
+        } else {
+          // Antes de arrancar el examen: todavía no se gastó voucher,
+          // simplemente se lo vuelve a mandar a verificar.
+          logEvent("second_monitor_kicked_to_device_check");
+          setPhase("device_check");
+        }
+      } else if (status === "ok") {
+        setMonitorCheck(prev => (prev === "fail" ? "ok" : prev));
+        if (violationActiveRef.current) {
+          violationActiveRef.current = false;
+          setViolationCountdown(null);
+          logEvent("second_monitor_disconnected");
+        }
+      }
+    };
+
+    // Poll cada 2.5s — funciona en cualquier navegador, aunque no soporte
+    // la Window Management API (fallback confiable).
+    const interval = setInterval(handleCheck, 2500);
+
+    // Si el navegador soporta getScreenDetails(), además escuchamos el
+    // evento nativo para detectar el cambio casi instantáneamente.
+    (async () => {
+      try {
+        const anyWindow = window as any;
+        if (typeof anyWindow.getScreenDetails === "function") {
+          const details = await anyWindow.getScreenDetails();
+          const onScreensChange = () => handleCheck();
+          details.addEventListener("screenschange", onScreensChange);
+          screenDetailsCleanup = () => details.removeEventListener("screenschange", onScreensChange);
+        }
+      } catch {
+        // permiso no otorgado o API no soportada — el polling ya cubre esto
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      screenDetailsCleanup?.();
+    };
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cuenta regresiva de gracia — si llega a 0, se cancela la certificación
+  useEffect(() => {
+    if (violationCountdown === null) return;
+    if (violationCountdown <= 0) {
+      reportViolationAndFail("second_monitor_connected");
+      return;
+    }
+    const t = setTimeout(() => setViolationCountdown(v => (v !== null ? v - 1 : null)), 1000);
+    return () => clearTimeout(t);
+  }, [violationCountdown]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ═══════════════════════════════════════════════════════════════════════
   //  Permisos de cámara/micrófono
   // ═══════════════════════════════════════════════════════════════════════
   const requestMediaPermissions = useCallback(async () => {
     let devices: MediaDeviceInfo[] = [];
     try {
       devices = await navigator.mediaDevices.enumerateDevices();
-    } catch {
-      // no se pudo enumerar — asumimos que no hay dispositivos, no bloqueamos
-    }
+    } catch { /* asumimos sin dispositivos, no bloqueamos */ }
 
     const hasCam = devices.some(d => d.kind === "videoinput");
     const hasMic = devices.some(d => d.kind === "audioinput");
@@ -334,12 +417,10 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: hasCam, audio: hasMic,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: hasCam, audio: hasMic });
       streamRef.current = stream;
-      setCamGranted(hasCam ? "ok" : "ok");
-      setMicGranted(hasMic ? "ok" : "ok");
+      setCamGranted("ok");
+      setMicGranted("ok");
     } catch {
       setCamGranted(hasCam ? "fail" : "ok");
       setMicGranted(hasMic ? "fail" : "ok");
@@ -355,7 +436,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     (!needsMic    || micGranted === "ok");
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Empezar (o reanudar) el examen — consume voucher solo si es la 1ra vez
+  //  Empezar (o reanudar) el examen
   // ═══════════════════════════════════════════════════════════════════════
   const startExam = async () => {
     setErrorMsg(null);
@@ -369,7 +450,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       setFlagged(data.flagged ?? []);
       setCurrentQuestionId(data.questions[0]?.id ?? null);
 
-      try { await document.documentElement.requestFullscreen(); } catch { /* no bloqueamos si falla */ }
+      try { await document.documentElement.requestFullscreen(); } catch { /* no bloqueamos */ }
 
       setPhase("exam");
     } catch (err: any) {
@@ -383,7 +464,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   };
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Timer — remainingMs se recalcula desde expiresAt (autoridad del backend)
+  //  Timer principal
   // ═══════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!attempt || (phase !== "exam" && phase !== "review")) return;
@@ -420,7 +501,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   }, [attempt, phase, timeWarningShown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Fullscreen — detecta salida y muestra overlay bloqueante
+  //  Fullscreen
   // ═══════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (phase !== "exam" && phase !== "review") return;
@@ -438,11 +519,11 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     try {
       await document.documentElement.requestFullscreen();
       setFullscreenLost(false);
-    } catch { /* el navegador puede rechazarlo sin gesto reciente */ }
+    } catch { /* puede requerir gesto reciente */ }
   };
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Visibilidad de pestaña — solo auditoría, no se puede bloquear de verdad
+  //  Visibilidad de pestaña — solo auditoría
   // ═══════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (phase !== "exam" && phase !== "review") return;
@@ -494,6 +575,24 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     }
   };
 
+  // Cancela la certificación por una infracción de integridad detectada —
+  // distinto de submitExam: acá no se corrigen respuestas, se fuerza el
+  // fracaso con un motivo específico registrado en el historial.
+  const reportViolationAndFail = async (reason: string) => {
+    setViolationCountdown(null);
+    violationActiveRef.current = false;
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/certification/${certId}/violation`,
+        { reason }, { withCredentials: true }
+      );
+    } catch { /* igual mostramos la pantalla de suspendido del lado del cliente */ }
+    cleanupMedia();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    setSuspendedReason(reason);
+    setPhase("result");
+  };
+
   const cleanupMedia = () => {
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
@@ -514,7 +613,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Mobile bloqueado — se muestra igual la pantalla, pero sin poder avanzar
   if (phase === "mobile_blocked") {
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
@@ -533,7 +631,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Pantalla de reglas + confirmación de canje ───────────────────────────
   if (phase === "rules") {
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
@@ -549,7 +646,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
               </li>
             ))}
           </ul>
-                    {errorMsg && (
+          {errorMsg && (
             <div className="cex-alert">
               <span className="cex-alert-icon">⚠</span>
               <span className="cex-alert-text">{errorMsg}</span>
@@ -565,7 +662,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Verificación de dispositivo (segundo monitor / pestaña duplicada) ────
   if (phase === "device_check") {
     const bothPending = tabCheck === "pending" || monitorCheck === "pending";
     return (
@@ -574,6 +670,11 @@ export default function CertificationExam({ certId, title }: { certId: string; t
         <h2 className="cex-title">{title}</h2>
         <div className="cex-card">
           <h3 className="cex-card-title">Verificación de integridad</h3>
+          {resuming && (
+            <p style={{ fontSize: "0.8rem", opacity: 0.6, marginBottom: 16 }}>
+              Estás retomando un examen que ya habías empezado. Tu tiempo restante sigue corriendo.
+            </p>
+          )}
 
           <div className="cex-checklist">
             <div className="cex-check-item">
@@ -616,7 +717,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
               <span className="cex-alert-icon">⚠</span>
               <span className="cex-alert-text">
                 Detectamos un segundo monitor conectado. Desconectalo para continuar — el examen
-                requiere una única pantalla visible.
+                requiere una única pantalla visible en todo momento, incluso una vez empezado.
               </span>
             </div>
           )}
@@ -640,7 +741,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Permisos de cámara / micrófono ────────────────────────────────────────
   if (phase === "permissions") {
     const stillWaiting = (needsCamera && camGranted === "pending") || (needsMic && micGranted === "pending");
     return (
@@ -715,7 +815,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Pantalla final antes de arrancar — o reanudación directa ─────────────
   if (phase === "ready") {
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
@@ -743,7 +842,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Examen / revisión ──────────────────────────────────────────────────
   if ((phase === "exam" || phase === "review") && attempt) {
     const currentQuestion = attempt.questions.find(q => q.id === currentQuestionId) ?? attempt.questions[0];
     const totalMs   = attempt.timeLimitMinutes * 60 * 1000;
@@ -755,6 +853,18 @@ export default function CertificationExam({ certId, title }: { certId: string; t
 
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
+        {violationCountdown !== null && (
+          <div className="cex-violation-overlay">
+            <span className="cex-violation-icon">🚫</span>
+            <p className="cex-violation-text">
+              Detectamos un segundo monitor conectado. Desconectalo ahora — si no lo hacés a
+              tiempo, la certificación se va a suspender automáticamente.
+            </p>
+            <span className="cex-violation-countdown">{violationCountdown}s</span>
+            <span className="cex-violation-sub">Tiempo restante para desconectarlo</span>
+          </div>
+        )}
+
         {fullscreenLost && (
           <div className="cex-fullscreen-lost">
             <span className="cex-fullscreen-lost-icon">⛶</span>
@@ -914,7 +1024,26 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Resultado final ─────────────────────────────────────────────────────
+  // ── Certificación suspendida por violación de integridad ────────────────
+  if (phase === "result" && suspendedReason) {
+    return (
+      <div className={`cex-wrap ${isLight ? "light" : ""}`}>
+        <div className="cex-suspended">
+          <div className="cex-suspended-badge">🚫</div>
+          <h2 className="cex-result-title">CERTIFICACIÓN SUSPENDIDA</h2>
+          <p className="cex-result-score">{violationReasonLabel(suspendedReason)}</p>
+          <p style={{ fontSize: "0.8rem", opacity: 0.6, marginBottom: 28 }}>
+            Este intento quedó registrado. Vas a necesitar un nuevo voucher para volver a rendir.
+          </p>
+          <a href="/dashboard?tab=cursos" className="cex-btn cex-btn--accent">
+            VOLVER AL DASHBOARD
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Resultado final normal ───────────────────────────────────────────────
   if (phase === "result" && result) {
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>

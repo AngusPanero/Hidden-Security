@@ -80,7 +80,7 @@ const CATALOG: CatalogEntry[] = [
     title:    "Offensive Security Fundamentals",
     subtitle: "Certificación oficial · Pentesting",
     status:   "soon",
-    comingSoon: "Q4 2026",
+    comingSoon: "",
     intro: {
       icon: "🗡️",
       heading: "Offensive Security Fundamentals",
