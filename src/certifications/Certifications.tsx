@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UseTheme } from "../contexts/ThemeContext";
 import "./certifications.css";
-import insigniaIR from "../../public/insignias/Insignia HS IR.png";
-import insigniPEN from "../../public/insignias/Insignia HS PEN.png";
-import insigniaSOC from "../../public/insignias/Insignia HS SOC.png";
-import insigniaTH from "../../public/insignias/Insignia HS TH.png";
-import insigniaTI from "../../public/insignias/Insignia HS TI.png";
+import insigniaIR from "../../public/insignias/IR.png";
+import insigniPEN from "../../public/insignias/PEN.png";
+import insigniaSOC from "../../public/insignias/SOC.png";
+import insigniaTH from "../../public/insignias/TH.png";
+import insigniaTI from "../../public/insignias/TI.png";
 
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────

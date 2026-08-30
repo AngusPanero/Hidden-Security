@@ -204,7 +204,8 @@
 /* Hero imagen */
 .cr-hero-img-wrap {
     position:   relative;
-    height:     420px;
+    height:     620px !important;
+    width: 620px !important;
     overflow:   hidden;
     flex-shrink: 0;
 }
@@ -320,6 +321,11 @@
 }
 
 @media (max-width: 768px) {
+    .cr-hero-img-wrap{
+        width: 100% !important;
+        height: 400px !important;
+    }
+
     .cr-hero {
         padding: 40px 0 60px;
     }
