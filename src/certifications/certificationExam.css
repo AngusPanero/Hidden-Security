@@ -1,0 +1,451 @@
+/* ══════════════════════════════════════════════════════════════
+   certificationExam.css — Hidden Security · Motor de certificaciones
+   Prefijo cex- para no colisionar con el resto de los estilos
+══════════════════════════════════════════════════════════════ */
+
+.cex-wrap {
+  --cex-bg:      #000000;
+  --cex-text:    #ffffff;
+  --cex-accent:  #ccff00;
+  --cex-border:  rgba(255,255,255,0.1);
+  --cex-surface: rgba(255,255,255,0.03);
+  --cex-muted:   rgba(255,255,255,0.5);
+  --cex-danger:  #f43f5e;
+  --cex-warning: #facc15;
+  --cex-success: #22c55e;
+
+  min-height:  100vh;
+  background:  var(--cex-bg);
+  color:       var(--cex-text);
+  font-family: 'Montserrat', sans-serif;
+  padding:     40px 5%;
+  box-sizing:  border-box;
+}
+
+.cex-wrap.light {
+  --cex-bg:      #f5f5f5;
+  --cex-text:    #000000;
+  --cex-accent:  #ff5500;
+  --cex-border:  rgba(0,0,0,0.12);
+  --cex-surface: rgba(0,0,0,0.02);
+  --cex-muted:   rgba(0,0,0,0.5);
+}
+
+.cex-eyebrow {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 3px;
+  color:          var(--cex-accent);
+  text-transform: uppercase;
+  display:        block;
+  margin-bottom:  8px;
+}
+
+.cex-title {
+  font-size:      2rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  margin:         0 0 24px;
+}
+
+/* ── Loading ─────────────────────────────────────────────────── */
+.cex-loading {
+  display:         flex;
+  justify-content: center;
+  align-items:     center;
+  gap:              8px;
+  min-height:       50vh;
+}
+.cex-loading-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--cex-accent);
+  animation: cex-pulse 1.2s ease-in-out infinite;
+}
+.cex-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.cex-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes cex-pulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40%            { opacity: 1;   transform: scale(1);   }
+}
+
+/* ── Card genérico (reglas, device check, permisos, ready) ─────── */
+.cex-card {
+  max-width:  680px;
+  margin:     40px auto;
+  border:     1px solid var(--cex-border);
+  background: var(--cex-surface);
+  padding:    36px;
+}
+
+.cex-card-title {
+  font-size:      1.3rem;
+  font-weight:    900;
+  text-transform: uppercase;
+  margin:         0 0 18px;
+}
+
+/* ── Lista de reglas ─────────────────────────────────────────── */
+.cex-rules-list {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cex-rules-list li {
+  display:      flex;
+  gap:          12px;
+  font-size:    0.85rem;
+  line-height:  1.6;
+  opacity:      0.85;
+}
+.cex-rules-index {
+  flex-shrink:    0;
+  width:          22px;
+  height:         22px;
+  border:         1px solid var(--cex-accent);
+  color:          var(--cex-accent);
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  display:        flex;
+  align-items:    center;
+  justify-content: center;
+}
+
+.cex-alert {
+  display:       flex;
+  gap:           12px;
+  align-items:   flex-start;
+  padding:       16px 18px;
+  margin-bottom: 24px;
+  border:        1px solid rgba(244,63,94,0.35);
+  background:    rgba(244,63,94,0.06);
+}
+.cex-alert-icon { font-size: 1.2rem; flex-shrink: 0; }
+.cex-alert-text { font-size: 0.82rem; font-weight: 600; line-height: 1.6; }
+.cex-alert--warning { border-color: rgba(250,204,21,0.35); background: rgba(250,204,21,0.06); }
+.cex-alert--ok      { border-color: rgba(34,197,94,0.35);  background: rgba(34,197,94,0.06); }
+
+/* ── Checklist de verificación (device/permisos) ────────────────── */
+.cex-checklist {
+  display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;
+}
+.cex-check-item {
+  display:      flex;
+  align-items:  center;
+  gap:          12px;
+  padding:      12px 16px;
+  border:       1px solid var(--cex-border);
+  font-size:    0.82rem;
+  font-weight:  700;
+}
+.cex-check-status {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 900;
+}
+.cex-check-status--pending { background: var(--cex-border); }
+.cex-check-status--ok      { background: var(--cex-success); color: #000; }
+.cex-check-status--fail    { background: var(--cex-danger);  color: #fff; }
+.cex-check-status--unknown { background: var(--cex-warning); color: #000; }
+
+/* ── Botones ─────────────────────────────────────────────────── */
+.cex-btn {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.8rem;
+  font-weight:    900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding:        13px 28px;
+  border:         1px solid var(--cex-border);
+  background:     transparent;
+  color:          var(--cex-text);
+  cursor:         pointer;
+  transition:     all 0.2s;
+}
+.cex-btn:hover:not(:disabled)  { border-color: var(--cex-accent); color: var(--cex-accent); }
+.cex-btn:disabled              { opacity: 0.35; cursor: not-allowed; }
+
+.cex-btn--accent {
+  background:   var(--cex-accent);
+  border-color: var(--cex-accent);
+  color:        #000;
+}
+.cex-btn--accent:hover:not(:disabled) { opacity: 0.85; color: #000; }
+
+.cex-btn--danger { border-color: rgba(244,63,94,0.4); color: var(--cex-danger); }
+.cex-btn--danger:hover:not(:disabled) { border-color: var(--cex-danger); }
+
+.cex-btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+/* ── Barra superior del examen (timer + progreso) ───────────────── */
+.cex-exam-header {
+  position:        sticky;
+  top:              0;
+  z-index:          20;
+  display:          flex;
+  justify-content:  space-between;
+  align-items:      center;
+  gap:              16px;
+  flex-wrap:        wrap;
+  padding:          16px 20px;
+  border:           1px solid var(--cex-border);
+  background:       var(--cex-bg);
+  margin-bottom:    20px;
+}
+
+.cex-timer {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      1.4rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+}
+.cex-timer--warning { color: var(--cex-warning); }
+.cex-timer--danger  { color: var(--cex-danger); animation: cex-blink 1s infinite; }
+@keyframes cex-blink { 50% { opacity: 0.4; } }
+
+.cex-progress-label {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  opacity:        0.5;
+  text-transform: uppercase;
+}
+
+/* ── Layout examen: sidebar + contenido ──────────────────────── */
+.cex-exam-layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; }
+
+.cex-sidebar {
+  border: 1px solid var(--cex-border);
+  padding: 16px;
+  align-self: start;
+  position: sticky;
+  top: 90px;
+}
+.cex-sidebar-title {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  opacity:        0.5;
+  margin:         0 0 12px;
+  text-transform: uppercase;
+}
+.cex-sidebar-item {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  padding:       10px 8px;
+  cursor:        pointer;
+  font-size:     0.78rem;
+  font-weight:   700;
+  border-left:   2px solid transparent;
+  opacity:       0.6;
+  transition:    all 0.15s;
+}
+.cex-sidebar-item:hover { opacity: 1; }
+.cex-sidebar-item.active { border-left-color: var(--cex-accent); color: var(--cex-accent); opacity: 1; }
+.cex-sidebar-item.answered .cex-sidebar-dot { background: var(--cex-success); }
+.cex-sidebar-item.flagged  .cex-sidebar-dot { background: var(--cex-warning); }
+.cex-sidebar-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--cex-border);
+}
+
+/* ── Pregunta ───────────────────────────────────────────────── */
+.cex-question-card {
+  border: 1px solid var(--cex-border);
+  background: var(--cex-surface);
+  padding: 32px;
+}
+.cex-question-module {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--cex-accent);
+  text-transform: uppercase;
+  margin-bottom:  8px;
+  display:        block;
+}
+.cex-question-text {
+  font-size:   1.05rem;
+  font-weight: 800;
+  line-height: 1.5;
+  margin:      0 0 24px;
+}
+
+.cex-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.cex-option {
+  display:      flex;
+  align-items:  center;
+  gap:          14px;
+  padding:      14px 16px;
+  border:       1px solid var(--cex-border);
+  background:   transparent;
+  color:        var(--cex-text);
+  cursor:       pointer;
+  text-align:   left;
+  font-size:    0.85rem;
+  font-weight:  600;
+  transition:   all 0.15s;
+}
+.cex-option:hover        { border-color: var(--cex-accent); }
+.cex-option.selected     { border-color: var(--cex-accent); background: rgba(204,255,0,0.06); color: var(--cex-accent); font-weight: 800; }
+.cex-wrap.light .cex-option.selected { background: rgba(255,85,0,0.06); }
+
+.cex-option-letter {
+  width: 24px; height: 24px; flex-shrink: 0;
+  border: 1px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem; font-weight: 900;
+}
+
+.cex-question-footer {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  flex-wrap:       wrap;
+  gap:             12px;
+}
+
+.cex-flag-btn {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            8px;
+  background:     transparent;
+  border:         1px solid var(--cex-border);
+  color:          var(--cex-muted);
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding:        9px 14px;
+  cursor:         pointer;
+  transition:     all 0.2s;
+}
+.cex-flag-btn.active { border-color: var(--cex-warning); color: var(--cex-warning); background: rgba(250,204,21,0.06); }
+
+/* ── Revisión antes de enviar ───────────────────────────────── */
+.cex-review-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.cex-review-item {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding:         12px 16px;
+  border:          1px solid var(--cex-border);
+  cursor:          pointer;
+  font-size:       0.8rem;
+  font-weight:     700;
+}
+.cex-review-item:hover { border-color: var(--cex-accent); }
+.cex-review-tags { display: flex; gap: 6px; }
+.cex-review-tag {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  padding:        3px 8px;
+  text-transform: uppercase;
+}
+.cex-review-tag--flagged   { background: rgba(250,204,21,0.12); color: var(--cex-warning); }
+.cex-review-tag--unanswered { background: rgba(244,63,94,0.12); color: var(--cex-danger); }
+.cex-review-tag--ok        { background: rgba(34,197,94,0.12); color: var(--cex-success); }
+
+/* ── Resultado final ─────────────────────────────────────────── */
+.cex-result {
+  max-width: 560px;
+  margin: 60px auto;
+  text-align: center;
+  padding: 48px 36px;
+  border: 1px solid var(--cex-border);
+}
+.cex-result-badge {
+  width: 84px; height: 84px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.4rem;
+  margin: 0 auto 20px;
+}
+.cex-result-badge--passed { background: rgba(34,197,94,0.12); color: var(--cex-success); }
+.cex-result-badge--failed { background: rgba(244,63,94,0.12); color: var(--cex-danger); }
+.cex-result-title { font-size: 1.6rem; font-weight: 900; text-transform: uppercase; margin: 0 0 8px; }
+.cex-result-score { font-size: 0.95rem; opacity: 0.7; margin: 0 0 28px; }
+
+/* ── Overlay de pantalla completa perdida ───────────────────────── */
+.cex-fullscreen-lost {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.96);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px; text-align: center; padding: 20px;
+}
+.cex-fullscreen-lost-icon { font-size: 3rem; }
+.cex-fullscreen-lost-text { max-width: 420px; font-size: 0.9rem; opacity: 0.8; line-height: 1.6; }
+
+/* ── Warning de tiempo (no bloqueante) ─────────────────────────── */
+.cex-time-toast {
+  position:    fixed;
+  top:         24px;
+  left:        50%;
+  transform:   translateX(-50%);
+  z-index:     500;
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding:     12px 22px;
+  background:  var(--cex-bg);
+  border:      1px solid var(--cex-warning);
+  color:       var(--cex-warning);
+  font-size:   0.82rem;
+  font-weight: 800;
+  animation:   cex-toast-in 0.3s ease;
+  pointer-events: none;
+}
+@keyframes cex-toast-in {
+  from { opacity: 0; transform: translate(-50%, -12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ── Cámara + espectro de audio (flotantes) ─────────────────────── */
+.cex-media-dock {
+  position: fixed;
+  bottom:   20px;
+  right:    20px;
+  z-index:  50;
+  display:  flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+.cex-webcam-box {
+  width: 160px; height: 120px;
+  border: 1px solid var(--cex-accent);
+  overflow: hidden;
+  background: #000;
+}
+.cex-webcam-box video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+.cex-audio-box {
+  width: 160px; height: 48px;
+  border: 1px solid var(--cex-border);
+  background: rgba(0,0,0,0.4);
+}
+.cex-audio-box canvas { width: 100%; height: 100%; display: block; }
+
+/* ── Confetti canvas ─────────────────────────────────────────── */
+.cex-confetti-canvas {
+  position: fixed; inset: 0; z-index: 1000; pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .cex-exam-layout { grid-template-columns: 1fr; }
+  .cex-sidebar { position: static; }
+  .cex-media-dock { position: static; flex-direction: row; margin-top: 16px; }
+}

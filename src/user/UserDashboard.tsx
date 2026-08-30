@@ -7,6 +7,7 @@ import { UseShopping }  from "../contexts/ShoppingContext";
 import JobBoard         from "./JobBoard";
 import CVBuilder        from "./CvBuilder";
 import CourseCatalog    from "../courses/CourseCatalog";
+import CertificationCatalog from "../certifications/CertificationCatalog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserNotification {
@@ -50,10 +51,10 @@ const UserDashboard = () => {
     const { theme } = UseTheme();
 
     const [expandedId,    setExpandedId]    = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos">(() => {
+    const [activeTab, setActiveTab] = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos" | "certificaciones">(() => {
         const stored = localStorage.getItem("hs_user_tab");
-        const valid  = ["compras", "cuenta", "bolsa", "notif", "cv", "cursos"];
-        return (valid.includes(stored ?? "") ? stored : "cuenta") as "compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos";
+        const valid  = ["compras", "cuenta", "bolsa", "notif", "cv", "cursos", "certificaciones"];
+        return (valid.includes(stored ?? "") ? stored : "cuenta") as "compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos" | "certificaciones";
     });
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [unreadCount,   setUnreadCount]   = useState(0);
@@ -310,6 +311,9 @@ const UserDashboard = () => {
                 <button className={`dm-tab ${activeTab === "cursos" ? "active" : ""}`} onClick={() => handleTabChange("cursos")}>
                     CURSOS
                 </button>
+                <button className={`dm-tab ${activeTab === "certificaciones" ? "active" : ""}`} onClick={() => handleTabChange("certificaciones")}>
+                    CERTIFICACIONES
+                </button>
                 <button className={`dm-tab ${activeTab === "bolsa" ? "active" : ""}`} onClick={() => handleTabChange("bolsa")}>
                     BOLSA DE TRABAJO
                 </button>
@@ -418,6 +422,13 @@ const UserDashboard = () => {
             {activeTab === "cursos" && (
                 <div className="dm-section">
                     <CourseCatalog />
+                </div>
+            )}
+
+            {/* ══ TAB: CERTIFICACIONES ══ */}
+            {activeTab === "certificaciones" && (
+                <div className="dm-section">
+                    <CertificationCatalog />
                 </div>
             )}
 

@@ -1,0 +1,233 @@
+.ccx-wrap {
+  --ccx-bg:      #000000;
+  --ccx-text:    #ffffff;
+  --ccx-accent:  #ccff00;
+  --ccx-border:  rgba(255,255,255,0.1);
+  --ccx-surface: rgba(255,255,255,0.03);
+
+  padding:     40px 5%;
+  font-family: 'Montserrat', sans-serif;
+  color:       var(--ccx-text);
+}
+
+.ccx-wrap.light {
+  --ccx-bg:      #f5f5f5;
+  --ccx-text:    #000000;
+  --ccx-accent:  #ff5500;
+  --ccx-border:  rgba(0,0,0,0.12);
+  --ccx-surface: rgba(0,0,0,0.02);
+}
+
+.ccx-eyebrow {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 3px;
+  color:          var(--ccx-accent);
+  text-transform: uppercase;
+  display:        block;
+  margin-bottom:  8px;
+}
+
+.ccx-title {
+  font-size:      2rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  margin:         0 0 8px;
+}
+.ccx-title span { color: var(--ccx-accent); }
+
+.ccx-subtitle {
+  font-size:  0.9rem;
+  opacity:    0.6;
+  margin:     0 0 32px;
+  max-width:  520px;
+}
+
+/* ── Grilla del catálogo ─────────────────────────────────────────── */
+.ccx-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap:                   20px;
+}
+
+.ccx-card {
+  position:   relative;
+  border:     1px solid var(--ccx-border);
+  background: var(--ccx-surface);
+  padding:    26px;
+  cursor:     pointer;
+  transition: border-color 0.2s;
+  overflow:   hidden;
+}
+.ccx-card:hover { border-color: var(--ccx-accent); }
+.ccx-card--soon { cursor: default; opacity: 0.55; }
+.ccx-card--soon:hover { border-color: var(--ccx-border); }
+
+.ccx-card-icon  { font-size: 1.6rem; display: block; margin-bottom: 12px; }
+.ccx-card-title {
+  font-size:      1.05rem;
+  font-weight:    900;
+  text-transform: uppercase;
+  margin:         0 0 4px;
+}
+.ccx-card-subtitle {
+  font-size: 0.75rem;
+  opacity:   0.55;
+  margin:    0 0 18px;
+}
+.ccx-card-cta {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  color:          var(--ccx-accent);
+}
+
+.ccx-soon-overlay {
+  position:        absolute; inset: 0;
+  background:      rgba(0,0,0,0.75);
+  display:         flex; flex-direction: column;
+  align-items:     center; justify-content: center;
+  gap:             6px;
+}
+.ccx-wrap.light .ccx-soon-overlay { background: rgba(255,255,255,0.85); }
+.ccx-soon-icon  { font-size: 1.4rem; }
+.ccx-soon-label {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+}
+.ccx-soon-date { font-size: 0.7rem; opacity: 0.6; }
+
+/* ── Pantalla intro (una certificación elegida) ──────────────────── */
+.ccx-intro-page {
+  max-width: 900px;
+  margin:    0 auto;
+}
+
+.ccx-back-btn {
+  background:  transparent;
+  border:      1px solid var(--ccx-border);
+  color:       var(--ccx-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size:      0.7rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  padding:     10px 16px;
+  cursor:      pointer;
+  margin-bottom: 28px;
+  transition:  all 0.2s;
+}
+.ccx-back-btn:hover { border-color: var(--ccx-accent); color: var(--ccx-accent); }
+
+.ccx-intro-title {
+  font-size:      2.2rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  margin:         0 0 16px;
+  line-height:    1.15;
+}
+
+.ccx-intro-desc {
+  font-size:   0.92rem;
+  opacity:     0.75;
+  line-height: 1.75;
+  max-width:   680px;
+  margin:      0 0 36px;
+}
+
+.ccx-intro-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap:                   16px;
+  margin-bottom:         36px;
+}
+
+.ccx-intro-card {
+  border:     1px solid var(--ccx-border);
+  background: var(--ccx-surface);
+  padding:    22px;
+}
+.ccx-intro-card-icon { font-size: 1.4rem; display: block; margin-bottom: 10px; }
+.ccx-intro-card h3 {
+  font-size:      0.85rem;
+  font-weight:    900;
+  text-transform: uppercase;
+  margin:         0 0 8px;
+}
+.ccx-intro-card p {
+  font-size:   0.78rem;
+  opacity:     0.65;
+  line-height: 1.6;
+  margin:      0;
+}
+
+.ccx-intro-details {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap:                   1px;
+  background:            var(--ccx-border);
+  border:                1px solid var(--ccx-border);
+  margin-bottom:         36px;
+}
+.ccx-intro-detail-item {
+  background:    var(--ccx-bg);
+  padding:       18px 16px;
+  display:       flex;
+  flex-direction: column;
+  gap:           6px;
+}
+.ccx-intro-detail-label {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  opacity:        0.45;
+}
+.ccx-intro-detail-value {
+  font-size:   1.2rem;
+  font-weight: 900;
+}
+
+/* ── Botones ──────────────────────────────────────────────────────── */
+.ccx-btn {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.8rem;
+  font-weight:    900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding:        13px 28px;
+  border:         1px solid var(--ccx-border);
+  background:     transparent;
+  color:          var(--ccx-text);
+  cursor:         pointer;
+  transition:     all 0.2s;
+}
+.ccx-btn--accent {
+  background:   var(--ccx-accent);
+  border-color: var(--ccx-accent);
+  color:        #000;
+}
+.ccx-btn--accent:hover { opacity: 0.85; }
+.ccx-btn--lg { padding: 16px 36px; font-size: 0.85rem; }
+
+/* ══════════════════════════════════════════════════════════════
+   Overlay de pantalla completa — tapa TODO (Nav, Footer, etc.)
+   apenas se elige una certificación (intro o examen montado)
+══════════════════════════════════════════════════════════════ */
+.ccx-fullscreen-overlay {
+  position:   fixed;
+  inset:      0;
+  z-index:    9999;
+  overflow-y: auto;
+  padding:    40px 5%;
+  box-sizing: border-box;
+  background: var(--ccx-bg); /* ← esto es lo que faltaba */
+}
+
+/* Evita el scroll del body detrás del overlay mientras está montado */
+body:has(.ccx-fullscreen-overlay) {
+  overflow: hidden;
+}
