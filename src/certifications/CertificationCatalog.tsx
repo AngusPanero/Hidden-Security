@@ -17,10 +17,10 @@ interface CatalogEntry {
   comingSoon?: string;
   component?:  React.ComponentType;
   intro: {
-    icon:        string;
+    icon?:        string;
     heading:     string;
     description: string;
-    highlights: { icon: string; title: string; text: string }[];
+    highlights: { icon?: string; title: string; text: string }[];
     details: { label: string; value: string }[];
   };
 }
@@ -37,28 +37,28 @@ const CATALOG: CatalogEntry[] = [
     status:      "available",
     component: ModernSocCertification,
     intro: {
-      icon:    "🛡️",
+      /* icon:    "🛡️", */
       heading: "Certificación Modern SOC Operations",
       description:
         "Un examen controlado y cronometrado que valida tus conocimientos reales como analista SOC — fundamentos, operaciones, detección, respuesta a incidentes y threat intelligence. A diferencia del curso, esta certificación queda registrada con fecha, resultado y bitácora de auditoría.",
       highlights: [
         {
-          icon: "⏱️",
+          /* icon: "⏱️", */
           title: "Tiempo limitado",
           text: "El examen tiene un tiempo máximo para completarse. Una vez iniciado, no se puede pausar.",
         },
         {
-          icon: "🔒",
+          /* icon: "🔒", */
           title: "Entorno controlado",
           text: "Se verifica que rindas desde una sola pantalla, sin pestañas duplicadas, en modo pantalla completa.",
         },
         {
-          icon: "🎯",
+          /* icon: "🎯", */
           title: "Nota de aprobación",
           text: "Necesitás un porcentaje mínimo de respuestas correctas para aprobar y certificarte.",
         },
         {
-          icon: "📜",
+          /* icon: "📜", */
           title: "Certificado verificable",
           text: "El resultado queda registrado permanentemente y es visible para las empresas en tu perfil.",
         },
@@ -82,7 +82,7 @@ const CATALOG: CatalogEntry[] = [
     status:      "soon",
     comingSoon:  "",
     intro: {
-      icon: "🗡️",
+      /* icon: "🗡️", */
       heading: "Offensive Security Fundamentals",
       description: "Certificación de pentesting ofensivo — próximamente disponible.",
       highlights: [],
@@ -136,7 +136,7 @@ export default function CertificationCatalog() {
             <div className="ccx-intro-grid">
               {intro.highlights.map((h) => (
                 <div className="ccx-intro-card" key={h.title}>
-                  <span className="ccx-intro-card-icon">{h.icon}</span>
+                  {/* <span className="ccx-intro-card-icon">{h.icon}</span> */}
                   <h3>{h.title}</h3>
                   <p>{h.text}</p>
                 </div>
@@ -232,7 +232,7 @@ export default function CertificationCatalog() {
               {/* Overlay de próximamente */}
               {isSoon && (
                 <div className="ccx-soon-overlay">
-                  <span className="ccx-soon-icon">⏳</span>
+                  {/* <span className="ccx-soon-icon">⏳</span> */}
                   <span className="ccx-soon-label">PRÓXIMAMENTE</span>
                   {cert.comingSoon && (
                     <span className="ccx-soon-date">{cert.comingSoon}</span>
