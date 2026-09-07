@@ -17,6 +17,7 @@ interface CatalogEntry {
   comingSoon?: string;
   component?:  React.ComponentType;
   intro: {
+    icon:        string;
     heading:     string;
     description: string;
     highlights: { icon: string; title: string; text: string }[];
@@ -36,23 +37,28 @@ const CATALOG: CatalogEntry[] = [
     status:      "available",
     component: ModernSocCertification,
     intro: {
+      icon:    "🛡️",
       heading: "Certificación Modern SOC Operations",
       description:
         "Un examen controlado y cronometrado que valida tus conocimientos reales como analista SOC — fundamentos, operaciones, detección, respuesta a incidentes y threat intelligence. A diferencia del curso, esta certificación queda registrada con fecha, resultado y bitácora de auditoría.",
       highlights: [
         {
+          icon: "⏱️",
           title: "Tiempo limitado",
           text: "El examen tiene un tiempo máximo para completarse. Una vez iniciado, no se puede pausar.",
         },
         {
+          icon: "🔒",
           title: "Entorno controlado",
           text: "Se verifica que rindas desde una sola pantalla, sin pestañas duplicadas, en modo pantalla completa.",
         },
         {
+          icon: "🎯",
           title: "Nota de aprobación",
           text: "Necesitás un porcentaje mínimo de respuestas correctas para aprobar y certificarte.",
         },
         {
+          icon: "📜",
           title: "Certificado verificable",
           text: "El resultado queda registrado permanentemente y es visible para las empresas en tu perfil.",
         },
@@ -122,7 +128,7 @@ export default function CertificationCatalog() {
 
           <span className="ccx-eyebrow">// {activeCert.subtitle.toUpperCase()}</span>
           <h1 className="ccx-intro-title">
-            {intro.icon} {intro.heading}
+            {/* {intro.icon} */} {intro.heading}
           </h1>
           <p className="ccx-intro-desc">{intro.description}</p>
 
