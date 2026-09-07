@@ -69,7 +69,7 @@ const FloatingCardSection: React.FC = () => {
   });
 
   // Animaciones para el Título: Se mueve hacia arriba y desaparece
-  const titleY = useTransform(scrollYProgress, [0, 0.15], [0, -60]);
+  const titleY = useTransform(scrollYProgress, [0, 0.25], [0, 0.25]);
 
   return (
     <div className={`hc-scroll-wrapper ${theme}`} ref={containerRef}>

@@ -261,3 +261,94 @@
     padding:   8px 14px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Filtro de roles (checkbox) + badge Trainee
+   Pegar al final de userList.css. Solo agrega estilos nuevos,
+   no modifica nada existente.
+══════════════════════════════════════════════════════════════ */
+
+/* Badge Trainee — mismo patrón que badge-admin / badge-enterprise,
+   con un color propio para diferenciarse (violeta) */
+.badge-trainee {
+  color:      #a78bfa;
+  background: rgba(167, 139, 250, 0.1);
+}
+
+/* ── Filtro de roles ── */
+.ul-role-filters {
+  display:       flex;
+  flex-wrap:     wrap;
+  gap:           8px;
+  margin-bottom: 20px;
+}
+
+.ul-role-checkbox {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            7px;
+  background:     transparent;
+  border:         1px solid var(--sec-border);
+  color:          var(--sec-text-dim);
+  font-family:    var(--sec-font-mono);
+  font-size:      0.65rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding:        8px 14px;
+  cursor:         pointer;
+  transition:     all 0.2s;
+}
+
+.ul-role-checkbox-dot {
+  width:         9px;
+  height:        9px;
+  border:        1.5px solid currentColor;
+  border-radius: 2px;
+  flex-shrink:   0;
+  transition:    background 0.15s;
+}
+
+.ul-role-checkbox.active .ul-role-checkbox-dot {
+  background: currentColor;
+}
+
+.ul-role-checkbox:hover { border-color: var(--sec-accent); color: var(--sec-accent); }
+
+.ul-role-checkbox--admin.active {
+  border-color: var(--sec-accent);
+  color:        var(--sec-accent);
+  background:   rgba(204, 255, 0, 0.06);
+}
+
+.ul-role-checkbox--enterprise.active {
+  border-color: #00d9ff;
+  color:        #00d9ff;
+  background:   rgba(0, 217, 255, 0.06);
+}
+
+.ul-role-checkbox--trainee.active {
+  border-color: #a78bfa;
+  color:        #a78bfa;
+  background:   rgba(167, 139, 250, 0.06);
+}
+
+.ul-role-checkbox--user.active {
+  border-color: var(--sec-text-dim);
+  color:        var(--sec-text);
+  background:   rgba(128, 128, 128, 0.06);
+}
+
+/* ── Estado vacío por filtro ── */
+.ul-empty {
+  font-family: var(--sec-font-mono);
+  font-size:   0.75rem;
+  color:       var(--sec-text-dim);
+  text-align:  center;
+  padding:     40px 0;
+}
+
+@media (max-width: 768px) {
+  .ul-role-filters { gap: 6px; }
+  .ul-role-checkbox { font-size: 0.6rem; padding: 7px 12px; }
+}

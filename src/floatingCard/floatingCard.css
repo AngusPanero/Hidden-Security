@@ -2,27 +2,35 @@
   width: 100%;
   transition: background-color 0.4s ease;
   padding-top: 6rem;
+  height: 120vh;
 }
 
 /* Colores de fondo de la sección */
 .hc-scroll-wrapper.dark { background-color: #000000; }
 .hc-scroll-wrapper.light { background-color: #ffffff; }
 
+/* Desktop: la sección ocupa una sola pantalla completa (100% ancho y alto),
+   sin scroll-jacking ni pineo. min-height en vez de height fijo para que,
+   si el contenido (título + cartas) necesita más espacio, crezca en vez de
+   recortarse -- así título y cartas nunca se pisan. El truco de altura
+   extra + sticky queda reservado solo para mobile (ver el media query al
+   final del archivo, que ya pisa estas reglas con !important). */
 .hc-scroll-area {
-  height: 300vh; /* Espacio para que el giro sea suave */
+  min-height: 100vh;
 }
 
 .hc-sticky-container {
-  position: sticky;
-  top: 60px;
-  height: 100vh;
+  position: relative;
+  min-height: 100vh;
   width: 100%;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  overflow: visible; 
-  perspective: 2000px;
+  gap: 40px;
+  padding: 60px 20px;
   overflow: hidden;
+  perspective: 2000px;
 }
 
 /* --- CONTENEDOR DE CARTAS --- */
@@ -32,9 +40,9 @@
   justify-content: center; /* Centra el eje del abanico */
   align-items: center;
   width: 100%;
-  height: 100%;
+  height: 420px; /* alto fijo -- suficiente para las cartas del abanico,
+                    ya no depende de "robarle" espacio al título */
   transform-style: preserve-3d;
-  margin-top: 50px;
 }
 
 .hc-carta-wrap {
@@ -65,28 +73,6 @@
   justify-content: flex-start; /* El texto del reverso suele ir arriba */
   align-items: flex-start;
   padding: 30px;
-}
-
-/* --- DISTRIBUCIÓN INICIAL EN ABANICO --- */
-
-/* Carta 1 */
-.hc-carta-wrap:nth-child(1) {
-  transform: translateX(-420px) rotate(-10deg) translateY(30px);
-}
-
-/* Carta 2 */
-.hc-carta-wrap:nth-child(2) {
-  transform: translateX(-140px) rotate(-4deg) translateY(5px);
-}
-
-/* Carta 3 */
-.hc-carta-wrap:nth-child(3) {
-  transform: translateX(140px) rotate(4deg) translateY(5px);
-}
-
-/* Carta 4 */
-.hc-carta-wrap:nth-child(4) {
-  transform: translateX(420px) rotate(10deg) translateY(30px);
 }
 
 .hc-carta-inner-content {
@@ -241,14 +227,15 @@
 
 .hc-scroll-wrapper.light .hc-subtitulo-reverso { color: #aaa; }
 
-/* --- HEADER & TITULOS --- */
+/* --- HEADER & TITULOS ---
+   Ya NO es position:absolute -- fluye normal dentro del flex column de
+   .hc-sticky-container, arriba de las cartas. Así nunca se superponen. */
 .hc-header-content {
-  position: absolute;
-  top: 10%; /* Posicionado arriba de las cartas */
+  position: relative;
   text-align: center;
   z-index: 10;
-  pointer-events: none; /* Para que no bloquee el scroll */
-  width: 100%;
+  width: 100% !important;
+  max-width: 700px;
   padding: 0 20px;
 }
 
@@ -277,9 +264,12 @@
   font-size: 1.1rem;
   font-weight: 300;
   max-width: 600px;
-  margin: 0 auto 20rem auto;
+  margin: 0 auto; /* antes tenía 20rem de margen inferior para "empujar" las
+                      cartas hacia abajo del título absoluto -- ya no hace
+                      falta, ahora el flujo normal las separa solo */
   line-height: 1.6;
   color: white;
+  margin-bottom: 40px;
 }
 
 .hc-accent {
@@ -295,10 +285,6 @@
 .hc-scroll-wrapper.light .hc-intro-text { color: #444444; }
 
 @media (max-width: 1024px) {
-  .hc-header-content {
-    top: 10%; /* Subimos un poco el título */
-  }
-
   .hc-main-title {
     font-size: 3rem;
   }
@@ -309,11 +295,9 @@
     height: 340px;
   }
 
-  /* Ajustamos el abanico para que sea más cerrado y no desborde */
-  .hc-carta-wrap:nth-child(1) { transform: translateX(-350px) rotate(-8deg) translateY(20px); }
-  .hc-carta-wrap:nth-child(2) { transform: translateX(-120px) rotate(-3deg) translateY(5px); }
-  .hc-carta-wrap:nth-child(3) { transform: translateX(120px) rotate(3deg) translateY(5px); }
-  .hc-carta-wrap:nth-child(4) { transform: translateX(350px) rotate(8deg) translateY(20px); }
+  .hc-cartas-container {
+    height: 380px;
+  }
 }
 
 /* MOBILE STYLES TITULOS (768px) */
@@ -372,6 +356,7 @@
 
   .hc-scroll-area {
     height: 100% !important;
+    min-height: 0 !important;
     padding-bottom: 0;
   }
 
@@ -380,6 +365,7 @@
     top: 40px;
   
     height: 100vh !important; 
+    min-height: 0 !important;
     display: flex !important;
     flex-direction: column;
     justify-content: flex-start;
@@ -413,6 +399,7 @@
     justify-content: center;
     align-items: center;
     width: 100%;
+    height: auto !important;
     position: relative;
     margin-top: -170px;
   }

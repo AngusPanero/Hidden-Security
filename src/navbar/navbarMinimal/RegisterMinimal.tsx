@@ -15,6 +15,7 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
     const registerRef = useRef<HTMLDivElement>(null);
 
     const [exit, setExit] = useState(false);
+    const [registered, setRegistered] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [password2, setPassword2] = useState("");
@@ -84,102 +85,126 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
                     </header>
 
                     <main className="k-reg-main">
-                        <div className="k-reg-intro">
-                            <h2 className="k-reg-title">NUEVO USUARIO</h2>
-                            <p className="k-reg-sub" onClick={openLogin}>{texts[language].register.footerText}</p>
-                        </div>
-
-                        <form className="k-reg-form" onSubmit={(e) => {
-                            e.preventDefault(); 
-                            if (!validatePassword(password)) return; 
-                            handleRegister(email, password, openLogin, closeRegister)
-                        }}>
-                            
-                            <div className="k-reg-group">
-                                <div className="k-reg-label-row">
-                                    <label>EMAIL:</label>
-                                    <span className="row-id">01</span>
-                                </div>
-                                <div className="k-reg-input-box">
-                                    <input 
-                                        type="email" 
-                                        value={email} 
-                                        onChange={(e) => setEmail(e.target.value)} 
-                                        placeholder="email@hidden.com" 
-                                        required 
-                                        className="auth-input"
-                                    />
-                                    <div className="box-focus"></div>
-                                </div>
+                        {registered ? (
+                            <div className="k-reg-success">
+                                {/* <span className="k-reg-success-icon">✉</span> */}
+                                <h2 className="k-reg-title">¡CUENTA CREADA!</h2>
+                                <p className="k-reg-success-text">
+                                    Te enviamos un email de verificación a <strong>{email}</strong>.
+                                    Hacé click en el link para activar tu cuenta.
+                                </p>
+                                <p className="k-reg-success-spam">
+                                    Si no lo ves en unos minutos, revisá también tu carpeta de SPAM o correo no deseado.
+                                </p>
+                                <button
+                                    type="button"
+                                    className="k-reg-submit"
+                                    onClick={() => { openLogin(); closeRegister(); }}
+                                >
+                                    <span className="k-reg-btn-text">IR A INICIAR SESIÓN</span>
+                                    <span className="k-reg-btn-icon">→</span>
+                                </button>
                             </div>
-
-                            <div className="k-reg-group">
-                                <div className="k-reg-label-row">
-                                    <label>CONTRASEÑA:</label>
-                                    <span className="row-id">02</span>
+                        ) : (
+                            <>
+                                <div className="k-reg-intro">
+                                    <h2 className="k-reg-title">NUEVO USUARIO</h2>
+                                    <p className="k-reg-sub" onClick={openLogin}>{texts[language].register.footerText}</p>
                                 </div>
-                                <div className="k-reg-input-box">
-                                    <input 
-                                        type={visiblePassword ? "text" : "password"} 
-                                        value={password} 
-                                        onChange={(e) => setPassword(e.target.value)} 
-                                        onFocus={() => setShowRequirements(true)} 
-                                        onBlur={() => setShowRequirements(false)} 
-                                        placeholder="••••••••"
-                                        required 
-                                        className="auth-input"
-                                    />
-                                    <button 
-                                        type="button" 
-                                        className="k-reg-eye" 
-                                        onClick={() => setVisiblePassword(!visiblePassword)}
-                                    >
-                                        <img src={visiblePassword ? eyeClose : eyeOpen} alt="eye"  width={"20px"}/>
+
+                                <form className="k-reg-form" onSubmit={(e) => {
+                                    e.preventDefault(); 
+                                    if (!validatePassword(password)) return; 
+                                    handleRegister(email, password, () => setRegistered(true), () => setRegistered(true));
+                                }}>
+                                    
+                                    <div className="k-reg-group">
+                                        <div className="k-reg-label-row">
+                                            <label>EMAIL:</label>
+                                            <span className="row-id">01</span>
+                                        </div>
+                                        <div className="k-reg-input-box">
+                                            <input 
+                                                type="email" 
+                                                value={email} 
+                                                onChange={(e) => setEmail(e.target.value)} 
+                                                placeholder="email@hidden.com" 
+                                                required 
+                                                className="auth-input"
+                                            />
+                                            <div className="box-focus"></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="k-reg-group">
+                                        <div className="k-reg-label-row">
+                                            <label>CONTRASEÑA:</label>
+                                            <span className="row-id">02</span>
+                                        </div>
+                                        <div className="k-reg-input-box">
+                                            <input 
+                                                type={visiblePassword ? "text" : "password"} 
+                                                value={password} 
+                                                onChange={(e) => setPassword(e.target.value)} 
+                                                onFocus={() => setShowRequirements(true)} 
+                                                onBlur={() => setShowRequirements(false)} 
+                                                placeholder="••••••••"
+                                                required 
+                                                className="auth-input"
+                                            />
+                                            <button 
+                                                type="button" 
+                                                className="k-reg-eye" 
+                                                onClick={() => setVisiblePassword(!visiblePassword)}
+                                            >
+                                                <img src={visiblePassword ? eyeClose : eyeOpen} alt="eye"  width={"20px"}/>
+                                            </button>
+                                            <div className="box-focus"></div>
+                                        </div>
+                                        
+                                        <div className={`k-reg-req-grid ${showRequirements ? 'active' : ''}`}>
+                                            {passwordRequirements.map((req, index) => {
+                                                const isMet = req.test(password);
+                                                return (
+                                                    <div key={index} className={`k-reg-req-item ${isMet ? 'met' : ''}`}>
+                                                        <span className="req-icon">{isMet ? "✦" : "✧"}</span>
+                                                        <span className="req-text">{req.label}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="k-reg-group">
+                                        <div className="k-reg-label-row">
+                                            <label>VERIFICAR CONTRASEÑA:</label>
+                                            <span className="row-id">03</span>
+                                        </div>
+                                        <div className="k-reg-input-box">
+                                            <input 
+                                                type={visiblePassword ? "text" : "password"} 
+                                                value={password2} 
+                                                onChange={(e) => setPassword2(e.target.value)} 
+                                                placeholder="••••••••"
+                                                required 
+                                                className="auth-input"
+                                            />
+                                            <div className="box-focus"></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="k-reg-feedback">
+                                        {(password !== password2 && password2 !== "") && <span className="k-reg-error">Las contraseñas no coinciden!</span>}
+                                        {passwordError && <span className="k-reg-error">{passwordError}</span>}
+                                    </div>
+
+                                    <button type="submit" className="k-reg-submit" disabled={!isFormValid}>
+                                        <span className="k-reg-btn-text">REGISTRARSE</span>
+                                        <span className="k-reg-btn-icon">→</span>
                                     </button>
-                                    <div className="box-focus"></div>
-                                </div>
-                                
-                                <div className={`k-reg-req-grid ${showRequirements ? 'active' : ''}`}>
-                                    {passwordRequirements.map((req, index) => {
-                                        const isMet = req.test(password);
-                                        return (
-                                            <div key={index} className={`k-reg-req-item ${isMet ? 'met' : ''}`}>
-                                                <span className="req-icon">{isMet ? "✦" : "✧"}</span>
-                                                <span className="req-text">{req.label}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="k-reg-group">
-                                <div className="k-reg-label-row">
-                                    <label>VERIFICAR CONTRASEÑA:</label>
-                                    <span className="row-id">03</span>
-                                </div>
-                                <div className="k-reg-input-box">
-                                    <input 
-                                        type={visiblePassword ? "text" : "password"} 
-                                        value={password2} 
-                                        onChange={(e) => setPassword2(e.target.value)} 
-                                        placeholder="••••••••"
-                                        required 
-                                        className="auth-input"
-                                    />
-                                    <div className="box-focus"></div>
-                                </div>
-                            </div>
-
-                            <div className="k-reg-feedback">
-                                {(password !== password2 && password2 !== "") && <span className="k-reg-error">Las contraseñas no coinciden!</span>}
-                                {passwordError && <span className="k-reg-error">{passwordError}</span>}
-                            </div>
-
-                            <button type="submit" className="k-reg-submit" disabled={!isFormValid}>
-                                <span className="k-reg-btn-text">REGISTRARSE</span>
-                                <span className="k-reg-btn-icon">→</span>
-                            </button>
-                        </form>
+                                </form>
+                            </>
+                        )}
                     </main>
                 </div>
             </div>

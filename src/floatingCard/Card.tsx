@@ -35,6 +35,8 @@ const Card: React.FC<CardProps> = ({ data, index, total, scrollYProgress }) => {
     `${index * 180 - 800}%`
   ];
 
+  // Movimiento horizontal ligado al scroll -- solo se aplica en mobile
+  // (más abajo, en el style del hitbox: x: isMobile ? mobileX : 0)
   const mobileX = useTransform(scrollYProgress, scrollRange, xRange);
 
   const gap = 400;
@@ -74,21 +76,16 @@ const Card: React.FC<CardProps> = ({ data, index, total, scrollYProgress }) => {
         x: isMobile ? mobileX : 0
       }}
     >
-      <motion.div
+      <div
         className="hc-carta-wrap"
         style={{
           width: '100%',
-          height: '100%',
+          height: '115%',
           transformStyle: "preserve-3d",
           cursor: 'default',
-          // Siempre del lado reverso — rotateY fijo en -180
-          rotateY: -180,
-        }}
-        animate={{
-          y: [0, 15, 0]
-        }}
-        transition={{
-          y: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+          // Siempre del lado reverso — rotateY fijo en -180, sin animación:
+          // la carta queda fija en su lugar, no flota.
+          transform: 'rotateY(-180deg)',
         }}
       >
         <div className="hc-carta-inner-content" style={{ position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d' }}>
@@ -118,7 +115,7 @@ const Card: React.FC<CardProps> = ({ data, index, total, scrollYProgress }) => {
           </div>
 
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };

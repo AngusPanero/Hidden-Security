@@ -408,3 +408,34 @@
   .k-reg-title   { font-size: 22px; }
   .k-reg-submit  { height: 52px; }
 }
+
+.k-reg-success {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  text-align:      center;
+  gap:             14px;
+  padding:         40px 0;
+}
+
+.k-reg-success-icon {
+  font-size: 2rem;
+}
+
+.k-reg-success-text {
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.85rem;
+  font-weight: 500;
+  line-height: 1.6;
+  opacity:     0.75;
+  max-width:   340px;
+}
+
+.k-reg-success-spam {
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity:     0.5;
+  max-width:   340px;
+}

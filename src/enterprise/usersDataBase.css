@@ -1,6 +1,6 @@
-/* ══════════════════════════════════════════════════════════════
-   usersDatabase.css — Hidden Security · Base de candidatos
-══════════════════════════════════════════════════════════════ */
+/* ==================================================================
+   usersDatabase.css -- Hidden Security . Base de candidatos
+================================================================== */
 
 .udb-wrap {
   --udb-accent:  #ccff00;
@@ -35,7 +35,7 @@
   text-transform: uppercase;
 }
 
-/* ── Header ──────────────────────────────────────────────────── */
+/* -- Header -------------------------------------------------------- */
 .udb-header { margin-bottom: 28px; }
 
 .udb-eyebrow {
@@ -67,7 +67,7 @@
   max-width:   620px;
 }
 
-/* ── Filtros ─────────────────────────────────────────────────── */
+/* -- Filtros --------------------------------------------------------- */
 .udb-filters {
   border:        1px solid var(--udb-border);
   background:    var(--udb-surface);
@@ -324,7 +324,7 @@
 
 .udb-unmatched-sub { opacity: 0.5; font-weight: 500; font-size: 0.7rem !important; }
 
-/* ── Resultados meta ─────────────────────────────────────────── */
+/* -- Resultados meta ---------------------------------------------- */
 .udb-results-meta { margin-bottom: 14px; }
 
 .udb-results-count {
@@ -336,7 +336,7 @@
   text-transform: uppercase;
 }
 
-/* ── Loading / Empty ─────────────────────────────────────────── */
+/* -- Loading / Empty ------------------------------------------------ */
 .udb-loading {
   display:         flex;
   justify-content: center;
@@ -366,7 +366,7 @@
 }
 .udb-empty p { font-size: 0.8rem; font-weight: 500; margin-top: 10px; }
 
-/* ── Lista de candidatos ─────────────────────────────────────── */
+/* -- Lista de candidatos --------------------------------------------- */
 .udb-list { display: flex; flex-direction: column; gap: 8px; }
 
 .udb-row-wrap {
@@ -493,7 +493,7 @@
   flex-shrink: 0;
 }
 
-/* ── Skill chips ─────────────────────────────────────────────── */
+/* -- Skill chips ------------------------------------------------------ */
 .udb-skill-chip {
   display:        inline-flex;
   align-items:    center;
@@ -505,7 +505,6 @@
   padding:        4px 10px;
   border:         1px solid var(--udb-border);
   color:          var(--udb-muted);
-  /* text-transform: uppercase; */
 }
 
 .udb-skill-chip--certified {
@@ -533,7 +532,7 @@
   text-transform: uppercase;
 }
 
-/* ── Detalle expandido ───────────────────────────────────────── */
+/* -- Detalle expandido ------------------------------------------------ */
 .udb-detail {
   border-top: 1px solid var(--udb-border);
   padding:    22px;
@@ -587,7 +586,7 @@
 
 .udb-skills-row { display: flex; flex-wrap: wrap; gap: 6px; }
 
-/* Entries (experiencia, educación, certs, proyectos) */
+/* Entries (experiencia, educacion, certs, proyectos) */
 .udb-entry {
   padding-bottom: 14px;
   border-bottom:  1px solid var(--udb-border);
@@ -706,7 +705,7 @@
 }
 .udb-download-btn:hover { opacity: 0.85; }
 
-/* ── Paginación ──────────────────────────────────────────────── */
+/* -- Paginacion --------------------------------------------------- */
 .udb-pagination {
   display:         flex;
   align-items:     center;
@@ -737,7 +736,7 @@
   opacity:        0.5;
 }
 
-/* ── Responsive ──────────────────────────────────────────────── */
+/* -- Responsive ----------------------------------------------------- */
 @media (max-width: 1024px) {
   .udb-wrap { padding: 28px 32px; }
 }
@@ -764,11 +763,11 @@
   .udb-download-btn  { width: 100%; }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   ADICIONALES — Dropdowns de skills por rama (Áreas/Habilidades/Herramientas)
+/* ==================================================================
+   ADICIONALES -- Dropdowns de skills por rama (Areas/Habilidades/Herramientas)
    Reusa .udb-filter-dropdown / .udb-filter-btn / .udb-filter-menu / .udb-filter-checkbox
    Solo agrega estilos nuevos, no modifica nada existente
-══════════════════════════════════════════════════════════════ */
+================================================================== */
 
 .udb-skillgroup-menu {
   display:        flex;
@@ -778,7 +777,7 @@
   max-height:     360px;
 }
 
-/* Buscador propio de cada rama — 16px fijo, evita zoom en iOS */
+/* Buscador propio de cada rama -- 16px fijo, evita zoom en iOS */
 .udb-skillgroup-search {
   background:  transparent;
   border:      1px solid var(--udb-border);
@@ -819,7 +818,7 @@
   flex-shrink:    0;
 }
 
-/* Acordeón de subgrupos dentro del dropdown */
+/* Acordeon de subgrupos dentro del dropdown */
 .udb-skillgroup-accordion {
   display:        flex;
   flex-direction: column;
@@ -885,11 +884,11 @@
   .udb-skillgroup-menu { min-width: 0; }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   ADICIONALES — Distintivo de skill obtenida por curso SOC
-   (claim modernSocSkills), distinto del ✓ de certificación Hidden.
+/* ==================================================================
+   ADICIONALES -- Distintivo de skill obtenida por curso SOC
+   (claim modernSocSkills), distinto del check de certificacion Hidden.
    Solo agrega estilos nuevos, no modifica nada existente.
-══════════════════════════════════════════════════════════════ */
+================================================================== */
 
 .udb-wrap {
   --udb-course: #5ab1d7 !important;
@@ -905,21 +904,12 @@
   font-weight:  800;
 }
 
-/* Si además está certificada por Hidden, el dorado tiene prioridad visual
-   (jerarquía: examen real > curso), pero el ícono 🎓 igual se muestra
-   al lado del ✓ para señalar ambas fuentes */
+/* Si ademas esta certificada por Hidden, el dorado tiene prioridad visual
+   (jerarquia: examen real > curso) */
 .udb-skill-chip--certified.udb-skill-chip--course {
   border-color: rgba(251,191,36,0.35);
   background:   rgba(251,191,36,0.06);
   color:        var(--udb-gold);
-}
-
-.udb-skill-chip-icon--course {
-  color: var(--udb-course);
-}
-
-.udb-skill-chip--certified .udb-skill-chip-icon--course {
-  color: inherit;
 }
 
 .udb-detail-hint-group {
@@ -931,14 +921,14 @@
 .udb-detail-hint--course {
   color:       var(--udb-course);
   opacity:     0.85;
-  margin-top:  -2px; /* pegado al título del grupo, antes de los chips */
+  margin-top:  -2px;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   ADICIONALES — Buscador general con autocompletado de skills,
+/* ==================================================================
+   ADICIONALES -- Buscador general con autocompletado de skills,
    y paginado/subgrupos de skills en el detalle del candidato.
    Solo agrega estilos nuevos, no modifica nada existente.
-══════════════════════════════════════════════════════════════ */
+================================================================== */
 
 .udb-search-wrap {
   position:  relative;
@@ -1016,11 +1006,11 @@
 }
 .udb-skill-more-btn:hover { border-color: var(--udb-accent); color: var(--udb-accent); }
 
-/* ══════════════════════════════════════════════════════════════
-   ADICIONALES — Acordeón para las secciones de skills del detalle
-   (Áreas y roles / Habilidades / Herramientas). Solo agrega estilos
+/* ==================================================================
+   ADICIONALES -- Acordeon para las secciones de skills del detalle
+   (Areas y roles / Habilidades / Herramientas). Solo agrega estilos
    nuevos, no modifica nada existente.
-══════════════════════════════════════════════════════════════ */
+================================================================== */
 
 .udb-detail-section-toggle {
   display:         flex;
@@ -1060,4 +1050,57 @@
 .udb-detail-section-toggle:hover .udb-detail-section-chevron,
 .udb-detail-section-toggle:hover .udb-detail-section-count {
   opacity: 1;
+}
+
+/* ==================================================================
+   ADICIONALES -- Pantalla de bloqueo (sin plan Business/Enterprise
+   vigente). Reusa .udb-wrap / .udb-eyebrow / .udb-title / .udb-subtitle.
+   Sin emojis: la marca de bloqueo es puramente geometrica via CSS.
+   Solo agrega estilos nuevos, no modifica nada existente.
+================================================================== */
+
+.udb-blocked {
+  min-height:      60vh;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  text-align:      center;
+  gap:             14px;
+  padding:         60px 24px;
+}
+
+/* Marca de bloqueo: un cuadrado con una linea diagonal, sin emojis */
+.udb-blocked-mark {
+  width:         44px;
+  height:        44px;
+  border:        2px solid var(--udb-border);
+  position:      relative;
+  margin-bottom: 6px;
+  flex-shrink:   0;
+}
+.udb-blocked-mark::before {
+  content:    "";
+  position:   absolute;
+  top:        50%;
+  left:       -6px;
+  right:      -6px;
+  height:     2px;
+  background: #f43f5e;
+  transform:  rotate(-38deg);
+}
+
+.udb-blocked .udb-eyebrow,
+.udb-blocked .udb-title {
+  text-align: center;
+}
+
+.udb-blocked-text {
+  max-width:   520px;
+  margin:      0 auto;
+  text-align:  center;
+}
+
+@media (max-width: 768px) {
+  .udb-blocked { min-height: 50vh; padding: 40px 20px; }
 }

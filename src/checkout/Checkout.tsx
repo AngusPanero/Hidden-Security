@@ -330,8 +330,9 @@ const Checkout = () => {
 
     // Voucher disponible sin usar — no importa si vino de comprar pro/elite
     const hasAvailableVoucher = user?.purchases?.includes("voucher") ?? false;
+    const isBuyingVoucher     = planId?.toLowerCase() === "voucher";
 
-    if (hasAvailableVoucher) {
+    if (isBuyingVoucher && hasAvailableVoucher) {
         return (
             <PurchaseBlockedBanner
                 title="Ya tenés un voucher de certificación disponible"

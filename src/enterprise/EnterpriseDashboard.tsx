@@ -666,6 +666,8 @@ const EnterpriseDashboard = () => {
   } | null>(null);
 
   useEffect(() => {
+    console.log(user);
+    
     if (!user) return;
     const plan      = (user as any).enterprisePlan       ?? null;
     const expiryStr = (user as any).enterprisePlanExpiry ?? null;
