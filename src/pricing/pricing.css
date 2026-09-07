@@ -214,3 +214,220 @@
     .h-massive-title { font-size: 2.5rem; }
     .pricing-grid { grid-template-columns: 1fr; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Banner de solicitud previa (vista Corporativo)
+   y modal de solicitud Empresa / Trainee-Sponsor.
+   Reusa .h-label-mono / .plan-cta / variables --h-*.
+   Solo agrega estilos nuevos, no modifica nada existente.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Banner ── */
+.pr-banner {
+    display:         flex;
+    flex-wrap:       wrap;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             20px;
+    margin-bottom:   40px;
+    padding:         24px 28px;
+    border:          1px solid var(--h-accent);
+    background:      rgba(255, 255, 255, 0.02);
+}
+
+.pr-banner-tag {
+    display:       block;
+    margin-bottom: 8px;
+}
+
+.pr-banner-text p {
+    max-width:   560px;
+    margin:      0;
+    color:       var(--h-text);
+    opacity:     0.75;
+    font-size:   0.9rem;
+    line-height: 1.6;
+}
+
+.pr-banner-actions {
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       12px;
+}
+
+.pr-banner-btn {
+    background:     var(--h-accent);
+    border:         1px solid var(--h-accent);
+    color:          #000;
+    font-family:    'JetBrains Mono', monospace;
+    font-size:      0.68rem;
+    font-weight:    800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding:        12px 18px;
+    cursor:         pointer;
+    transition:     opacity 0.2s;
+    white-space:    nowrap;
+}
+.pr-banner-btn:hover { opacity: 0.85; }
+
+.pr-banner-btn--ghost {
+    background: transparent;
+    color:      var(--h-accent);
+}
+.pr-banner-btn--ghost:hover { background: rgba(204,255,0,0.06); opacity: 1; }
+.pricing-root.light .pr-banner-btn--ghost:hover { background: rgba(255,85,0,0.06); }
+
+@media (max-width: 768px) {
+    .pr-banner { flex-direction: column; align-items: stretch; }
+    .pr-banner-actions { flex-direction: column; }
+    .pr-banner-btn { width: 100%; text-align: center; }
+}
+
+/* ── Modal overlay ── */
+.pr-overlay {
+    position:        fixed;
+    inset:           0;
+    z-index:         5000;
+    background:      rgba(0, 0, 0, 0.65);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    padding:         24px;
+    overflow-y:      auto;
+}
+
+.pr-modal {
+    position:      relative;
+    width:         100%;
+    max-width:     480px;
+    background:    #050505;
+    border:        1px solid var(--h-border, rgba(255,255,255,0.15));
+    padding:       40px 36px;
+    box-sizing:    border-box;
+    color:         #ffffff;
+}
+
+.pr-modal.light {
+    background: #ffffff;
+    color:      #000000;
+    border-color: rgba(0,0,0,0.15);
+}
+
+.pr-close {
+    position:    absolute;
+    top:         16px;
+    right:       16px;
+    background:  transparent;
+    border:      none;
+    color:       inherit;
+    font-size:   1.6rem;
+    line-height: 1;
+    cursor:      pointer;
+    opacity:     0.6;
+    transition:  opacity 0.2s;
+}
+.pr-close:hover { opacity: 1; }
+
+.pr-title {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      1.5rem;
+    font-weight:    900;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+    margin:         4px 0 20px;
+}
+
+.pr-field {
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+    margin-bottom:  18px;
+}
+
+.pr-field label {
+    font-family:    'JetBrains Mono', monospace;
+    font-size:      0.62rem;
+    font-weight:    800;
+    letter-spacing: 1.5px;
+    opacity:        0.6;
+}
+
+.pr-select,
+.pr-input {
+    background:   transparent;
+    border:       none;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    color:        inherit;
+    font-family:  'Montserrat', sans-serif;
+    font-size:    0.95rem;
+    font-weight:  600;
+    padding:      10px 2px;
+    outline:      none;
+    transition:   border-color 0.2s;
+}
+
+.pr-modal.light .pr-select,
+.pr-modal.light .pr-input {
+    border-bottom-color: rgba(0,0,0,0.2);
+}
+
+.pr-select:focus,
+.pr-input:focus { border-bottom-color: var(--h-accent, #ccff00); }
+
+.pr-select option { background: #111; color: #fff; }
+.pr-modal.light .pr-select option { background: #fff; color: #000; }
+
+.pr-desc {
+    font-size:     0.82rem;
+    line-height:   1.6;
+    opacity:       0.7;
+    margin:        0 0 22px;
+    padding:       14px 16px;
+    border-left:   2px solid var(--h-accent, #ccff00);
+    background:    rgba(255,255,255,0.02);
+}
+
+.pr-modal.light .pr-desc { background: rgba(0,0,0,0.02); }
+
+.pr-form { display: flex; flex-direction: column; }
+
+.pr-error {
+    font-family: 'JetBrains Mono', monospace;
+    font-size:   0.72rem;
+    font-weight: 700;
+    color:       #f43f5e;
+    margin:      -4px 0 4px;
+    line-height: 1.5;
+}
+
+.pr-submit { margin-top: 8px; }
+
+/* ── Confirmación de envío ── */
+.pr-success {
+    display:        flex;
+    flex-direction: column;
+    align-items:    flex-start;
+    gap:            10px;
+    padding-top:    8px;
+}
+
+.pr-success h3 {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      1.3rem;
+    font-weight:    900;
+    margin:         0;
+}
+
+.pr-success p {
+    font-size:   0.88rem;
+    line-height: 1.6;
+    opacity:     0.75;
+    margin:      0 0 12px;
+}
+
+.pr-success .plan-cta { width: 100%; }
+
+@media (max-width: 480px) {
+    .pr-modal { padding: 32px 24px; }
+}
