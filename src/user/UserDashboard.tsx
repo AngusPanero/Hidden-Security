@@ -356,7 +356,7 @@ const UserDashboard = () => {
                                         <div className="dm-purchase-row" onClick={() => setExpandedId(isExpanded ? null : p._id)}>
                                             <div className="dm-purchase-left">
                                                 <span className="dm-purchase-date">[{new Date(p.createdAt).toLocaleDateString("es-AR")}]</span>
-                                                <span className="dm-purchase-id">{p.orderId || p._id.slice(-8).toUpperCase()}</span>
+                                                <span className="dm-purchase-id">{p.plan === "pro" || p.plan === "starter" || p.plan === "elite" ? `PLAN DE CURSOS ${p.plan?.toUpperCase()}` : "VOUCHER DE CERTIFICACIÓN"}</span>
                                             </div>
                                             <div className="dm-purchase-right">
                                                 <span className={`dm-status ${p.status?.toLowerCase()}`}>{p.status?.toUpperCase()}</span>
