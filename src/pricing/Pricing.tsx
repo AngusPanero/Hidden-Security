@@ -83,7 +83,7 @@ const Pricing = () => {
 
         try {
             await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/corporate-mailing/request`,
+                `${import.meta.env.VITE_API_URL}/corporate-mailing/request`,
                 { requestType, ...requestForm },
                 { withCredentials: true }
             );
