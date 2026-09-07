@@ -17,7 +17,7 @@ interface CourseMeta {
   duration:    string;
   status:      "available" | "soon";
   component:   (() => JSX.Element) | null;
-  comingSoon?: string; // fecha estimada ej: "Q3 2026"
+  comingSoon?: string;
 }
 
 const CATALOG: CourseMeta[] = [
@@ -182,7 +182,7 @@ export default function CourseCatalog() {
               {/* Overlay de próximamente */}
               {isSoon && (
                 <div className="cc-soon-overlay">
-                  <span className="cc-soon-icon">⏳</span>
+                  {/* <span className="cc-soon-icon">⏳</span> */}
                   <span className="cc-soon-text">PRÓXIMAMENTE</span>
                   {course.comingSoon && (
                     <span className="cc-soon-date">{course.comingSoon}</span>
