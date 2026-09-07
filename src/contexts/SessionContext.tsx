@@ -99,8 +99,8 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             );
 
             if (response.status === 200) {
-                const { user, isAdmin, isEnterprise } = response.data;
-                const mergedUser = { ...user, isEnterprise, admin: isAdmin };
+                const { user, isAdmin, isEnterprise, partner } = response.data;
+                const mergedUser = { ...user, isEnterprise, admin: isAdmin, partner };
                 setUser(mergedUser);
 
                 setLoading(false);
@@ -108,7 +108,9 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 if (isAdmin) {
                     navigate("/admin");
                 } else if (isEnterprise === true) { 
-                    navigate("/enterprise");               
+                    navigate("/enterprise");                 
+                } else if (partner === true) {
+                    navigate("/partner");
                 } else {
                     navigate("/dashboard");
                 }
@@ -272,7 +274,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 setLoading(true);
                 const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/check-auth`, { withCredentials: true });
                 if (data.authenticated) {
-                    setUser({ ...data.user, isEnterprise: data.isEnterprise, admin: data.isAdmin });
+                    setUser({ ...data.user, isEnterprise: data.isEnterprise, admin: data.isAdmin, partner: data.partner });
                     /* console.log("USER AUTENTIADO REFRESH", data); */
                 } else {
                     setUser(null);

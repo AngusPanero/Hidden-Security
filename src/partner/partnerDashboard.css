@@ -1,0 +1,15 @@
+.partner-dashboard {
+    background-color: #000000;
+    min-height: 100vh;
+    padding: 160px 40px;
+    font-family: 'Montserrat', Arial, sans-serif;
+}
+
+.partner-dashboard__title {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    color: #ccff00;
+    margin: 0 0 12px;
+}

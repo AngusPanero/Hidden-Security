@@ -49,6 +49,7 @@ const UserDashboard = () => {
     const { user, loading: sessionLoading } = UseSession();
     const { purchased, getPurchased, loading: loadingPurchases } = UseShopping();
     const { theme } = UseTheme();
+    const navigate = useNavigate();
 
     const [expandedId,    setExpandedId]    = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos" | "certificaciones">(() => {
@@ -66,6 +67,12 @@ const UserDashboard = () => {
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const activeTabRef = useRef(activeTab);
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+    useEffect(() => {
+        if (user?.partner === true || user?.admin === true || user?.isEnterprise === true) {
+            return;
+        }
+    }, [user, navigate]);
 
     // Cargar notificaciones desde DB al montar
     useEffect(() => {

@@ -8,9 +8,10 @@ interface PrivateRouteProps {
     children: ReactNode;
     adminOnly?: boolean;
     enterpriseOnly?: boolean;
+    partnerOnly?: boolean;
 }
 
-const PrivateRoute = ({ children, adminOnly = false, enterpriseOnly = false }: PrivateRouteProps) => {
+const PrivateRoute = ({ children, adminOnly = false, enterpriseOnly = false, partnerOnly = false }: PrivateRouteProps) => {
     const { user, loading } = UseSession();
     const [status, setStatus] = useState<string>("loading");
 
@@ -23,11 +24,12 @@ const PrivateRoute = ({ children, adminOnly = false, enterpriseOnly = false }: P
             setStatus("unauth");
             return;
         }
-        /* console.log("ADMIN:", !!user.admin, "| ENTERPRISE:", !!user.isEnterprise, "| enterpriseOnly:", enterpriseOnly); */
+
         const verifyAccess = async () => {
             try {
                 const isAdmin = !!user.admin;
                 const isEnterprise = !!user.isEnterprise;
+                const isPartner = !!user.partner;
 
                 if (adminOnly && !isAdmin) {
                     setStatus("no-admin");
@@ -36,6 +38,11 @@ const PrivateRoute = ({ children, adminOnly = false, enterpriseOnly = false }: P
 
                 if (enterpriseOnly && !isEnterprise) {
                     setStatus("no-enterprise");
+                    return;
+                }
+
+                if (partnerOnly && !isPartner) {
+                    setStatus("no-partner");
                     return;
                 }
 
@@ -56,11 +63,12 @@ const PrivateRoute = ({ children, adminOnly = false, enterpriseOnly = false }: P
         };
 
         verifyAccess();
-    }, [user, loading, adminOnly, enterpriseOnly]);
+    }, [user, loading, adminOnly, enterpriseOnly, partnerOnly]);
 
     if (loading || status === "loading") return <Loader />;
     if (status === "no-admin") return <Error processMessage={"Acceso Restringido: Se requieren permisos de Administrador."} />;
     if (status === "no-enterprise") return <Error processMessage={"Acceso Restringido: Se requiere una cuenta Empresa."} />;
+    if (status === "no-partner") return <Error processMessage={"Acceso Restringido: Se requiere una cuenta Partner."} />;
     if (status === "banned") return <Error processMessage={"Usuario Baneado, contactate con DeepDev."} />;
     if (status === "unauth" || !user) return <Error processMessage={"No autorizado, por favor inicia sesión."} />;
 

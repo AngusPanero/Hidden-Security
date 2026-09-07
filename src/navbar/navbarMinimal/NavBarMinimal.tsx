@@ -101,24 +101,31 @@ const NavBarMinimal = () => {
                             <li><a href="/pricing"><span className="index">03</span> Precios</a></li>
                             <li><a href="/certifications"><span className="index">04</span> Certificaciones</a></li>
                             <li><a href="/contact"><span className="index">05</span> Contacto</a></li>
-                            {user && user.admin !== true && user.isEnterprise !== true &&(
+                            {user && user.admin !== true && user.isEnterprise !== true && user.partner !== true &&(
                                 <li>
                                     <a href="/dashboard" className="nav-link-special">
                                         <span className="index">06</span> DASHBOARD
                                     </a>
                                 </li>
                             )}
-                            {user && user.admin === true &&(
+                            {user && user.admin === true && user.isEnterprise !== true && user.partner !== true &&(
                                 <li>
                                     <a href="/admin" className="nav-link-special">
                                         <span className="index">05</span> Admin
                                     </a>
                                 </li>
                             )}
-                            {user && user.isEnterprise === true && user.admin === false &&(
+                            {user && user.isEnterprise === true && user.admin === false && user.partner !== true &&(
                                 <li>
                                     <a href="/enterprise" className="nav-link-special">
                                         <span className="index">05</span> Dashboard Empresa
+                                    </a>
+                                </li>
+                            )}
+                            {user && user.partner === true && user.admin === false && user.isEnterprise !== true &&(
+                                <li>
+                                    <a href="/partner" className="nav-link-special">
+                                        <span className="index">05</span> Dashboard Partner
                                     </a>
                                 </li>
                             )}
@@ -136,18 +143,6 @@ const NavBarMinimal = () => {
                             >
                                 <img src={theme === "dark" ? sun : moon} alt="theme icon" />
                             </button>
-                                
-                            {/* <div className="lang-selector-wrap">
-                                <select 
-                                    className="lang-select-minimal" 
-                                    value={language} 
-                                    onChange={(e) => handleLanguage(e.target.value)}
-                                >
-                                    <option value="es">ES</option>
-                                    <option value="en">EN</option>
-                                </select>
-                                <span className="select-arrow"></span>
-                            </div> */}
 
                             <div className="auth-wrap">
                                 {user ? (

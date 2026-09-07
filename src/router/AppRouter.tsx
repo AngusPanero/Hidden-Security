@@ -22,6 +22,7 @@ import Error404Minimal from "../processMessages/Error404Minimal";
 import ProcessOk from "../processMessages/ProcessOk";
 import Certifications from "../certifications/Certifications";
 import CertificationsRelative from "../certifications/CertificationsRelative";
+import PartnerDashboard from "../partner/PartnerDashboard";
 
 const AppRouter = () => {
     return (
@@ -45,6 +46,7 @@ const AppRouter = () => {
                                 <Route path="/policy-cookie" element={<PoliticaCookies />} />
                                 <Route path="/dashboard" element={<PrivateRoute adminOnly={false}><UserDashboard /></PrivateRoute>} />
                                 <Route path="/admin" element={<PrivateRoute adminOnly={true}><AdminDashboard /></PrivateRoute>} />
+                                <Route path="/partner" element={<PrivateRoute partnerOnly={true}><PartnerDashboard /></PrivateRoute>} />
                                 <Route path="/enterprise" element={<PrivateRoute enterpriseOnly={true}><EnterpriseDashboard /></PrivateRoute>} /> 
                                 <Route path="/certifications"           element={<Certifications />} />
                                 <Route path="/certifications/:certSlug" element={<CertificationsRelative />} />

@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, use } from "react";
 import moon from "/logos/moon2.svg";
 import sun from "/logos/sun.svg";
 import { UseSession } from "../../contexts/SessionContext";
@@ -52,22 +52,29 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ them
                     </a>
                 ))}
                 
-                {user && user.admin !== true && user.isEnterprise !== true && (
+                {user && user.admin !== true && user.isEnterprise !== true && user.partner !== true &&(
                     <a href="/dashboard" onClick={closeMenu} className="kaleida-mobile-item special">
                         <span className="item-index">07</span>
                         <span className="item-label">DASHBOARD</span>
                     </a>
                 )}
-                {user && user.admin === true &&(
+                {user && user.admin === true && user.isEnterprise !== true && user.partner !== true &&(
                     <a href="/admin" onClick={closeMenu} className="kaleida-mobile-item special">
                         <span className="item-index">07</span>
                         <span className="item-label">ADMIN</span>
                     </a>
                 )}
-                {user && user.isEnterprise === true && user.admin !== true &&(
+                {user && user.isEnterprise === true && user.admin !== true && user.partner !== true &&(
                     <a href="/enterprise" onClick={closeMenu} className="kaleida-mobile-item special">
                         <span className="item-index">07</span>
                         <span className="item-label">DASHBOARD EMPRESA</span>
+                    </a>
+                )}
+
+                {user && user.partner === true && user.admin !== true && user.isEnterprise !== true &&(
+                    <a href="/partner" onClick={closeMenu} className="kaleida-mobile-item special">
+                        <span className="item-index">07</span>
+                        <span className="item-label">DASHBOARD PARTNER</span>
                     </a>
                 )}
             </nav>
