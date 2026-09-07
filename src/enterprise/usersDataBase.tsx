@@ -576,6 +576,18 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
     herramientas: SKILLS_PAGE_SIZE,
   });
 
+  // Cada rama (Áreas y roles / Habilidades / Herramientas) arranca
+  // colapsada — se despliega al tocar su título. Se resetea solo cuando
+  // se colapsa la fila del candidato (el componente se desmonta).
+  const [openGroups, setOpenGroups] = useState<Record<SkillCategory, boolean>>({
+    roles:        false,
+    habilidades:  false,
+    herramientas: false,
+  });
+
+  const toggleGroup = (key: SkillCategory) =>
+    setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
+
   const extraCertified = candidate.skillsCertifiedByHidden.filter(s => !allDeclared.includes(s));
 
   // Por cada rama: unión de declaradas + otorgadas por curso (aunque no las
@@ -626,7 +638,9 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
           paginadas de a SKILLS_PAGE_SIZE y separadas por subgrupo (título
           en gris chico antes de cada bloque de chips). Las que provienen de
           un curso (declaradas o no) van en celeste con 🎓; las declaradas
-          sin relación a ningún curso quedan con el color normal. */}
+          sin relación a ningún curso quedan con el color normal. Cada rama
+          es un acordeón: arranca colapsada mostrando solo el título y la
+          cantidad total, y se despliega al tocarla. */}
       {totalItemsAcrossGroups === 0 ? (
         <div className="udb-detail-section">
           <span className="udb-detail-section-title">// SKILLS DECLARADAS POR EL CANDIDATO</span>
@@ -636,6 +650,7 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
         skillGroups.map(g => {
           if (g.items.length === 0) return null;
 
+          const isOpen = openGroups[g.key];
           const visibleCount = visibleCounts[g.key];
           const visibleItems = g.items.slice(0, visibleCount);
           const remaining    = g.items.length - visibleCount;
@@ -652,38 +667,53 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
 
           return (
             <div className="udb-detail-section" key={g.key}>
-              <span className="udb-detail-section-title">{g.title}</span>
-              {g.courseMatchCount > 0 && (
-                <p className="udb-detail-hint udb-detail-hint--course">
-                  <span className="udb-skill-chip-icon udb-skill-chip-icon--course">🎓</span>
-                  Las skills en celeste fueron obtenidas al completar un curso de Hidden Security
-                </p>
-              )}
+              <button
+                type="button"
+                className="udb-detail-section-toggle"
+                onClick={() => toggleGroup(g.key)}
+              >
+                <span className="udb-detail-section-title">{g.title}</span>
+                <span className="udb-detail-section-toggle-right">
+                  <span className="udb-detail-section-count">{g.items.length}</span>
+                  <span className="udb-detail-section-chevron">{isOpen ? "−" : "+"}</span>
+                </span>
+              </button>
 
-              {segments.map(seg => (
-                <div key={seg.group} className="udb-skill-subgroup">
-                  <span className="udb-skill-subgroup-title">{seg.group}</span>
-                  <div className="udb-skills-row">
-                    {seg.skills.map(skill => (
-                      <SkillChip
-                        key={skill}
-                        label={skill}
-                        certified={candidate.skillsCertifiedByHidden.includes(skill)}
-                        courseValidated={courseSkills.includes(skill)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+              {isOpen && (
+                <>
+                  {g.courseMatchCount > 0 && (
+                    <p className="udb-detail-hint udb-detail-hint--course">
+                      <span className="udb-skill-chip-icon udb-skill-chip-icon--course">🎓</span>
+                      Las skills en celeste fueron obtenidas al completar un curso de Hidden Security
+                    </p>
+                  )}
 
-              {remaining > 0 && (
-                <button
-                  type="button"
-                  className="udb-skill-more-btn"
-                  onClick={() => setVisibleCounts(prev => ({ ...prev, [g.key]: prev[g.key] + SKILLS_PAGE_SIZE }))}
-                >
-                  Ver {Math.min(SKILLS_PAGE_SIZE, remaining)} más ({remaining} restantes)
-                </button>
+                  {segments.map(seg => (
+                    <div key={seg.group} className="udb-skill-subgroup">
+                      <span className="udb-skill-subgroup-title">{seg.group}</span>
+                      <div className="udb-skills-row">
+                        {seg.skills.map(skill => (
+                          <SkillChip
+                            key={skill}
+                            label={skill}
+                            certified={candidate.skillsCertifiedByHidden.includes(skill)}
+                            courseValidated={courseSkills.includes(skill)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {remaining > 0 && (
+                    <button
+                      type="button"
+                      className="udb-skill-more-btn"
+                      onClick={() => setVisibleCounts(prev => ({ ...prev, [g.key]: prev[g.key] + SKILLS_PAGE_SIZE }))}
+                    >
+                      Ver {Math.min(SKILLS_PAGE_SIZE, remaining)} más ({remaining} restantes)
+                    </button>
+                  )}
+                </>
               )}
             </div>
           );

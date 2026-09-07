@@ -1,31 +1,22 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { UseTheme } from "../contexts/ThemeContext"; // ⚠️ ajustá según dónde quede esta carpeta
+import { UseTheme } from "../contexts/ThemeContext"; 
 import ModernSocCertification from "./ModernSocCertification";
 import "./certificationCatalog.css";
 
-// ─── Catálogo de certificaciones — mismo esqueleto que CourseCatalog.tsx ─────
-// Al elegir una certificación disponible, primero se muestra una pantalla
-// intro (landing con detalles) y recién desde ahí se monta el examen real
-// (CertificationExam vía el wrapper) — no se entra directo al examen.
-//
-// Tanto la pantalla intro como el examen montado se renderizan vía
-// createPortal directo en document.body — esto es INTENCIONAL y necesario:
-// si CertificationCatalog está anidado dentro de algún ancestro con
-// transform/filter/will-change (común con wrappers de Framer Motion), un
-// position:fixed normal deja de posicionarse respecto al viewport y queda
-// "encajonado" dentro de ese ancestro. El portal escapa por completo del
-// árbol del DOM del dashboard, así el overlay siempre tapa toda la pantalla
-// sin importar dónde esté montado este componente.
 interface CatalogEntry {
   id:          string; // debe coincidir EXACTO con el certId del backend
   title:       string;
   subtitle:    string;
+  // Card del catálogo (grilla) — mismo formato que CourseMeta en CourseCatalog
+  description: string;
+  tags:        string[];
+  level:       string;
+  duration:    string;
   status:      "available" | "soon";
   comingSoon?: string;
   component?:  React.ComponentType;
   intro: {
-    icon:        string;
     heading:     string;
     description: string;
     highlights: { icon: string; title: string; text: string }[];
@@ -35,34 +26,33 @@ interface CatalogEntry {
 
 const CATALOG: CatalogEntry[] = [
   {
-    id:       "modernsoc-cert",
-    title:    "Modern SOC Operations",
-    subtitle: "Certificación oficial · Analista SOC",
-    status:   "available",
+    id:          "modernsoc-cert",
+    title:       "Modern SOC Operations",
+    subtitle:    "Certificación oficial · Analista SOC",
+    description: "Examen controlado y cronometrado que valida tus conocimientos reales como analista SOC — fundamentos, operaciones, detección y respuesta a incidentes.",
+    tags:        ["SIEM", "Incident Response", "Threat Intel", "SOC"],
+    level:       "Avanzado",
+    duration:    "5 módulos",
+    status:      "available",
     component: ModernSocCertification,
     intro: {
-      icon:    "🛡️",
       heading: "Certificación Modern SOC Operations",
       description:
         "Un examen controlado y cronometrado que valida tus conocimientos reales como analista SOC — fundamentos, operaciones, detección, respuesta a incidentes y threat intelligence. A diferencia del curso, esta certificación queda registrada con fecha, resultado y bitácora de auditoría.",
       highlights: [
         {
-          icon: "⏱️",
           title: "Tiempo limitado",
           text: "El examen tiene un tiempo máximo para completarse. Una vez iniciado, no se puede pausar.",
         },
         {
-          icon: "🔒",
           title: "Entorno controlado",
           text: "Se verifica que rindas desde una sola pantalla, sin pestañas duplicadas, en modo pantalla completa.",
         },
         {
-          icon: "🎯",
           title: "Nota de aprobación",
           text: "Necesitás un porcentaje mínimo de respuestas correctas para aprobar y certificarte.",
         },
         {
-          icon: "📜",
           title: "Certificado verificable",
           text: "El resultado queda registrado permanentemente y es visible para las empresas en tu perfil.",
         },
@@ -76,11 +66,15 @@ const CATALOG: CatalogEntry[] = [
     },
   },
   {
-    id:       "pentesting-cert",
-    title:    "Offensive Security Fundamentals",
-    subtitle: "Certificación oficial · Pentesting",
-    status:   "soon",
-    comingSoon: "",
+    id:          "pentesting-cert",
+    title:       "Offensive Security Fundamentals",
+    subtitle:    "Certificación oficial · Pentesting",
+    description: "Certificación de pentesting ofensivo — metodologías de explotación, reconocimiento y reporte de vulnerabilidades.",
+    tags:        ["Pentesting", "OWASP", "Kali Linux", "Metasploit"],
+    level:       "Intermedio",
+    duration:    "6 módulos",
+    status:      "soon",
+    comingSoon:  "",
     intro: {
       icon: "🗡️",
       heading: "Offensive Security Fundamentals",
@@ -90,6 +84,13 @@ const CATALOG: CatalogEntry[] = [
     },
   },
 ];
+
+// Mismos colores de nivel que en CourseCatalog, para consistencia visual
+const LEVEL_COLORS: Record<string, string> = {
+  Inicial:    "#22c55e",
+  Intermedio: "#f97316",
+  Avanzado:   "#f43f5e",
+};
 
 export default function CertificationCatalog() {
   const { theme } = UseTheme();
@@ -157,7 +158,7 @@ export default function CertificationCatalog() {
     );
   }
 
-  // ── Vista de grilla (catálogo) — parte normal del layout, con Nav/Footer ──
+  // ── Vista de grilla (catálogo) — mismo formato/diseño que CourseCatalog ──
   return (
     <div className={`ccx-wrap ${isLight ? "light" : ""}`}>
       <span className="ccx-eyebrow">// CERTIFICACIONES</span>
@@ -168,24 +169,70 @@ export default function CertificationCatalog() {
 
       <div className="ccx-grid">
         {CATALOG.map((cert) => {
-          const isSoon = cert.status === "soon";
+          const isSoon     = cert.status === "soon";
+          const levelColor = LEVEL_COLORS[cert.level] ?? "#ccff00";
+
           return (
             <div
               key={cert.id}
               className={`ccx-card${isSoon ? " ccx-card--soon" : ""}`}
               onClick={() => !isSoon && setActiveCert(cert)}
             >
+              {/* Badges */}
+              <div className="ccx-card-badges">
+                <span
+                  className="ccx-badge ccx-badge--level"
+                  style={{ borderColor: `${levelColor}40`, color: levelColor }}
+                >
+                  {cert.level}
+                </span>
+                {isSoon ? (
+                  <span className="ccx-badge ccx-badge--soon">
+                    PRÓXIMAMENTE {cert.comingSoon}
+                  </span>
+                ) : (
+                  <span className="ccx-badge ccx-badge--available">
+                    DISPONIBLE
+                  </span>
+                )}
+              </div>
+
+              {/* Título */}
+              <div className="ccx-card-title-wrap">
+                <h3 className="ccx-card-title">{cert.title}</h3>
+                <p className="ccx-card-subtitle">{cert.subtitle}</p>
+              </div>
+
+              {/* Descripción */}
+              <p className="ccx-card-description">{cert.description}</p>
+
+              {/* Tags */}
+              <div className="ccx-card-tags">
+                {cert.tags.map(t => (
+                  <span key={t} className="ccx-tag">{t}</span>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="ccx-card-footer">
+                <span className="ccx-card-meta">{cert.duration}</span>
+                {!isSoon ? (
+                  <span className="ccx-card-cta">VER DETALLES →</span>
+                ) : (
+                  <span className="ccx-card-cta ccx-card-cta--soon">EN DESARROLLO</span>
+                )}
+              </div>
+
+              {/* Overlay de próximamente */}
               {isSoon && (
                 <div className="ccx-soon-overlay">
                   <span className="ccx-soon-icon">⏳</span>
                   <span className="ccx-soon-label">PRÓXIMAMENTE</span>
-                  {cert.comingSoon && <span className="ccx-soon-date">{cert.comingSoon}</span>}
+                  {cert.comingSoon && (
+                    <span className="ccx-soon-date">{cert.comingSoon}</span>
+                  )}
                 </div>
               )}
-              <span className="ccx-card-icon">{cert.intro.icon}</span>
-              <h3 className="ccx-card-title">{cert.title}</h3>
-              <p className="ccx-card-subtitle">{cert.subtitle}</p>
-              {!isSoon && <span className="ccx-card-cta">VER DETALLES →</span>}
             </div>
           );
         })}

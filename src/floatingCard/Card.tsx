@@ -60,7 +60,7 @@ const Card: React.FC<CardProps> = ({ data, index, total, scrollYProgress }) => {
         marginLeft: `${initialX - 150}px`,
         marginTop: '-210px',
         zIndex: total - index,
-        perspective: '1500px',
+        perspective: '200px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

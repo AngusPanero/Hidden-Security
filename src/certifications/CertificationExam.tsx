@@ -855,7 +855,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
         {violationCountdown !== null && (
           <div className="cex-violation-overlay">
-            <span className="cex-violation-icon">🚫</span>
+            {/* <span className="cex-violation-icon">🚫</span> */}
             <p className="cex-violation-text">
               Detectamos un segundo monitor conectado. Desconectalo ahora — si no lo hacés a
               tiempo, la certificación se va a suspender automáticamente.

@@ -4,8 +4,10 @@
   --ccx-accent:  #ccff00;
   --ccx-border:  rgba(255,255,255,0.1);
   --ccx-surface: rgba(255,255,255,0.03);
+  --ccx-text-mid: rgba(255,255,255,0.55);
+  --ccx-text-dim: rgba(255,255,255,0.4);
 
-  padding:     40px 5%;
+  padding:     20px 10px;
   font-family: 'Montserrat', sans-serif;
   color:       var(--ccx-text);
 }
@@ -16,6 +18,8 @@
   --ccx-accent:  #ff5500;
   --ccx-border:  rgba(0,0,0,0.12);
   --ccx-surface: rgba(0,0,0,0.02);
+  --ccx-text-mid: rgba(0,0,0,0.55);
+  --ccx-text-dim: rgba(0,0,0,0.4);
 }
 
 .ccx-eyebrow {
@@ -44,64 +48,204 @@
   max-width:  520px;
 }
 
-/* ── Grilla del catálogo ─────────────────────────────────────────── */
+/* ── Grilla del catálogo — mismo layout que courseCatalog.css ──────── */
 .ccx-grid {
   display:               grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap:                   20px;
+  gap:                   16px;
 }
 
+/* ── Card — mismo formato que .cc-card (badges / título / desc / tags / footer) ── */
 .ccx-card {
-  position:   relative;
-  border:     1px solid var(--ccx-border);
-  background: var(--ccx-surface);
-  padding:    26px;
-  cursor:     pointer;
-  transition: border-color 0.2s;
-  overflow:   hidden;
+  position:       relative;
+  border:         1px solid var(--ccx-border);
+  background:     var(--ccx-surface);
+  padding:        22px;
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+  cursor:         pointer;
+  transition:     border-color 0.2s, transform 0.15s;
+  overflow:       hidden;
 }
-.ccx-card:hover { border-color: var(--ccx-accent); }
-.ccx-card--soon { cursor: default; opacity: 0.55; }
-.ccx-card--soon:hover { border-color: var(--ccx-border); }
 
-.ccx-card-icon  { font-size: 1.6rem; display: block; margin-bottom: 12px; }
-.ccx-card-title {
-  font-size:      1.05rem;
-  font-weight:    900;
-  text-transform: uppercase;
-  margin:         0 0 4px;
+.ccx-card:hover:not(.ccx-card--soon) {
+  border-color: var(--ccx-accent);
+  transform:    translateY(-2px);
 }
-.ccx-card-subtitle {
-  font-size: 0.75rem;
-  opacity:   0.55;
-  margin:    0 0 18px;
+
+.ccx-card--soon {
+  cursor:  default;
+  opacity: 0.55;
 }
-.ccx-card-cta {
+
+/* Badges */
+.ccx-card-badges {
+  display:   flex;
+  gap:       6px;
+  flex-wrap: wrap;
+}
+
+.ccx-badge {
   font-family:    'JetBrains Mono', monospace;
-  font-size:      0.65rem;
+  font-size:      0.55rem;
   font-weight:    800;
   letter-spacing: 1.5px;
-  color:          var(--ccx-accent);
+  text-transform: uppercase;
+  padding:        3px 8px;
+  border:         1px solid;
 }
 
-.ccx-soon-overlay {
-  position:        absolute; inset: 0;
-  background:      rgba(0,0,0,0.75);
-  display:         flex; flex-direction: column;
-  align-items:     center; justify-content: center;
-  gap:             6px;
+.ccx-badge--available {
+  color:        var(--ccx-accent);
+  border-color: rgba(204,255,0,0.25);
+  background:   rgba(204,255,0,0.06);
 }
-.ccx-wrap.light .ccx-soon-overlay { background: rgba(255,255,255,0.85); }
-.ccx-soon-icon  { font-size: 1.4rem; }
+
+.ccx-wrap.light .ccx-badge--available {
+  color:        #ff5500;
+  border-color: rgba(255,85,0,0.25);
+  background:   rgba(255,85,0,0.06);
+}
+
+.ccx-badge--soon {
+  color:        rgba(255,255,255,0.4);
+  border-color: rgba(255,255,255,0.1);
+  background:   transparent;
+}
+
+.ccx-wrap.light .ccx-badge--soon {
+  color:        rgba(0,0,0,0.3);
+  border-color: rgba(0,0,0,0.1);
+}
+
+/* Título de la card */
+.ccx-card-title-wrap { display: flex; flex-direction: column; gap: 2px; }
+
+.ccx-card-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      1.05rem;
+  font-weight:    900;
+  letter-spacing: -0.3px;
+  text-transform: uppercase;
+  margin:         0;
+  color:          var(--ccx-text);
+  line-height:    1.1;
+}
+
+.ccx-card-subtitle {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    700;
+  letter-spacing: 2px;
+  color:          var(--ccx-accent);
+  opacity:        0.7;
+  margin:         0;
+}
+
+/* Descripción */
+.ccx-card-description {
+  font-size:   0.78rem;
+  font-weight: 500;
+  opacity:     0.65;
+  line-height: 1.65;
+  margin:      0;
+  flex:        1;
+}
+
+/* Tags */
+.ccx-card-tags {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       5px;
+}
+
+.ccx-tag {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.55rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  padding:        2px 7px;
+  border:         1px solid var(--ccx-border);
+  color:          var(--ccx-text-mid);
+  text-transform: uppercase;
+}
+
+/* Footer de la card */
+.ccx-card-footer {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding-top:     12px;
+  border-top:      1px solid var(--ccx-border);
+  margin-top:      auto;
+}
+
+.ccx-card-meta {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  opacity:        0.4;
+  text-transform: uppercase;
+}
+
+.ccx-card-cta {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--ccx-accent);
+  text-transform: uppercase;
+}
+
+.ccx-card-cta--soon {
+  color:   var(--ccx-text-dim);
+  opacity: 0.5;
+}
+
+/* Overlay próximamente — mismo comportamiento que courseCatalog (hover) */
+.ccx-soon-overlay {
+  position:        absolute;
+  inset:           0;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             6px;
+  background:      rgba(0,0,0,0.45);
+  pointer-events:  none;
+  opacity:         0;
+  transition:      opacity 0.2s;
+}
+
+.ccx-wrap.light .ccx-soon-overlay {
+  background: rgba(245,245,245,0.65);
+}
+
+.ccx-card--soon:hover .ccx-soon-overlay { opacity: 1; }
+
+.ccx-soon-icon { font-size: 1.8rem; }
+
 .ccx-soon-label {
   font-family:    'JetBrains Mono', monospace;
   font-size:      0.65rem;
   font-weight:    800;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  color:          var(--ccx-text);
+  text-transform: uppercase;
 }
-.ccx-soon-date { font-size: 0.7rem; opacity: 0.6; }
 
-/* ── Pantalla intro (una certificación elegida) ──────────────────── */
+.ccx-soon-date {
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.58rem;
+  font-weight:    700;
+  letter-spacing: 2px;
+  color:          var(--ccx-accent);
+  opacity:        0.7;
+}
+
+/* ── Pantalla intro (una certificación elegida) — sin cambios ───────── */
 .ccx-intro-page {
   max-width: 900px;
   margin:    0 auto;
@@ -224,10 +368,17 @@
   overflow-y: auto;
   padding:    40px 5%;
   box-sizing: border-box;
-  background: var(--ccx-bg); /* ← esto es lo que faltaba */
+  background: var(--ccx-bg);
 }
 
 /* Evita el scroll del body detrás del overlay mientras está montado */
 body:has(.ccx-fullscreen-overlay) {
   overflow: hidden;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ccx-grid  { grid-template-columns: 1fr; }
+  .ccx-title { font-size: 1.3rem; }
+  .ccx-card  { padding: 18px; }
 }

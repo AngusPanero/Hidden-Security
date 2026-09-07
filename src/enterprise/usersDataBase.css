@@ -1015,3 +1015,49 @@
   transition:     all 0.2s;
 }
 .udb-skill-more-btn:hover { border-color: var(--udb-accent); color: var(--udb-accent); }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Acordeón para las secciones de skills del detalle
+   (Áreas y roles / Habilidades / Herramientas). Solo agrega estilos
+   nuevos, no modifica nada existente.
+══════════════════════════════════════════════════════════════ */
+
+.udb-detail-section-toggle {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  width:           100%;
+  background:      transparent;
+  border:          none;
+  cursor:          pointer;
+  padding:         0;
+  text-align:      left;
+}
+
+.udb-detail-section-toggle-right {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex-shrink: 0;
+}
+
+.udb-detail-section-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size:   0.62rem;
+  font-weight: 800;
+  opacity:     0.4;
+}
+
+.udb-detail-section-chevron {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size:   0.75rem;
+  opacity:     0.5;
+  transition:  opacity 0.15s, color 0.15s;
+  color:       var(--udb-accent);
+}
+
+.udb-detail-section-toggle:hover .udb-detail-section-chevron,
+.udb-detail-section-toggle:hover .udb-detail-section-count {
+  opacity: 1;
+}
