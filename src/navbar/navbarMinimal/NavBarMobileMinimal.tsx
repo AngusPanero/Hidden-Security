@@ -1,4 +1,4 @@
-import { forwardRef, use } from "react";
+import { forwardRef } from "react";
 import moon from "/logos/moon2.svg";
 import sun from "/logos/sun.svg";
 import { UseSession } from "../../contexts/SessionContext";
