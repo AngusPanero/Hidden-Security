@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { UseSession } from "../contexts/SessionContext";
-import "./PartnerDashboard.css";
+import "./partnerDashboard.css";
 
 const PartnerDashboard = () => {
     const { user } = UseSession();
