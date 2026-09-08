@@ -44,10 +44,10 @@ const AppRouter = () => {
                                 <Route path="/error" element={<Error processMessage="" />} />
                                 <Route path="/ok" element={<ProcessOk processMessage="Compra Exitosa!" />} />
                                 <Route path="/policy-cookie" element={<PoliticaCookies />} />
-                                <Route path="/dashboard" element={<PrivateRoute adminOnly={false}><UserDashboard /></PrivateRoute>} />
-                                <Route path="/admin" element={<PrivateRoute adminOnly={true}><AdminDashboard /></PrivateRoute>} />
-                                <Route path="/partner" element={<PrivateRoute partnerOnly={true}><PartnerDashboard /></PrivateRoute>} />
-                                <Route path="/enterprise" element={<PrivateRoute enterpriseOnly={true}><EnterpriseDashboard /></PrivateRoute>} /> 
+                                <Route path="/dashboard" element={<PrivateRoute role="user"><UserDashboard /></PrivateRoute>} />
+                                <Route path="/admin" element={<PrivateRoute role="admin"><AdminDashboard /></PrivateRoute>} />
+                                <Route path="/partner" element={<PrivateRoute role="partner"><PartnerDashboard /></PrivateRoute>} />
+                                <Route path="/enterprise" element={<PrivateRoute role="enterprise"><EnterpriseDashboard /></PrivateRoute>} /> 
                                 <Route path="/certifications"           element={<Certifications />} />
                                 <Route path="/certifications/:certSlug" element={<CertificationsRelative />} />
                                 <Route path="/*" element={<Error404Minimal />} />
@@ -59,5 +59,4 @@ const AppRouter = () => {
     );  
 }
 
-export default AppRouter;   
-
+export default AppRouter;

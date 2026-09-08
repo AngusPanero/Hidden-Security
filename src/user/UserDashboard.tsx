@@ -8,6 +8,7 @@ import JobBoard         from "./JobBoard";
 import CVBuilder        from "./CvBuilder";
 import CourseCatalog    from "../courses/CourseCatalog";
 import CertificationCatalog from "../certifications/CertificationCatalog";
+import { useNavigate } from "react-router-dom";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserNotification {
