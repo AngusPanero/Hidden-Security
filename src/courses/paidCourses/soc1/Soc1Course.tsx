@@ -6,7 +6,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import "./soc1Course.css";
 import { UseSession } from "../../../contexts/SessionContext";
 import { UseTheme } from "../../../contexts/ThemeContext";
-import pdfPrueba from "../../../../public/pdf/curso-soc.pdf"; 
+import socIntro from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/socIntro.pdf"
 import videoPrueba from "./video-curso.mp4"; 
 
 // Worker de PDF.js — apunta al archivo en node_modules
@@ -42,132 +42,26 @@ interface CourseStep {
 
 const COURSE_STEPS: CourseStep[] = [
   // ── INTRO ─────────────────────────────────────────────────────────────────
-  {
-    type:  "intro",
+  /* {
+    type:  "pdf",
     title: "Bienvenida al curso",
     description: "Introducción al programa SOC Analyst Level 1.",
-  },
+    src: socIntro,
+  }, */
 
   // ── MÓDULO 1: Fundamentos ──────────────────────────────────────────────────
-  {
+  /* {
     type:        "video",
     title:       "Módulo 1 — ¿Qué es un SOC?",
     description: "Estructura y funciones de un Centro de Operaciones de Seguridad.",
     src: videoPrueba,
-  },
+  }, */
   {
     type:    "pdf",
-    title:   "Material de lectura — Fundamentos SOC",
-    pdfSrc: pdfPrueba,
+    title:   "Introducción al Rol SOC",
+    pdfSrc: socIntro,
     pages:   12,
   },
-  {
-    type:  "quiz",
-    title: "Quiz — Módulo 1",
-    questions: [
-      {
-        question: "¿Cuál es la función principal de un SOC?",
-        options: ["Desarrollar aplicaciones web", "Monitorear y responder a incidentes de seguridad", "Administrar bases de datos", "Gestionar recursos humanos"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué significa el acrónimo SIEM?",
-        options: ["Security Information and Event Management", "System Integration and Error Monitoring", "Secure Internet Exchange Module", "Standard Incident and Error Management"],
-        answer: 0,
-      },
-      {
-        question: "¿Cuál de los siguientes es un indicador de compromiso (IoC)?",
-        options: ["Un parche de seguridad instalado", "Una dirección IP maliciosa conocida", "Una contraseña robusta", "Un firewall activo"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué nivel del SOC se encarga del monitoreo y triaje inicial de alertas?",
-        options: ["Tier 3", "Tier 2", "Tier 1", "Tier 4"],
-        answer: 2,
-      },
-      {
-        question: "¿Cuál es la diferencia entre un IDS y un IPS?",
-        options: ["No hay diferencia, son sinónimos", "El IDS detecta y el IPS detecta y bloquea activamente", "El IPS solo registra eventos, el IDS los bloquea", "El IDS opera en la nube y el IPS on-premise"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un SOC as a Service (SOCaaS)?",
-        options: ["Un SOC físico instalado en las oficinas del cliente", "Un modelo donde el servicio de monitoreo se terceriza a un proveedor externo", "Un software de gestión de tickets de seguridad", "Una certificación de seguridad para analistas"],
-        answer: 1,
-      },
-      {
-        question: "El marco MITRE ATT&CK se utiliza principalmente para:",
-        options: ["Gestionar vulnerabilidades de software", "Describir tácticas, técnicas y procedimientos de atacantes", "Certificar profesionales de seguridad", "Configurar firewalls de red"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un 'false positive' en el contexto de un SOC?",
-        options: ["Una amenaza real que fue correctamente detectada", "Una alerta que indica un ataque cuando en realidad no existe", "Un malware que evade la detección", "Un log que fue eliminado por error"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál de estas herramientas se utiliza como SIEM en entornos empresariales?",
-        options: ["Wireshark", "Nmap", "Splunk", "Metasploit"],
-        answer: 2,
-      },
-      {
-        question: "La correlación de eventos en un SIEM permite:",
-        options: ["Encriptar los logs del sistema", "Relacionar múltiples eventos para detectar patrones de ataque", "Eliminar alertas duplicadas automáticamente", "Hacer backups de la base de datos"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué significa el concepto de 'dwell time' en seguridad?",
-        options: ["El tiempo que tarda en instalarse un agente de seguridad", "El tiempo que un atacante permanece en la red sin ser detectado", "La duración de un ataque DDoS", "El tiempo de respuesta de un analista Tier 1"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál de los siguientes NO es un rol típico dentro de un SOC?",
-        options: ["Analista de seguridad", "Threat Hunter", "Desarrollador de videojuegos", "Incident Responder"],
-        answer: 2,
-      },
-      {
-        question: "Un 'runbook' en el contexto del SOC es:",
-        options: ["Un registro de todos los incidentes del año", "Un procedimiento paso a paso para responder a un tipo específico de incidente", "Un informe ejecutivo de seguridad mensual", "Una lista de usuarios con privilegios elevados"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué tipo de inteligencia se obtiene analizando el comportamiento de un malware en un entorno controlado?",
-        options: ["OSINT", "HUMINT", "Threat Intelligence técnica (TTPs)", "Inteligencia estratégica"],
-        answer: 2,
-      },
-      {
-        question: "La visibilidad en un SOC se logra principalmente mediante:",
-        options: ["Entrevistas al personal de IT", "Recolección y análisis de logs de múltiples fuentes", "Revisiones manuales de código fuente", "Escaneos de red semanales"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es el 'kill chain' de Lockheed Martin?",
-        options: ["Un modelo que describe las fases de un ataque cibernético", "Un tipo de firewall de nueva generación", "Un protocolo de comunicación segura", "Un estándar de certificación en ciberseguridad"],
-        answer: 0,
-      },
-      {
-        question: "¿Cuál es el objetivo principal de la fase de 'contención' en un incidente?",
-        options: ["Eliminar el malware del sistema", "Evitar que el incidente se propague a otros sistemas", "Documentar las acciones realizadas", "Notificar a los medios de comunicación"],
-        answer: 1,
-      },
-      {
-        question: "Los logs de tipo 'syslog' son generados principalmente por:",
-        options: ["Aplicaciones web", "Dispositivos de red y sistemas Unix/Linux", "Bases de datos relacionales", "Clientes de correo electrónico"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un 'honeypot' en el contexto de la seguridad defensiva?",
-        options: ["Un tipo de cifrado simétrico", "Un sistema trampa diseñado para atraer y estudiar a los atacantes", "Una técnica de phishing ofensivo", "Un protocolo de autenticación multifactor"],
-        answer: 1,
-      },
-      {
-        question: "El principio de 'mínimo privilegio' establece que:",
-        options: ["Los administradores deben tener acceso total a todos los sistemas", "Los usuarios deben tener solo los permisos necesarios para sus tareas", "Las contraseñas deben tener al menos 8 caracteres", "Los logs deben retenerse por un mínimo de 30 días"],
-        answer: 1,
-      },
-    ],
-  },
-
   // ── MÓDULO 2: Amenazas y Vectores ─────────────────────────────────────────
   {
     type:        "video",
@@ -178,7 +72,7 @@ const COURSE_STEPS: CourseStep[] = [
   {
     type:    "pdf",
     title:   "Material de lectura — Vectores de ataque",
-    pdfSrc: pdfPrueba,
+    pdfSrc: socIntro,
     pages:   18,
   },
   {
@@ -298,7 +192,7 @@ const COURSE_STEPS: CourseStep[] = [
   {
     type:    "pdf",
     title:   "Material de lectura — Splunk y análisis de logs",
-    pdfSrc: pdfPrueba,
+    pdfSrc: socIntro,
     pages:   22,
   },
   {
@@ -418,7 +312,7 @@ const COURSE_STEPS: CourseStep[] = [
   {
     type:    "pdf",
     title:   "Material de lectura — Playbooks de respuesta",
-    pdfSrc: pdfPrueba,
+    pdfSrc: socIntro,
     pages:   16,
   },
   {
@@ -533,6 +427,54 @@ const TOTAL_STEPS = COURSE_STEPS.length;
 const PASSING_SCORE = 0.70;
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Agrupación visual de steps en módulos
+//  Solo se usa para presentación (acordeón horizontal); COURSE_STEPS y toda la
+//  lógica de progreso siguen indexando por el step "plano" de siempre.
+// ══════════════════════════════════════════════════════════════════════════════
+interface CourseModule {
+  key:          string;
+  title:        string;
+  icon:         string;
+  stepIndices:  number[];
+}
+
+// Agrupa de forma secuencial: "intro" es su propio módulo, y luego cada
+// tanda de steps no-intro se cierra apenas se procesa un "quiz" (el patrón
+// real de COURSE_STEPS es video → pdf → quiz, repetido). No se usa el texto
+// del título porque los PDFs no incluyen "Módulo N" en su título.
+function buildModules(steps: CourseStep[]): CourseModule[] {
+  const modules: CourseModule[] = [];
+  let moduleNum = 0;
+  let i = 0;
+  while (i < steps.length) {
+    const step = steps[i];
+
+    if (step.type === "intro") {
+      modules.push({ key: "intro", title: step.title, icon: "◈", stepIndices: [i] });
+      i++;
+      continue;
+    }
+
+    moduleNum++;
+    const stepIndices: number[] = [];
+    while (i < steps.length && steps[i].type !== "intro") {
+      stepIndices.push(i);
+      const wasQuiz = steps[i].type === "quiz";
+      i++;
+      if (wasQuiz) break; // el quiz cierra el módulo
+    }
+    modules.push({ key: `modulo-${moduleNum}`, title: `Módulo ${moduleNum}`, icon: "▣", stepIndices });
+  }
+  return modules;
+}
+
+const COURSE_MODULES = buildModules(COURSE_STEPS);
+
+const STEP_ICONS: Record<CourseStep["type"], string> = {
+  intro: "◈", video: "▶", pdf: "📄", quiz: "✎",
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  TIPOS
 // ══════════════════════════════════════════════════════════════════════════════
 interface QuizResult {
@@ -566,44 +508,6 @@ function ProgressBar({ completed, total }: { completed: number; total: number })
       </div>
       <span className="sc-progress-label">{pct}% completado · {completed}/{total} etapas</span>
     </div>
-  );
-}
-
-// ── Sidebar de navegación ─────────────────────────────────────────────────────
-function CourseSidebar({
-  steps, currentStep, completedSteps, onNavigate,
-}: {
-  steps: CourseStep[];
-  currentStep: number;
-  completedSteps: number[];
-  onNavigate: (i: number) => void;
-}) {
-  const icons: Record<CourseStep["type"], string> = {
-    intro: "◈", video: "▶", pdf: "📄", quiz: "✎",
-  };
-
-  return (
-    <aside className="sc-sidebar">
-      <p className="sc-sidebar-title">// CONTENIDO</p>
-      <ul className="sc-sidebar-list">
-        {steps.map((step, i) => {
-          const done    = completedSteps.includes(i);
-          const active  = i === currentStep;
-          const locked  = i > currentStep && !done;
-          return (
-            <li
-              key={i}
-              className={`sc-sidebar-item${active ? " active" : ""}${done ? " done" : ""}${locked ? " locked" : ""}`}
-              onClick={() => !locked && onNavigate(i)}
-              title={locked ? "Completá la etapa anterior para desbloquear" : step.title}
-            >
-              <span className="sc-sidebar-icon">{done ? "✓" : icons[step.type]}</span>
-              <span className="sc-sidebar-label">{step.title}</span>
-            </li>
-          );
-        })}
-      </ul>
-    </aside>
   );
 }
 
@@ -912,6 +816,18 @@ export default function Soc1Course() {
   const [activeStep,  setActiveStep]  = useState(0);
   const [showIntro,   setShowIntro]   = useState(true);
 
+  // Módulos actualmente desplegados (pueden ser varios a la vez; solo UI, no toca progreso)
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+
+  const toggleModule = (key: string) => {
+    setExpandedModules(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const contentRef = useRef<HTMLDivElement>(null);
 
   // ── Cargar progreso desde backend (también valida membresía) ─────────────
@@ -937,6 +853,15 @@ export default function Soc1Course() {
   }, [user]);
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
+
+  // ── Asegurar que el módulo que contiene el step activo esté desplegado ───
+  // No cierra los demás: el alumno puede tener varios módulos abiertos para
+  // ir y volver entre un paso anterior y uno posterior.
+  useEffect(() => {
+    const mod = COURSE_MODULES.find(m => m.stepIndices.includes(activeStep));
+    if (!mod) return;
+    setExpandedModules(prev => (prev.has(mod.key) ? prev : new Set(prev).add(mod.key)));
+  }, [activeStep]);
 
   // ── Scroll al top del contenido al cambiar step ──────────────────────────
   useEffect(() => {
@@ -1058,22 +983,18 @@ export default function Soc1Course() {
 
           <div className="sc-intro-grid">
             <div className="sc-intro-card">
-              <span className="sc-intro-card-icon">🛡️</span>
               <h3>¿Qué es un SOC Analyst?</h3>
               <p>Un analista de Centros de Operaciones de Seguridad (SOC) es el profesional encargado de monitorear, detectar y responder a incidentes de ciberseguridad en tiempo real. Es la primera línea de defensa de una organización contra amenazas digitales.</p>
             </div>
             <div className="sc-intro-card">
-              <span className="sc-intro-card-icon">🔍</span>
               <h3>¿A qué se dedica?</h3>
               <p>Analiza alertas de seguridad, investiga anomalías en sistemas y redes, correlaciona eventos en plataformas SIEM, ejecuta playbooks de respuesta a incidentes y documenta hallazgos para mejorar la postura de seguridad.</p>
             </div>
             <div className="sc-intro-card">
-              <span className="sc-intro-card-icon">🎯</span>
               <h3>¿Por qué cursarlo?</h3>
               <p>La demanda de analistas SOC creció más del 300% en los últimos 5 años. Es una de las posiciones más buscadas en ciberseguridad, con salarios competitivos y posibilidades reales de crecimiento hacia roles de pentesting, threat hunting e IR.</p>
             </div>
             <div className="sc-intro-card">
-              <span className="sc-intro-card-icon">🚀</span>
               <h3>Salidas laborales</h3>
               <p>SOC Analyst Tier 1/2/3, Incident Responder, Threat Hunter, Security Engineer, CISO. Empleadores: bancos, telecomunicaciones, empresas tecnológicas, gobierno, consultoras de ciberseguridad y proveedores MSSPs.</p>
             </div>
@@ -1114,10 +1035,15 @@ export default function Soc1Course() {
   }
 
   // ── Vista principal del curso ─────────────────────────────────────────────
+  // Bloques horizontales centrados, uno por módulo. Al tocar el header de un
+  // módulo, se despliega en el flujo normal y empuja hacia abajo a los
+  // módulos siguientes (sin superponerse). Se pueden tener varios módulos
+  // abiertos a la vez para ir y volver entre pasos. Adentro, cada módulo
+  // tiene su propio aside con los steps (video / pdf / quiz) que contiene.
   return (
     <div className={`sc-wrap ${theme}`}>
 
-      {/* Header */}
+      {/* Header global */}
       <div className="sc-header">
         <div>
           <span className="sc-eyebrow">// SOC_ANALYST_LEVEL_1</span>
@@ -1129,103 +1055,138 @@ export default function Soc1Course() {
         />
       </div>
 
-      <div className="sc-layout">
-        {/* Sidebar */}
-        <CourseSidebar
-          steps={COURSE_STEPS}
-          currentStep={activeStep}
-          completedSteps={progress?.completedSteps ?? []}
-          onNavigate={setActiveStep}
-        />
+      <div className="sc-modules" ref={contentRef}>
+        {COURSE_MODULES.map((mod) => {
+          const isExpanded     = expandedModules.has(mod.key);
+          const completedInMod = mod.stepIndices.filter(i => progress?.completedSteps.includes(i)).length;
+          const totalInMod     = mod.stepIndices.length;
+          const moduleDone     = completedInMod === totalInMod;
+          const hasActiveStep  = mod.stepIndices.includes(activeStep);
 
-        {/* Contenido */}
-        <div className="sc-content" ref={contentRef}>
-          {step?.description && step.type !== "quiz" && (
-            <p className="sc-step-description">{step.description}</p>
-          )}
+          return (
+            <div
+              key={mod.key}
+              className={`sc-module${isExpanded ? " expanded" : ""}${moduleDone ? " done" : ""}`}
+            >
+              <button
+                className="sc-module-header"
+                onClick={() => toggleModule(mod.key)}
+              >
+                <span className="sc-module-icon">{moduleDone ? "✓" : mod.icon}</span>
+                <span className="sc-module-title">{mod.title}</span>
+                <span className="sc-module-meta">{completedInMod}/{totalInMod}</span>
+                <span className="sc-module-chevron">{isExpanded ? "▲" : "▼"}</span>
+              </button>
 
-          {/* Intro step */}
-          {step?.type === "intro" && (
-            <div className="sc-step-intro">
-              <p>Bienvenido/a al curso SOC Analyst Level 1. Avanzá por cada módulo a tu ritmo — tu progreso se guarda automáticamente.</p>
+              {isExpanded && (
+                <div className="sc-module-body">
+                  {/* Aside propio del módulo */}
+                  <aside className="sc-module-aside">
+                    <p className="sc-module-aside-title">// CONTENIDO</p>
+                    <ul className="sc-module-aside-list">
+                      {mod.stepIndices.map((i) => {
+                        const s      = COURSE_STEPS[i];
+                        const done   = progress?.completedSteps.includes(i) ?? false;
+                        const active = i === activeStep;
+                        const locked = i > activeStep && !done;
+                        return (
+                          <li
+                            key={i}
+                            className={`sc-module-aside-item${active ? " active" : ""}${done ? " done" : ""}${locked ? " locked" : ""}`}
+                            onClick={() => !locked && setActiveStep(i)}
+                            title={locked ? "Completá la etapa anterior para desbloquear" : s.title}
+                          >
+                            <span className="sc-module-aside-icon">{done ? "✓" : STEP_ICONS[s.type]}</span>
+                            <span className="sc-module-aside-label">{s.title}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </aside>
+
+                  {/* Contenido del step activo dentro de este módulo */}
+                  <div className="sc-module-stage">
+                    {hasActiveStep ? (
+                      <>
+                        {step?.description && step.type !== "quiz" && (
+                          <p className="sc-step-description">{step.description}</p>
+                        )}
+
+                        {step?.type === "intro" && (
+                          <div className="sc-step-intro">
+                            <p>Bienvenido/a al curso SOC Analyst Level 1. Avanzá por cada módulo a tu ritmo — tu progreso se guarda automáticamente.</p>
+                          </div>
+                        )}
+
+                        {step?.type === "video" && step.src && (
+                          <VideoViewer src={step.src} />
+                        )}
+
+                        {step?.type === "pdf" && step.pdfSrc && (
+                          <PdfViewer src={step.pdfSrc} />
+                        )}
+
+                        {step?.type === "quiz" && step.questions && (
+                          <QuizViewer
+                            questions={step.questions}
+                            stepIndex={activeStep}
+                            existingResult={progress?.quizResults?.[String(activeStep)] ?? null}
+                            onSubmit={handleQuizSubmit}
+                          />
+                        )}
+
+                        {/* ── Navegación unificada (idéntica a la original) ── */}
+                        <div className="sc-nav">
+                          {activeStep > 0 && (
+                            <button
+                              className="sc-btn sc-btn--ghost"
+                              onClick={() => setActiveStep(prev => Math.max(0, prev - 1))}
+                            >
+                              ← ANTERIOR
+                            </button>
+                          )}
+
+                          {step?.type !== "quiz" && !isLastStep && (
+                            <button
+                              className="sc-btn sc-btn--accent"
+                              onClick={handleNext}
+                              disabled={!canAdvance() || saving}
+                            >
+                              {saving ? "GUARDANDO..." : "SIGUIENTE →"}
+                            </button>
+                          )}
+
+                          {step?.type !== "quiz" && isLastStep && canAdvance() && (
+                            <button
+                              className="sc-btn sc-btn--accent sc-btn--lg"
+                              onClick={handleNext}
+                              disabled={saving}
+                            >
+                              {saving ? "GUARDANDO..." : "FINALIZAR CURSO ✓"}
+                            </button>
+                          )}
+
+                          {step?.type === "quiz" && canAdvance() && !isLastStep && (
+                            <button
+                              className="sc-btn sc-btn--accent"
+                              onClick={() => setActiveStep(prev => Math.min(prev + 1, TOTAL_STEPS - 1))}
+                            >
+                              SIGUIENTE →
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="sc-module-placeholder">
+                        <p>Seleccioná un contenido del módulo para visualizarlo.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Video */}
-          {step?.type === "video" && step.src && (
-            <VideoViewer src={step.src} />
-          )}
-
-          {/* PDF */}
-          {step?.type === "pdf" && step.pdfSrc && (
-            <PdfViewer src={step.pdfSrc} />
-          )}
-
-          {/* Quiz */}
-          {step?.type === "quiz" && step.questions && (
-            <QuizViewer
-              questions={step.questions}
-              stepIndex={activeStep}
-              existingResult={progress?.quizResults?.[String(activeStep)] ?? null}
-              onSubmit={handleQuizSubmit}
-            />
-          )}
-
-          {/* ── Navegación unificada ──────────────────────────────────────
-              "← ANTERIOR" se muestra siempre que haya un step previo, sin
-              importar el tipo del step actual (antes solo aparecía para
-              steps no-quiz, dejando al quiz sin forma de volver atrás).
-
-              El botón de avance se resuelve según el tipo:
-              - no-quiz, no último step  → "SIGUIENTE →" vía handleNext
-                (pega a /progress/step, válido para intro/video/pdf)
-              - no-quiz, último step     → "FINALIZAR CURSO ✓" vía handleNext
-              - quiz aprobado, no último → "SIGUIENTE →" SOLO mueve activeStep
-                local (nunca handleNext — ver comentario arriba de handleNext)
-              - quiz aprobado, último step → no se renderiza ningún botón:
-                progress.isCompleted ya llegó en true en la respuesta de
-                /progress/quiz, así que el componente entero ya saltó al
-                render de <CompletionScreen /> antes de llegar acá. ──────── */}
-          <div className="sc-nav">
-            {activeStep > 0 && (
-              <button
-                className="sc-btn sc-btn--ghost"
-                onClick={() => setActiveStep(prev => Math.max(0, prev - 1))}
-              >
-                ← ANTERIOR
-              </button>
-            )}
-
-            {step?.type !== "quiz" && !isLastStep && (
-              <button
-                className="sc-btn sc-btn--accent"
-                onClick={handleNext}
-                disabled={!canAdvance() || saving}
-              >
-                {saving ? "GUARDANDO..." : "SIGUIENTE →"}
-              </button>
-            )}
-
-            {step?.type !== "quiz" && isLastStep && canAdvance() && (
-              <button
-                className="sc-btn sc-btn--accent sc-btn--lg"
-                onClick={handleNext}
-                disabled={saving}
-              >
-                {saving ? "GUARDANDO..." : "FINALIZAR CURSO ✓"}
-              </button>
-            )}
-
-            {step?.type === "quiz" && canAdvance() && !isLastStep && (
-              <button
-                className="sc-btn sc-btn--accent"
-                onClick={() => setActiveStep(prev => Math.min(prev + 1, TOTAL_STEPS - 1))}
-              >
-                SIGUIENTE →
-              </button>
-            )}
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
