@@ -7,7 +7,13 @@ import "./soc1Course.css";
 import { UseSession } from "../../../contexts/SessionContext";
 import { UseTheme } from "../../../contexts/ThemeContext";
 import socIntro from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/socIntro.pdf"
-import videoPrueba from "./video-curso.mp4"; 
+import soc1 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc1.pdf"
+import soc2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc2.pdf"
+import soc3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc3.pdf"
+import soc4 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc4.pdf"
+import soc5 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc5.pdf"
+import soc6 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc6.pdf"
+/* import videoPrueba from "./video-curso.mp4";  */
 
 // Worker de PDF.js — apunta al archivo en node_modules
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -40,388 +46,118 @@ interface CourseStep {
   questions?:  QuizQuestion[];
 }
 
-const COURSE_STEPS: CourseStep[] = [
-  // ── INTRO ─────────────────────────────────────────────────────────────────
-  /* {
-    type:  "pdf",
-    title: "Bienvenida al curso",
-    description: "Introducción al programa SOC Analyst Level 1.",
-    src: socIntro,
-  }, */
-
-  // ── MÓDULO 1: Fundamentos ──────────────────────────────────────────────────
-  /* {
-    type:        "video",
-    title:       "Módulo 1 — ¿Qué es un SOC?",
-    description: "Estructura y funciones de un Centro de Operaciones de Seguridad.",
-    src: videoPrueba,
-  }, */
+// ── Quiz final — mismas 8 preguntas para los 8 módulos, hasta tener los
+// quizzes reales de cada uno (ver comentario sobre buildModuleSteps abajo) ──
+const MODULO_1_QUIZ_QUESTIONS: QuizQuestion[] = [
   {
-    type:    "pdf",
-    title:   "Introducción al Rol SOC",
-    pdfSrc: socIntro,
-    pages:   12,
-  },
-  // ── MÓDULO 2: Amenazas y Vectores ─────────────────────────────────────────
-  {
-    type:        "video",
-    title:       "Módulo 2 — Tipos de amenazas",
-    description: "Malware, phishing, ransomware y vectores de ataque comunes.",
-    src: videoPrueba,
-  },
-  {
-    type:    "pdf",
-    title:   "Material de lectura — Vectores de ataque",
-    pdfSrc: socIntro,
-    pages:   18,
-  },
-  {
-    type:  "quiz",
-    title: "Quiz — Módulo 2",
-    questions: [
-      {
-        question: "¿Qué tipo de malware cifra los archivos del usuario y pide rescate?",
-        options: ["Spyware", "Adware", "Ransomware", "Rootkit"],
-        answer: 2,
-      },
-      {
-        question: "El phishing principalmente explota:",
-        options: ["Vulnerabilidades de hardware", "La ingeniería social y el factor humano", "Fallas en protocolos de red", "Errores en sistemas operativos"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál es el primer paso del ciclo de vida de un ataque según MITRE ATT&CK?",
-        options: ["Explotación", "Reconocimiento", "Movimiento lateral", "Exfiltración"],
-        answer: 1,
-      },
-      {
-        question: "Un ataque de tipo 'Man in the Middle' (MitM) consiste en:",
-        options: ["Saturar un servidor con tráfico masivo", "Interceptar comunicaciones entre dos partes sin que lo sepan", "Instalar malware mediante un USB", "Adivinar contraseñas por fuerza bruta"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un ataque de 'spear phishing'?",
-        options: ["Un phishing masivo enviado a millones de usuarios", "Un phishing altamente dirigido a una persona u organización específica", "Un ataque que explota vulnerabilidades de red", "Un tipo de ransomware que se propaga por email"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál es la principal característica de un rootkit?",
-        options: ["Cifra todos los archivos del sistema", "Se oculta en el sistema operativo para mantener acceso persistente", "Roba credenciales de navegadores web", "Genera clics fraudulentos en publicidad"],
-        answer: 1,
-      },
-      {
-        question: "Un ataque DDoS (Distributed Denial of Service) tiene como objetivo:",
-        options: ["Robar datos confidenciales del servidor", "Hacer inaccesible un servicio saturando sus recursos", "Instalar backdoors en servidores web", "Interceptar tráfico de red cifrado"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un 'zero-day exploit'?",
-        options: ["Un ataque que ocurre exactamente a medianoche", "Un exploit que aprovecha una vulnerabilidad desconocida o sin parche", "Un malware que se activa el primer día de cada mes", "Una técnica de phishing de nueva generación"],
-        answer: 1,
-      },
-      {
-        question: "El malware de tipo 'keylogger' se especializa en:",
-        options: ["Cifrar archivos del usuario", "Registrar las pulsaciones del teclado para robar información", "Mostrar publicidad no deseada", "Bloquear el acceso al sistema operativo"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué técnica utiliza un atacante para moverse lateralmente dentro de una red comprometida?",
-        options: ["SQL Injection", "Pass-the-Hash o robo de credenciales", "Cross-Site Scripting (XSS)", "Buffer Overflow en aplicaciones web"],
-        answer: 1,
-      },
-      {
-        question: "Un ataque de 'SQL Injection' apunta principalmente a:",
-        options: ["Sistemas de autenticación biométrica", "Bases de datos a través de entradas no sanitizadas", "Protocolos de red como TCP/IP", "Firmware de dispositivos IoT"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un 'botnet'?",
-        options: ["Una red privada virtual segura", "Una red de equipos comprometidos controlados por un atacante", "Un sistema de detección de intrusiones basado en IA", "Un protocolo de comunicación cifrada"],
-        answer: 1,
-      },
-      {
-        question: "El vector de ataque más común para la distribución de ransomware es:",
-        options: ["Exploits físicos en hardware", "Emails con adjuntos maliciosos o enlaces de phishing", "Ataques de fuerza bruta a SSH", "Vulnerabilidades en protocolos de enrutamiento"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un ataque de 'watering hole'?",
-        options: ["Un ataque que inunda una red con tráfico UDP", "Comprometer un sitio web que visitan frecuentemente las víctimas objetivo", "Un tipo de ataque de fuerza bruta a contraseñas", "Un método de exfiltración de datos por DNS"],
-        answer: 1,
-      },
-      {
-        question: "La técnica de 'credential stuffing' consiste en:",
-        options: ["Crear contraseñas muy largas y complejas", "Usar credenciales filtradas en una brecha para intentar acceder a otros servicios", "Robar tokens de sesión mediante XSS", "Interceptar hashes de contraseñas en la red"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál es la diferencia entre un virus y un gusano (worm)?",
-        options: ["No hay diferencia técnica entre ambos", "El virus necesita un archivo huésped; el gusano se propaga solo por la red", "El gusano cifra archivos; el virus los elimina", "El virus afecta redes; el gusano solo afecta archivos locales"],
-        answer: 1,
-      },
-      {
-        question: "Un ataque de 'privilege escalation' busca:",
-        options: ["Obtener mayores permisos dentro de un sistema ya comprometido", "Escalar la severidad de una alerta en el SIEM", "Aumentar el tráfico de red para saturar un servidor", "Elevar la prioridad de un ticket de incidente"],
-        answer: 0,
-      },
-      {
-        question: "¿Qué es la 'exfiltración de datos' en el contexto de un ataque?",
-        options: ["La eliminación permanente de datos del sistema", "La transferencia no autorizada de datos desde la organización hacia el atacante", "El cifrado de datos para evitar su lectura", "La corrupción intencional de bases de datos"],
-        answer: 1,
-      },
-      {
-        question: "Los ataques de 'supply chain' comprometen:",
-        options: ["La cadena de frío de equipos físicos", "Software o hardware legítimo durante su desarrollo o distribución", "Proveedores de servicios de logística", "Sistemas de control industrial exclusivamente"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué caracteriza a un APT (Advanced Persistent Threat)?",
-        options: ["Son ataques rápidos y masivos sin un objetivo específico", "Son actores con recursos avanzados que mantienen acceso prolongado y sigiloso", "Son vulnerabilidades zero-day sin explotar", "Son ataques automatizados de baja sofisticación"],
-        answer: 1,
-      },
+    question: "¿Qué describe mejor los tres objetivos operativos de un SOC y su relación?",
+    options: [
+      "Prevenir, auditar y reportar — el SOC actúa antes de que ocurra cualquier amenaza",
+      "Monitorear, detectar y responder — se activan en secuencia: sin monitoreo no hay detección, y sin detección no hay respuesta",
+      "Monitorear, bloquear y eliminar — el SOC toma acción directa sobre cada amenaza identificada",
+      "Detectar, escalar y resolver — el equipo de L1 resuelve todos los incidentes internamente",
     ],
-  },
-
-  // ── MÓDULO 3: Herramientas SOC ────────────────────────────────────────────
-  {
-    type:        "video",
-    title:       "Módulo 3 — Herramientas del analista",
-    description: "SIEM, IDS/IPS, threat intelligence y plataformas de respuesta.",
-    src: videoPrueba,
+    answer: 1,
   },
   {
-    type:    "pdf",
-    title:   "Material de lectura — Splunk y análisis de logs",
-    pdfSrc: socIntro,
-    pages:   22,
-  },
-  {
-    type:  "quiz",
-    title: "Quiz — Módulo 3",
-    questions: [
-      {
-        question: "¿Para qué se utiliza principalmente Splunk en un SOC?",
-        options: ["Escaneo de puertos", "Análisis y correlación de logs", "Gestión de parches", "Creación de VPNs"],
-        answer: 1,
-      },
-      {
-        question: "Un IDS (Intrusion Detection System) principalmente:",
-        options: ["Bloquea ataques automáticamente", "Detecta y alerta sobre actividad sospechosa", "Encripta el tráfico de red", "Gestiona contraseñas"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es la Threat Intelligence?",
-        options: ["Un antivirus avanzado", "Información sobre amenazas para mejorar la defensa", "Un firewall de nueva generación", "Un protocolo de red seguro"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál es la función de Wireshark en un análisis de seguridad?",
-        options: ["Gestionar vulnerabilidades conocidas", "Capturar y analizar tráfico de red en tiempo real", "Administrar reglas de firewall", "Generar reportes de cumplimiento"],
-        answer: 1,
-      },
-      {
-        question: "En Splunk, una 'search query' se escribe usando:",
-        options: ["Python puro", "SPL (Search Processing Language)", "SQL estándar", "PowerShell exclusivamente"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un SOAR (Security Orchestration, Automation and Response)?",
-        options: ["Un tipo de firewall de aplicaciones web", "Una plataforma que automatiza y orquesta respuestas a incidentes", "Un estándar de cifrado para comunicaciones", "Un sistema de gestión de identidades"],
-        answer: 1,
-      },
-      {
-        question: "La herramienta Nmap se utiliza principalmente para:",
-        options: ["Analizar malware en entornos sandbox", "Descubrir hosts y servicios activos en una red", "Gestionar certificados SSL/TLS", "Monitorear el rendimiento de aplicaciones"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué tipo de logs genera un firewall que son útiles para un analista SOC?",
-        options: ["Logs de rendimiento de CPU", "Logs de conexiones permitidas y bloqueadas por regla", "Logs de actualizaciones del sistema operativo", "Logs de cambios en archivos de configuración de red"],
-        answer: 1,
-      },
-      {
-        question: "Un 'sandbox' en el análisis de malware es:",
-        options: ["Un servidor de producción aislado", "Un entorno controlado y aislado para ejecutar código sospechoso sin riesgo", "Un tipo de honeypot activo", "Una red privada virtual segmentada"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué significa EDR en el contexto de herramientas de seguridad?",
-        options: ["External Defense Router", "Endpoint Detection and Response", "Encrypted Data Repository", "Event Driven Reporting"],
-        answer: 1,
-      },
-      {
-        question: "La plataforma TheHive se utiliza en un SOC para:",
-        options: ["Análisis de tráfico de red", "Gestión colaborativa de casos e incidentes de seguridad", "Escaneo de vulnerabilidades web", "Administración de identidades y accesos"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál es la diferencia entre un SIEM y un EDR?",
-        options: ["Son la misma tecnología con diferente nombre", "El SIEM agrega y correlaciona logs de toda la infraestructura; el EDR monitorea endpoints específicamente", "El EDR trabaja en la nube y el SIEM on-premise", "El SIEM detecta malware; el EDR gestiona parches"],
-        answer: 1,
-      },
-      {
-        question: "En el análisis de logs, una anomalía de comportamiento (UEBA) detecta:",
-        options: ["Firmas de malware conocido", "Comportamientos inusuales de usuarios o entidades respecto a su línea base", "Vulnerabilidades en código fuente", "Configuraciones inseguras de red"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un 'feed' de Threat Intelligence?",
-        options: ["Un informe ejecutivo de seguridad mensual", "Un flujo continuo de datos sobre indicadores de amenazas actuales", "Un dashboard de métricas del SOC", "Un log de auditoría de accesos"],
-        answer: 1,
-      },
-      {
-        question: "La herramienta Volatility se utiliza para:",
-        options: ["Análisis de tráfico de red capturado", "Análisis forense de volcados de memoria RAM", "Gestión de reglas de detección en el SIEM", "Monitoreo de disponibilidad de servicios"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué protocolo usa syslog por defecto para el transporte de logs?",
-        options: ["TCP 443", "UDP 514", "TCP 8080", "UDP 1514"],
-        answer: 1,
-      },
-      {
-        question: "En una plataforma SIEM, una 'regla de correlación' sirve para:",
-        options: ["Cifrar los logs almacenados", "Definir condiciones que, al cumplirse, generan una alerta de seguridad", "Comprimir los logs para ahorrar espacio", "Enviar logs a un servidor de backup"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es MISP en el ecosistema de herramientas de un SOC?",
-        options: ["Un SIEM de código abierto", "Una plataforma open source para compartir y correlacionar indicadores de amenazas", "Un escáner de vulnerabilidades web", "Un sistema de ticketing para incidentes"],
-        answer: 1,
-      },
-      {
-        question: "El análisis de 'NetFlow' en un SOC permite:",
-        options: ["Leer el contenido de los paquetes de red", "Visualizar patrones de tráfico sin acceder al contenido de los paquetes", "Bloquear tráfico malicioso en tiempo real", "Cifrar comunicaciones entre endpoints"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál es la ventaja principal de integrar un SOAR con un SIEM?",
-        options: ["Reducir el costo de licencias de software", "Automatizar respuestas a incidentes repetitivos y reducir el tiempo de respuesta", "Mejorar la compresión de logs almacenados", "Reemplazar al analista Tier 1 completamente"],
-        answer: 1,
-      },
+    question: "Un SOC interno se diferencia de un MSSP principalmente en que:",
+    options: [
+      "El SOC interno solo atiende horario laboral, mientras que el MSSP opera 24/7",
+      "El MSSP es más seguro porque tiene más analistas y mejores herramientas siempre",
+      "El SOC interno ofrece mayor control y alineación con las políticas de la organización, pero implica costos operativos más altos y necesidad de retención de talento",
+      "El SOC interno no puede manejar incidentes críticos, por eso siempre se combina con un MSSP",
     ],
-  },
-
-  // ── MÓDULO 4: Respuesta a Incidentes ──────────────────────────────────────
-  {
-    type:        "video",
-    title:       "Módulo 4 — Respuesta a incidentes",
-    description: "Metodología de triage, contención, erradicación y recuperación.",
-    src: videoPrueba,
+    answer: 2,
   },
   {
-    type:    "pdf",
-    title:   "Material de lectura — Playbooks de respuesta",
-    pdfSrc: socIntro,
-    pages:   16,
-  },
-  {
-    type:  "quiz",
-    title: "Quiz — Módulo 4",
-    questions: [
-      {
-        question: "¿Cuál es la primera fase de la respuesta a incidentes?",
-        options: ["Contención", "Erradicación", "Identificación / Triage", "Recuperación"],
-        answer: 2,
-      },
-      {
-        question: "Un playbook de seguridad es:",
-        options: ["Un manual de instalación de software", "Un procedimiento documentado para responder a tipos específicos de incidentes", "Un informe de auditoría", "Un protocolo de red"],
-        answer: 1,
-      },
-      {
-        question: "Durante la fase de 'Lecciones aprendidas' se busca:",
-        options: ["Aislar los sistemas comprometidos", "Eliminar el malware", "Documentar el incidente y mejorar procesos", "Restaurar backups"],
-        answer: 2,
-      },
-      {
-        question: "¿Cuál es el objetivo de la fase de 'contención' en la respuesta a incidentes?",
-        options: ["Eliminar completamente la amenaza del sistema", "Limitar el alcance y propagación del incidente sin perder evidencia", "Restaurar los sistemas a su estado normal", "Notificar a los medios de comunicación"],
-        answer: 1,
-      },
-      {
-        question: "La cadena de custodia en un incidente de seguridad se refiere a:",
-        options: ["La cadena de mando para escalar incidentes", "El registro documentado de quién accedió a la evidencia digital y cuándo", "El orden cronológico de los eventos del ataque", "El proceso de notificación a clientes afectados"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es un 'post-mortem' de incidente?",
-        options: ["El análisis forense del malware utilizado", "Una reunión de análisis posterior al incidente para identificar mejoras", "El proceso de recuperación de sistemas dañados", "La notificación legal a autoridades competentes"],
-        answer: 1,
-      },
-      {
-        question: "Durante la fase de 'erradicación', el equipo de respuesta debe:",
-        options: ["Aislar los sistemas afectados de la red", "Eliminar la causa raíz del incidente y todos los artefactos maliciosos", "Notificar a los usuarios sobre el incidente", "Documentar el timeline del ataque"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es el 'triage' en el contexto de respuesta a incidentes?",
-        options: ["La restauración de sistemas desde backup", "La priorización y evaluación inicial de la severidad y alcance del incidente", "La eliminación de malware de los sistemas", "La comunicación del incidente a la dirección"],
-        answer: 1,
-      },
-      {
-        question: "Un 'IOA' (Indicator of Attack) se diferencia de un IOC porque:",
-        options: ["El IOA describe artefactos ya comprometidos; el IOC detecta actividad en curso", "El IOA detecta comportamientos que sugieren un ataque en progreso; el IOC son evidencias post-compromiso", "El IOA aplica solo a redes; el IOC solo a endpoints", "No hay diferencia práctica entre ambos"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál de los siguientes es un ejemplo de 'contención a largo plazo'?",
-        options: ["Desconectar físicamente un equipo comprometido", "Aplicar parches de seguridad y reforzar controles para prevenir la recurrencia", "Capturar el tráfico de red del atacante", "Cambiar temporalmente las contraseñas de administrador"],
-        answer: 1,
-      },
-      {
-        question: "El framework NIST SP 800-61 define el ciclo de vida de respuesta a incidentes con las fases:",
-        options: ["Identificar, Proteger, Detectar, Responder, Recuperar", "Preparación, Detección y Análisis, Contención-Erradicación-Recuperación, Actividades post-incidente", "Reconocimiento, Explotación, Post-explotación, Cleanup", "Triage, Investigación, Remediación, Cierre"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es el 'forensic imaging' en una investigación de incidentes?",
-        options: ["Tomar capturas de pantalla del sistema comprometido", "Crear una copia bit a bit exacta de un disco o dispositivo de almacenamiento", "Analizar imágenes adjuntas en emails de phishing", "Generar reportes visuales del incidente"],
-        answer: 1,
-      },
-      {
-        question: "La volatilidad de la evidencia digital determina:",
-        options: ["Cuánto tiempo se tarda en analizar un incidente", "El orden en que se debe recolectar la evidencia, priorizando la más efímera", "La severidad del incidente en el SIEM", "El tipo de herramienta forense a utilizar"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué información debe incluir obligatoriamente un reporte de incidente?",
-        options: ["Solo el listado de sistemas afectados", "Timeline, sistemas afectados, acciones tomadas, impacto y recomendaciones", "Únicamente las herramientas de ataque identificadas", "Solo la identidad del atacante si es conocida"],
-        answer: 1,
-      },
-      {
-        question: "La 'contención en corto plazo' implica típicamente:",
-        options: ["Reconstruir completamente los sistemas desde cero", "Aislar sistemas afectados inmediatamente para detener la propagación", "Aplicar todos los parches de seguridad pendientes", "Realizar un análisis forense completo del malware"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuándo se considera que un incidente está 'cerrado'?",
-        options: ["Cuando el malware fue identificado", "Cuando los sistemas fueron aislados de la red", "Cuando la causa raíz fue eliminada, los sistemas restaurados y el post-mortem documentado", "Cuando el atacante fue identificado públicamente"],
-        answer: 2,
-      },
-      {
-        question: "En la fase de recuperación, la prioridad es:",
-        options: ["Identificar al responsable del ataque", "Restaurar los sistemas a operación normal verificando que estén libres de amenazas", "Publicar un comunicado de prensa sobre el incidente", "Actualizar las reglas del firewall perimetral"],
-        answer: 1,
-      },
-      {
-        question: "¿Qué es el 'escalamiento' en la gestión de incidentes?",
-        options: ["Aumentar la gravedad de la alerta en el SIEM", "Transferir el incidente a un nivel superior o especialista cuando excede las capacidades actuales", "Expandir el alcance de la investigación forense", "Notificar al equipo de desarrollo sobre vulnerabilidades encontradas"],
-        answer: 1,
-      },
-      {
-        question: "La clasificación de la severidad de un incidente se basa en:",
-        options: ["El tipo de malware identificado únicamente", "El impacto potencial al negocio, la cantidad de sistemas afectados y la sensibilidad de los datos", "La hora en que ocurrió el incidente", "La velocidad de respuesta del equipo SOC"],
-        answer: 1,
-      },
-      {
-        question: "¿Cuál es el rol del CISO durante un incidente crítico?",
-        options: ["Realizar el análisis forense técnico del malware", "Tomar decisiones estratégicas, comunicar a la dirección y coordinar con áreas legales y de comunicación", "Ejecutar los comandos de contención en los sistemas", "Redactar las reglas de detección en el SIEM"],
-        answer: 1,
-      },
+    question: "Un analista SOC recibe una alerta de múltiples intentos de login fallidos desde una IP extranjera. ¿Cuál es la secuencia correcta de primeros pasos ante esta alerta?",
+    options: [
+      "Bloquear la IP inmediatamente y notificar al usuario afectado",
+      "Escalar a L2 directamente porque es una IP extranjera",
+      "Revisar el contexto de la alerta: usuario afectado, cantidad de intentos, horario, si hubo login exitoso posterior y reputación de la IP antes de tomar cualquier acción",
+      "Cerrar la alerta si no hubo login exitoso, ya que el bloqueo fue efectivo",
     ],
+    answer: 2,
+  },
+  {
+    question: "¿Qué afirmación describe correctamente la relación entre log, evento, alerta e incidente?",
+    options: [
+      "Son sinónimos con distintos niveles de urgencia",
+      "Un log es el dato crudo, el evento le agrega contexto, la alerta se genera cuando coincide con una regla de detección, y el incidente es una alerta confirmada como real que requiere acción",
+      "La alerta es lo que genera el analista, el incidente es lo que genera el SIEM",
+      "El log y el evento son lo mismo; la diferencia real está entre alerta e incidente",
+    ],
+    answer: 1,
+  },
+  {
+    question: "¿Por qué es importante documentar el análisis incluso cuando la alerta resulta ser un falso positivo?",
+    options: [
+      "Verdadero — no ocurrió ningún incidente real, por lo que documentarlo no tiene valor operativo",
+      "Falso — documentar falsos positivos permite auditar el proceso de análisis, evitar trabajo repetido en turnos siguientes, identificar patrones de ruido para refinar las reglas del SIEM y demostrar que se actuó con criterio técnico",
+    ],
+    answer: 1,
+  },
+  {
+    question: "¿Cuál de las siguientes opciones representa un escalamiento de calidad?",
+    options: [
+      "\"Hay actividad sospechosa en la red, revisar urgente.\"",
+      "\"Se detectó una alerta de PowerShell. Severidad alta. Sin más datos por ahora.\"",
+      "Activo afectado, usuario involucrado, evidencia observada con timestamps, actividad previa y posterior revisada, limitaciones de visibilidad y acción recomendada",
+      "Una captura de pantalla del panel del SIEM con la alerta visible",
+    ],
+    answer: 2,
+  },
+  {
+    question: "¿Por qué decimos que 'ver no significa tener permiso para divulgar'?",
+    options: [
+      "Verdadero — si el analista considera que la información puede ser útil para otro equipo, está habilitado a compartirla",
+      "Falso — el acceso técnico no equivale a autorización para divulgar; la información de un caso solo debe circular entre quienes tienen un rol activo en ese caso, por canales corporativos aprobados. Compartir datos de un incidente fuera del canal correcto — aunque sea con buena intención — viola los protocolos de confidencialidad y puede comprometer la investigación o generar responsabilidad legal",
+    ],
+    answer: 1,
+  },
+  {
+    question: "¿Cuál de las siguientes listas representa rutas de crecimiento reales desde el SOC?",
+    options: [
+      "Pentesting, soporte técnico de mesa de ayuda, administración de redes",
+      "Incident Response / CSIRT, Threat Intelligence, Ingeniería de Seguridad (SIEM/SOAR), Forense Digital, Cloud Security, GRC",
+      "Desarrollo de software seguro, marketing de ciberseguridad, gestión de proyectos de TI",
+      "Solo se puede crecer dentro del SOC ascendiendo de L1 a L2 y luego a L3",
+    ],
+    answer: 1,
   },
 ];
+
+// ── Contenido de un módulo — 7 PDFs + 1 quiz final ──────────────────────────
+// Todavía solo existe contenido definitivo para el Módulo 1 (los 7 PDFs —
+// socIntro, soc1..soc6 — y el quiz de arriba). Mientras no tengas los PDFs
+// y preguntas reales de los módulos 2 a 8, esta misma función se llama 8
+// veces para simular la estructura final de 8 módulos y poder probar bien
+// la navegación step-by-step. buildModules() (más abajo) ya agrupa
+// automáticamente cada tanda de steps que termina en un "quiz" como un
+// módulo aparte, así que apenas reemplaces el contenido de cada llamada
+// (PDFs y preguntas reales de cada módulo) no hace falta tocar nada más.
+function buildModuleSteps(moduleNumber: number): CourseStep[] {
+  return [
+    { type: "pdf", title: `Módulo ${moduleNumber} — Introducción al SOC`,          pdfSrc: socIntro },
+    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 1`,                  pdfSrc: soc1 },
+    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 2`,                  pdfSrc: soc2 },
+    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 3`,                  pdfSrc: soc3 },
+    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 4`,                  pdfSrc: soc4 },
+    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 5`,                  pdfSrc: soc5 },
+    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 6`,                  pdfSrc: soc6 },
+    { type: "quiz", title: `Módulo ${moduleNumber} — Quiz final`, questions: MODULO_1_QUIZ_QUESTIONS },
+  ];
+}
+
+// 8 módulos — de momento los 8 repiten el contenido del Módulo 1 (simulación
+// de la estructura final). Reemplazá esto por 8 llamadas explícitas con el
+// contenido real de cada módulo a medida que lo tengas, ej:
+//   const COURSE_STEPS: CourseStep[] = [
+//     ...buildModuleSteps(1), // ← ya con el contenido real de moduleNumber:1
+//     ...modulo2Steps,        // ← array armado a mano con el contenido real
+//     ...
+//   ];
+const COURSE_STEPS: CourseStep[] = Array.from({ length: 8 }, (_, i) => buildModuleSteps(i + 1)).flat();
 
 const TOTAL_STEPS = COURSE_STEPS.length;
 const PASSING_SCORE = 0.70;
@@ -1003,7 +739,7 @@ export default function Soc1Course() {
           <div className="sc-intro-details">
             <div className="sc-intro-detail-item">
               <span className="sc-intro-detail-label">// MÓDULOS</span>
-              <span className="sc-intro-detail-value">4</span>
+              <span className="sc-intro-detail-value">{COURSE_MODULES.length}</span>
             </div>
             <div className="sc-intro-detail-item">
               <span className="sc-intro-detail-label">// VIDEOS</span>
