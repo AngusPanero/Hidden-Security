@@ -859,7 +859,7 @@ export default function Soc1Course() {
                         )}
 
                         {step?.type === "pdf" && step.pdfSrc && (
-                          <PdfViewer src={step.pdfSrc} />
+                          <PdfViewer key={activeStep} src={step.pdfSrc} />
                         )}
 
                         {step?.type === "quiz" && step.questions && (
