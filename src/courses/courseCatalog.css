@@ -7,6 +7,7 @@
 .cc-wrap {
   width:      100%;
   box-sizing: border-box;
+  padding: 0 10px;
 }
 
 /* ── Breadcrumb ──────────────────────────────────────────────── */
@@ -292,4 +293,58 @@
   .cc-grid    { grid-template-columns: 1fr; }
   .cc-title   { font-size: 1.3rem; }
   .cc-card    { padding: 18px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Sección "en progreso" + barra/badges de porcentaje
+   Reusa .cc-card / .cc-eyebrow / .cc-badge / variables --dm-*.
+   Solo agrega estilos nuevos, no modifica nada existente.
+══════════════════════════════════════════════════════════════ */
+
+.cc-badge--level{ font-size: 11px !important; }
+
+.cc-continue-section {
+  margin-bottom: 36px;
+}
+
+.cc-eyebrow--sub {
+  display:       block;
+  margin-bottom: 14px;
+  font-size: 1rem;
+  font-family: "Montserrat";
+}
+
+.cc-badge--completed {
+  color:        #22c55e;
+  border-color: rgba(34,197,94,0.3);
+  background:   rgba(34,197,94,0.06);
+}
+
+.cc-badge--progress {
+  color:        var(--dm-accent);
+  border-color: rgba(204,255,0,0.3);
+  background:   rgba(204,255,0,0.06);
+  font-size: 11px;
+}
+.dm-container.light .cc-badge--progress {
+  color:        #ff5500;
+  border-color: rgba(255,85,0,0.3);
+  background:   rgba(255,85,0,0.06);
+}
+
+.cc-progress-bar-wrap {
+  margin-top: -2px;
+}
+
+.cc-progress-bar {
+  height:     4px;
+  width:      100%;
+  background: var(--dm-border);
+  overflow:   hidden;
+}
+
+.cc-progress-fill {
+  height:     100%;
+  background: var(--dm-accent);
+  transition: width 0.4s ease;
 }

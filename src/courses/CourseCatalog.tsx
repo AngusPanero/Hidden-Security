@@ -1,5 +1,7 @@
-import { useState, type JSX } from "react";
+import { useState, useEffect, type JSX } from "react";
+import axios from "axios";
 import Soc1Course from "../courses/paidCourses/soc1/Soc1Course";
+import { UseSession } from "../contexts/SessionContext"; // ajustá esta ruta si difiere
 import "./courseCatalog.css";
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -28,7 +30,7 @@ const CATALOG: CourseMeta[] = [
     description: "Fundamentos de operaciones de seguridad, SIEM, análisis de amenazas y respuesta a incidentes.",
     tags:        ["SIEM", "Incident Response", "Threat Hunting", "Splunk"],
     level:       "Inicial",
-    duration:    "4 módulos",
+    duration:    "8 módulos",
     status:      "available",
     component:   Soc1Course,
   },
@@ -88,8 +90,44 @@ const LEVEL_COLORS: Record<string, string> = {
   Avanzado:   "#f43f5e",
 };
 
+// ── Progreso por curso — viene del backend (GET /api/course/progress-summary) ──
+// Solo trae cursos que el usuario ya tocó (find, no upsert) -- ver comentario
+// en courseRouter.js. Cursos "soon" nunca van a tener entrada acá.
+interface CourseProgressSummary {
+  courseId:       string;
+  currentStep:    number;
+  completedCount: number;
+  totalSteps:     number;
+  percent:        number;
+  isCompleted:    boolean;
+  startedAt:      string;
+  completedAt:    string | null;
+}
+
 export default function CourseCatalog() {
+  const { user } = UseSession();
   const [activeCourse, setActiveCourse] = useState<string | null>(null);
+
+  // ── Progreso del usuario para todos los cursos que ya empezó ──────────────
+  const [progressMap, setProgressMap] = useState<Record<string, CourseProgressSummary>>({});
+  const [progressLoaded, setProgressLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setProgressLoaded(true); return; }
+
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/course/progress-summary`, { withCredentials: true })
+      .then(({ data }) => {
+        const map: Record<string, CourseProgressSummary> = {};
+        (data.data as CourseProgressSummary[]).forEach((p) => { map[p.courseId] = p; });
+        setProgressMap(map);
+      })
+      .catch(() => {
+        // Sin progreso disponible (por ejemplo, sin membresía todavía) -- el
+        // catálogo simplemente se muestra sin secciones de progreso.
+      })
+      .finally(() => setProgressLoaded(true));
+  }, [user]);
 
   const selected = activeCourse ? CATALOG.find(c => c.id === activeCourse) : null;
 
@@ -111,6 +149,120 @@ export default function CourseCatalog() {
     );
   }
 
+  // ── Split entre "en progreso" y "el resto" ─────────────────────────────────
+  // Un curso cuenta como "en progreso" si está disponible, tiene al menos un
+  // step completado y todavía no está terminado. Mientras no haya ninguno
+  // (incluye: todavía no cargó el progreso, usuario sin sesión, o ningún
+  // curso empezado), se renderiza EXACTAMENTE como antes -- una sola grilla.
+  const inProgressCourses = CATALOG.filter((c) => {
+    const p = progressMap[c.id];
+    return c.status === "available" && !!p && p.completedCount > 0 && !p.isCompleted;
+  });
+
+  const hasInProgress = progressLoaded && inProgressCourses.length > 0;
+
+  const remainingCourses = hasInProgress
+    ? CATALOG.filter((c) => !inProgressCourses.some((ip) => ip.id === c.id))
+    : CATALOG;
+
+  // ── Card de curso -- reutilizada tanto en "continuar" como en el resto ────
+  // Si hay progreso para ese curso, muestra la barra + badge de porcentaje
+  // (o "COMPLETADO") en vez del badge "DISPONIBLE" de siempre.
+  const renderCourseCard = (course: CourseMeta) => {
+    const isSoon     = course.status === "soon";
+    const levelColor = LEVEL_COLORS[course.level] ?? "#ccff00";
+    const progress   = progressMap[course.id];
+    const hasProgress = !isSoon && !!progress;
+
+    let ctaLabel = "INICIAR →";
+    if (hasProgress) {
+      ctaLabel = progress.isCompleted ? "VER CURSO →" : "CONTINUAR →";
+    }
+
+    return (
+      <div
+        key={course.id}
+        className={`cc-card${isSoon ? " cc-card--soon" : ""}`}
+        onClick={() => !isSoon && setActiveCourse(course.id)}
+      >
+        {/* Badge de estado */}
+        <div className="cc-card-badges">
+          <span
+            className="cc-badge cc-badge--level"
+            style={{ borderColor: `${levelColor}40`, color: levelColor }}
+          >
+            {course.level}
+          </span>
+          {isSoon && (
+            <span className="cc-badge cc-badge--soon">
+              PRÓXIMAMENTE {course.comingSoon}
+            </span>
+          )}
+          {!isSoon && !hasProgress && (
+            <span className="cc-badge cc-badge--available">
+              DISPONIBLE
+            </span>
+          )}
+          {hasProgress && progress!.isCompleted && (
+            <span className="cc-badge cc-badge--completed">
+              ✓ COMPLETADO
+            </span>
+          )}
+          {hasProgress && !progress!.isCompleted && (
+            <span className="cc-badge cc-badge--progress">
+              {progress!.percent}% COMPLETADO
+            </span>
+          )}
+        </div>
+
+        {/* Título */}
+        <div className="cc-card-title-wrap">
+          <h3 className="cc-card-title">{course.title}</h3>
+          <p className="cc-card-subtitle">{course.subtitle}</p>
+        </div>
+
+        {/* Descripción */}
+        <p className="cc-card-description">{course.description}</p>
+
+        {/* Barra de progreso -- solo si hay progreso real */}
+        {hasProgress && (
+          <div className="cc-progress-bar-wrap">
+            <div className="cc-progress-bar">
+              <div className="cc-progress-fill" style={{ width: `${progress!.percent}%` }} />
+            </div>
+          </div>
+        )}
+
+        {/* Tags */}
+        <div className="cc-card-tags">
+          {course.tags.map(t => (
+            <span key={t} className="cc-tag">{t}</span>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="cc-card-footer">
+          <span className="cc-card-meta">{course.duration}</span>
+          {!isSoon ? (
+            <span className="cc-card-cta">{ctaLabel}</span>
+          ) : (
+            <span className="cc-card-cta cc-card-cta--soon">EN DESARROLLO</span>
+          )}
+        </div>
+
+        {/* Overlay de próximamente */}
+        {isSoon && (
+          <div className="cc-soon-overlay">
+            <span className="cc-soon-text">PRÓXIMAMENTE</span>
+            {course.comingSoon && (
+              <span className="cc-soon-date">{course.comingSoon}</span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Grid del catálogo
   return (
     <div className="cc-wrap">
@@ -122,76 +274,22 @@ export default function CourseCatalog() {
         </p>
       </div>
 
+      {/* ── Sección "continuá donde lo dejaste" -- solo si hay algo en progreso ── */}
+      {hasInProgress && (
+        <div className="cc-continue-section">
+          <span className="cc-eyebrow cc-eyebrow--sub">CURSOS EN PROCESO</span>
+          <div className="cc-grid">
+            {inProgressCourses.map(renderCourseCard)}
+          </div>
+        </div>
+      )}
+
+      {/* ── Resto de los cursos (o todos, si nadie está en progreso) ── */}
+      {hasInProgress && (
+        <span className="cc-eyebrow cc-eyebrow--sub">CURSOS DISPONIBLES</span>
+      )}
       <div className="cc-grid">
-        {CATALOG.map((course) => {
-          const isSoon      = course.status === "soon";
-          const levelColor  = LEVEL_COLORS[course.level] ?? "#ccff00";
-
-          return (
-            <div
-              key={course.id}
-              className={`cc-card${isSoon ? " cc-card--soon" : ""}`}
-              onClick={() => !isSoon && setActiveCourse(course.id)}
-            >
-              {/* Badge de estado */}
-              <div className="cc-card-badges">
-                <span
-                  className="cc-badge cc-badge--level"
-                  style={{ borderColor: `${levelColor}40`, color: levelColor }}
-                >
-                  {course.level}
-                </span>
-                {isSoon && (
-                  <span className="cc-badge cc-badge--soon">
-                    PRÓXIMAMENTE {course.comingSoon}
-                  </span>
-                )}
-                {!isSoon && (
-                  <span className="cc-badge cc-badge--available">
-                    DISPONIBLE
-                  </span>
-                )}
-              </div>
-
-              {/* Título */}
-              <div className="cc-card-title-wrap">
-                <h3 className="cc-card-title">{course.title}</h3>
-                <p className="cc-card-subtitle">{course.subtitle}</p>
-              </div>
-
-              {/* Descripción */}
-              <p className="cc-card-description">{course.description}</p>
-
-              {/* Tags */}
-              <div className="cc-card-tags">
-                {course.tags.map(t => (
-                  <span key={t} className="cc-tag">{t}</span>
-                ))}
-              </div>
-
-              {/* Footer */}
-              <div className="cc-card-footer">
-                <span className="cc-card-meta">{course.duration}</span>
-                {!isSoon ? (
-                  <span className="cc-card-cta">INICIAR →</span>
-                ) : (
-                  <span className="cc-card-cta cc-card-cta--soon">EN DESARROLLO</span>
-                )}
-              </div>
-
-              {/* Overlay de próximamente */}
-              {isSoon && (
-                <div className="cc-soon-overlay">
-                  {/* <span className="cc-soon-icon">⏳</span> */}
-                  <span className="cc-soon-text">PRÓXIMAMENTE</span>
-                  {course.comingSoon && (
-                    <span className="cc-soon-date">{course.comingSoon}</span>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {remainingCourses.map(renderCourseCard)}
       </div>
     </div>
   );
