@@ -15,6 +15,27 @@ import soc5 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc5.pdf"
 import soc6 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc6.pdf"
 /* import videoPrueba from "./video-curso.mp4";  */
 
+// Módulo 2
+import socIntroM2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/socIntro.pdf"
+import soc1M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc1.pdf"
+import soc2M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc2.pdf"
+import soc3M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc3.pdf"
+import soc4M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc4.pdf"
+import soc5M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc5.pdf"
+import soc6M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc6.pdf"
+import socFinalM2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/socFinal.pdf"
+
+// Módulo 3
+import socIntroM3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/socIntro.pdf"
+import soc1M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc1.pdf"
+import soc2M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc2.pdf"
+import soc3M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc3.pdf"
+import soc4M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc4.pdf"
+import soc5M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc5.pdf"
+import soc6M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc6.pdf"
+import soc9M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc9.pdf"
+import socFinalM3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/socFinal.pdf"
+
 // Worker de PDF.js — apunta al archivo en node_modules
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -46,8 +67,8 @@ interface CourseStep {
   questions?:  QuizQuestion[];
 }
 
-// ── Quiz final — mismas 8 preguntas para los 8 módulos, hasta tener los
-// quizzes reales de cada uno (ver comentario sobre buildModuleSteps abajo) ──
+// ── Quiz Módulo 1 — usado también como placeholder de los módulos 4 a 8 y,
+// temporalmente, del Módulo 3 hasta tener su quiz real ─────────────────────
 const MODULO_1_QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     question: "¿Qué describe mejor los tres objetivos operativos de un SOC y su relación?",
@@ -127,15 +148,95 @@ const MODULO_1_QUIZ_QUESTIONS: QuizQuestion[] = [
   },
 ];
 
+// ── Quiz Módulo 2 ────────────────────────────────────────────────────────────
+const MODULO_2_QUIZ_QUESTIONS: QuizQuestion[] = [
+  {
+    question: "Un usuario de marketing clona un repositorio de código productivo a las 2:00 AM desde un dispositivo personal. ¿Cuál es el conjunto de información más relevante para clasificar esta alerta?",
+    options: [
+      "Confirmar si el usuario tiene acceso autorizado al repositorio y si el dispositivo personal está registrado en el MDM corporativo",
+      "Verificar el volumen clonado, el lenguaje del repositorio y si hay otros usuarios del área de marketing con el mismo comportamiento esa noche",
+      "Revisar el rol del usuario vs. el tipo de repositorio, el horario y dispositivo, si hubo actividad posterior al clon (push, descarga, reenvío), y si existe algún contexto operativo que lo justifique",
+      "Consultar con el equipo de desarrollo si el repositorio fue modificado después del clon, ya que el riesgo real está en la integridad del código, no en la descarga",
+    ],
+    answer: 2,
+  },
+  {
+    question: "¿Qué diferencia existe entre que una acción fue 'bloqueada' y que la situación fue 'resuelta'? ¿Cuál afirmación describe mejor la diferencia?",
+    options: [
+      "Son equivalentes en la práctica: si el control bloqueó la acción, el riesgo dejó de existir y el caso puede cerrarse",
+      "'Bloqueada' significa que el control actuó sobre ese evento específico, pero no necesariamente resuelve el origen, el alcance ni la posible actividad relacionada",
+      "La diferencia es semántica: 'bloqueada' la usa el EDR y 'resuelta' la usa el analista al cerrar el ticket",
+      "Una acción bloqueada requiere escalamiento automático a L2; una resuelta puede cerrarse directamente desde L1",
+    ],
+    answer: 1,
+  },
+  {
+    question: "Un mismo evento (modificación de permisos en una carpeta compartida) puede tener impacto bajo en un caso y alto en otro. ¿Cuál par de escenarios demuestra mejor que el impacto no lo define el evento sino el contexto?",
+    options: [
+      "Caso bajo: el cambio fue realizado por un admin. Caso alto: fue realizado por un usuario sin privilegios",
+      "Caso bajo: la carpeta tiene 10 archivos. Caso alto: la carpeta tiene 10.000 archivos",
+      "Caso bajo: admin aplica cambio aprobado en carpeta de pruebas en horario laboral. Caso alto: cuenta comprometida modifica permisos en carpeta financiera sin ticket, y usuarios externos acceden después",
+      "Caso bajo: el cambio amplió permisos de lectura. Caso alto: el cambio otorgó permisos de escritura a usuarios externos",
+    ],
+    answer: 2,
+  },
+  {
+    question: "¿Cuál es la diferencia entre un IOC y un IOA, y por qué un analista no debería depender exclusivamente de IOC?",
+    options: [
+      "Los IOC detectan ataques en tiempo real; los IOA detectan compromisos que ya ocurrieron. Depender solo de IOC genera retrasos en la respuesta",
+      "Los IOA son más confiables que los IOC porque provienen del comportamiento observado, mientras que los IOC pueden estar desactualizados o ser genéricos",
+      "Un IOC identifica un artefacto asociado a una amenaza conocida; un IOA identifica comportamiento compatible con una técnica de ataque. Depender solo de IOC deja puntos ciegos ante amenazas nuevas o que cambian sus indicadores",
+      "La diferencia es operativa: los IOC los consume el SIEM y los IOA los consume el EDR. Un analista que solo trabaja con SIEM naturalmente depende de IOC",
+    ],
+    answer: 2,
+  },
+  {
+    question: "El SIEM detecta múltiples intentos fallidos de login seguidos de un login exitoso en una cuenta sin MFA a las 3 AM. ¿Cuál descripción aplica correctamente amenaza, vulnerabilidad, riesgo e impacto?",
+    options: [
+      "Amenaza: fuerza bruta. Vulnerabilidad: contraseña débil. Riesgo: cuenta bloqueada por reintentos. Impacto: pérdida de disponibilidad de la cuenta",
+      "Amenaza: actor intentando acceso no autorizado. Vulnerabilidad: cuenta sin MFA. Riesgo: acceso exitoso con credenciales comprometidas. Impacto: depende de los privilegios y la actividad posterior",
+      "Amenaza: ausencia de MFA. Vulnerabilidad: política de contraseñas débil. Riesgo: alto por horario nocturno. Impacto: posible exfiltración de datos si el usuario tiene acceso a información sensible",
+      "Amenaza: login exitoso sospechoso. Vulnerabilidad: monitoreo insuficiente. Riesgo: sin MFA el atacante puede reingresar. Impacto: requiere confirmación antes de evaluarse",
+    ],
+    answer: 1,
+  },
+  {
+    question: "Un servidor con una vulnerabilidad crítica está expuesto a internet y recibe intentos de explotación. El WAF bloqueó todos los requests. ¿'Si el WAF bloqueó todo, el servidor no fue comprometido y la alerta puede cerrarse (la vulnerabilidad queda pendiente para gestión de vulnerabilidades)'?",
+    options: [
+      "Verdadero — el bloqueo del WAF confirma que no hubo compromiso, así que el caso puede cerrarse",
+      "Falso — el bloqueo del WAF reduce el impacto inmediato pero no cierra el análisis: hay que verificar si algún request pasó antes del bloqueo, si hubo respuestas anómalas del servidor, si el WAF estuvo en modo \"alert only\" en algún momento, y si la actividad forma parte de una campaña más amplia. Además, la vulnerabilidad sigue activa y expuesta",
+    ],
+    answer: 1,
+  },
+  {
+    question: "¿Qué significa que una organización tiene una gran 'superficie de ataque' y cómo influye eso en el trabajo diario del analista SOC?",
+    options: [
+      "Que la organización tiene muchos empleados y por lo tanto mayor probabilidad de error humano, lo que requiere más campañas de concientización",
+      "Que hay más activos expuestos, más vectores posibles y más fuentes de eventos a monitorear, lo que obliga al analista a priorizar por criticidad y contexto en lugar de tratar todas las alertas igual",
+      "Que el perímetro de red es difícil de defender, por lo que el SOC debería concentrar sus recursos en firewall y WAF antes que en endpoints o identidad",
+      "Que la organización tiene deuda técnica acumulada, lo que hace que el volumen de vulnerabilidades supere la capacidad del equipo de parcheo",
+    ],
+    answer: 1,
+  },
+  {
+    question: "¿Cuál es la diferencia entre impacto potencial e impacto confirmado?",
+    options: [
+      "Potencial: el analista cree que hubo daño. Confirmado: L2 validó que hubo daño. La diferencia es quién lo determina, no la evidencia",
+      "Potencial: el evento ocurrió en un activo crítico. Confirmado: el evento ocurrió en un activo crítico y fue bloqueado. La criticidad del activo define si el impacto se confirma",
+      "Potencial: hay evidencia de actividad que podría haber afectado la seguridad, pero no se confirmó daño real. Confirmado: existe evidencia concreta de afectación. La diferencia cambia cómo se documenta y cómo se escala",
+      "Potencial: el incidente todavía está en curso. Confirmado: el incidente fue contenido. La diferencia indica el estado operativo del caso, no el tipo de evidencia disponible",
+    ],
+    answer: 2,
+  },
+];
+
 // ── Contenido de un módulo — 7 PDFs + 1 quiz final ──────────────────────────
-// Todavía solo existe contenido definitivo para el Módulo 1 (los 7 PDFs —
-// socIntro, soc1..soc6 — y el quiz de arriba). Mientras no tengas los PDFs
-// y preguntas reales de los módulos 2 a 8, esta misma función se llama 8
-// veces para simular la estructura final de 8 módulos y poder probar bien
-// la navegación step-by-step. buildModules() (más abajo) ya agrupa
-// automáticamente cada tanda de steps que termina en un "quiz" como un
-// módulo aparte, así que apenas reemplaces el contenido de cada llamada
-// (PDFs y preguntas reales de cada módulo) no hace falta tocar nada más.
+// Solo se usa para el Módulo 1 (7 PDFs — socIntro, soc1..soc6 — y su quiz) y,
+// como placeholder, para simular los módulos 4 a 8 hasta tener su contenido
+// real. buildModules() (más abajo) ya agrupa automáticamente cada tanda de
+// steps que termina en un "quiz" como un módulo aparte, así que apenas
+// reemplaces el contenido de cada llamada (PDFs y preguntas reales) no hace
+// falta tocar nada más.
 function buildModuleSteps(moduleNumber: number): CourseStep[] {
   return [
     { type: "pdf", title: `Módulo ${moduleNumber} — Introducción al SOC`,          pdfSrc: socIntro },
@@ -149,15 +250,52 @@ function buildModuleSteps(moduleNumber: number): CourseStep[] {
   ];
 }
 
-// 8 módulos — de momento los 8 repiten el contenido del Módulo 1 (simulación
-// de la estructura final). Reemplazá esto por 8 llamadas explícitas con el
-// contenido real de cada módulo a medida que lo tengas, ej:
+// ── Módulo 2 — 7 PDFs (socIntro, soc1..soc6, socFinal) + quiz real ─────────
+const MODULO_2_STEPS: CourseStep[] = [
+  { type: "pdf", title: "Módulo 2 — Introducción",     pdfSrc: socIntroM2 },
+  { type: "pdf", title: "Módulo 2 — Contenido 1",       pdfSrc: soc1M2 },
+  { type: "pdf", title: "Módulo 2 — Contenido 2",       pdfSrc: soc2M2 },
+  { type: "pdf", title: "Módulo 2 — Contenido 3",       pdfSrc: soc3M2 },
+  { type: "pdf", title: "Módulo 2 — Contenido 4",       pdfSrc: soc4M2 },
+  { type: "pdf", title: "Módulo 2 — Contenido 5",       pdfSrc: soc5M2 },
+  { type: "pdf", title: "Módulo 2 — Contenido 6",       pdfSrc: soc6M2 },
+  { type: "pdf", title: "Módulo 2 — Cierre",            pdfSrc: socFinalM2 },
+  { type: "quiz", title: "Módulo 2 — Quiz final", questions: MODULO_2_QUIZ_QUESTIONS },
+];
+
+// ── Módulo 3 — 8 PDFs (socIntro, soc1..soc6, soc9, socFinal) — quiz todavía
+// sin definir: usa MODULO_1_QUIZ_QUESTIONS como placeholder hasta tener el real
+const MODULO_3_STEPS: CourseStep[] = [
+  { type: "pdf", title: "Módulo 3 — Introducción",     pdfSrc: socIntroM3 },
+  { type: "pdf", title: "Módulo 3 — Contenido 1",       pdfSrc: soc1M3 },
+  { type: "pdf", title: "Módulo 3 — Contenido 2",       pdfSrc: soc2M3 },
+  { type: "pdf", title: "Módulo 3 — Contenido 3",       pdfSrc: soc3M3 },
+  { type: "pdf", title: "Módulo 3 — Contenido 4",       pdfSrc: soc4M3 },
+  { type: "pdf", title: "Módulo 3 — Contenido 5",       pdfSrc: soc5M3 },
+  { type: "pdf", title: "Módulo 3 — Contenido 6",       pdfSrc: soc6M3 },
+  { type: "pdf", title: "Módulo 3 — Contenido 7",       pdfSrc: soc9M3 },
+  { type: "pdf", title: "Módulo 3 — Cierre",            pdfSrc: socFinalM3 },
+  { type: "quiz", title: "Módulo 3 — Quiz final", questions: MODULO_1_QUIZ_QUESTIONS }, // TODO: reemplazar por el quiz real del Módulo 3
+];
+
+// 8 módulos — Módulo 1 con su contenido real, Módulos 2 y 3 con su contenido
+// real, y Módulos 4 a 8 repitiendo el contenido del Módulo 1 como simulación
+// de la estructura final hasta tener el material definitivo. Reemplazá esa
+// última parte por llamadas explícitas con el contenido real a medida que lo
+// tengas, ej:
 //   const COURSE_STEPS: CourseStep[] = [
-//     ...buildModuleSteps(1), // ← ya con el contenido real de moduleNumber:1
-//     ...modulo2Steps,        // ← array armado a mano con el contenido real
+//     ...buildModuleSteps(1),
+//     ...MODULO_2_STEPS,
+//     ...MODULO_3_STEPS,
+//     ...modulo4Steps, // ← array armado a mano con el contenido real
 //     ...
 //   ];
-const COURSE_STEPS: CourseStep[] = Array.from({ length: 8 }, (_, i) => buildModuleSteps(i + 1)).flat();
+const COURSE_STEPS: CourseStep[] = [
+  ...buildModuleSteps(1),
+  ...MODULO_2_STEPS,
+  ...MODULO_3_STEPS,
+  ...Array.from({ length: 5 }, (_, i) => buildModuleSteps(i + 4)).flat(), // módulos 4 a 8 (placeholder)
+];
 
 const TOTAL_STEPS = COURSE_STEPS.length;
 const PASSING_SCORE = 0.70;

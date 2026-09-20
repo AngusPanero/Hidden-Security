@@ -9,7 +9,7 @@ import axios from "axios";
 import "./checkout.css";
 import Error from "../processMessages/Error";
 import Loader from "../loader/Loader";
-/* import useMercadoPago from "../hooks/useMercadoPago"; */
+import useMercadoPago from "../hooks/useMercadoPago";
 import CreditCard from "../ui/creditCard/CreditCard";
 import ProcessOk from "../processMessages/ProcessOk";
 
