@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import axios from "axios";
 import "./userDashboard.css";
 import { UseSession }   from "../contexts/SessionContext";
@@ -45,6 +45,68 @@ const STATUS_NOTES: Record<string, { freq: number; delay: number }[]> = {
   default:  [{ freq: 523, delay: 0 }],
 };
 
+// ─── Membership: labels y helper de cálculo de vigencia ───────────────────────
+const PLAN_LABELS: Record<string, string> = {
+    starter:    "STARTER",
+    pro:        "PRO",
+    elite:      "ELITE",
+    business:   "BUSINESS",
+    enterprise: "ENTERPRISE",
+};
+
+interface MembershipInfo {
+    activePlanId:   string | null;
+    activeExpiry:   Date | null;
+    voucherCount:   number;
+    daysRemaining:  number;
+    hoursRemaining: number;
+    hasAnyPurchase: boolean;
+}
+
+// Recorre purchases/purchaseExpiry (custom claims de Firebase) y calcula:
+// - el plan activo no vencido (si hay varios registrados, toma el primero vigente)
+// - cuánto tiempo le queda (días + horas restantes dentro del último día)
+// - cuántos vouchers de certificación tiene disponibles
+function getMembershipInfo(user: any): MembershipInfo {
+    const purchases: string[] = Array.isArray(user?.purchases) ? user.purchases : [];
+    const purchaseExpiry: Record<string, string> = user?.purchaseExpiry ?? {};
+
+    const now = new Date();
+    let activePlanId: string | null = null;
+    let activeExpiry:  Date   | null = null;
+
+    for (const planId of purchases) {
+        if (planId === 'voucher') continue; // el voucher no es un "plan" con vigencia
+        const expiryStr = purchaseExpiry[planId];
+        if (!expiryStr) continue;
+        const expiry = new Date(expiryStr);
+        if (expiry > now) {
+            activePlanId = planId;
+            activeExpiry = expiry;
+            break;
+        }
+    }
+
+    const voucherCount = purchases.filter(p => p === 'voucher').length;
+
+    let daysRemaining  = 0;
+    let hoursRemaining = 0;
+    if (activeExpiry) {
+        const diffMs = activeExpiry.getTime() - now.getTime();
+        daysRemaining  = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        hoursRemaining = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    }
+
+    return {
+        activePlanId,
+        activeExpiry,
+        voucherCount,
+        daysRemaining,
+        hoursRemaining,
+        hasAnyPurchase: purchases.length > 0,
+    };
+}
+
 // ─── UserDashboard ────────────────────────────────────────────────────────────
 const UserDashboard = () => {
     const { user, loading: sessionLoading } = UseSession();
@@ -68,6 +130,10 @@ const UserDashboard = () => {
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const activeTabRef = useRef(activeTab);
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+    // Info de membresía (plan activo, tiempo restante, vouchers) — se recalcula
+    // solo cuando cambian las claims del usuario.
+    const membership = useMemo(() => getMembershipInfo(user), [user]);
 
     useEffect(() => {
         if (user?.partner === true || user?.admin === true || user?.isEnterprise === true) {
@@ -219,10 +285,7 @@ const UserDashboard = () => {
         }
     };
 
-    const purchases    = Array.isArray(purchased) ? purchased : [];
-    const totalGastado = purchases.filter(p => p.status === "approved").reduce((acc, p) => acc + (p.calculo?.totalFinal ?? p.amount), 0);
-    const totalOrdenes = purchases.filter(p => p.status === "approved").length;
-    const ultimaCompra = purchases.length > 0 ? new Date(purchases[0].createdAt).toLocaleDateString("es-AR") : "—";
+    const purchases = Array.isArray(purchased) ? purchased : [];
 
     if (sessionLoading) {
         return (
@@ -295,20 +358,86 @@ const UserDashboard = () => {
                 </div>
             </div>
 
-            {/* ── STATS ── */}
-            <div className="dm-stats">
-                <div className="dm-stat">
-                    <span className="dm-stat-label">ÓRDENES</span>
-                    <span className="dm-stat-value">{totalOrdenes}</span>
-                </div>
-                <div className="dm-stat dm-stat-accent">
-                    <span className="dm-stat-label">TOTAL GASTADO</span>
-                    <span className="dm-stat-value">${totalGastado.toLocaleString("es-AR")}</span>
-                </div>
-                <div className="dm-stat">
-                    <span className="dm-stat-label">ÚLTIMA COMPRA</span>
-                    <span className="dm-stat-value dm-stat-small">{ultimaCompra}</span>
-                </div>
+            {/* ── MEMBRESÍA: plan activo, tiempo restante y vouchers ── */}
+            <div className="dm-membership-block">
+                {membership.activeExpiry && membership.daysRemaining < 7 && (
+                    <div className="dm-expiry-alert">
+                        <span className="dm-expiry-alert-icon">⚠</span>
+                        <span>
+                            Tu plan {PLAN_LABELS[membership.activePlanId!] ?? membership.activePlanId} vence en{" "}
+                            {membership.daysRemaining > 0
+                                ? `${membership.daysRemaining} día${membership.daysRemaining !== 1 ? "s" : ""}`
+                                : `${membership.hoursRemaining} hora${membership.hoursRemaining !== 1 ? "s" : ""}`}
+                            {" — "}
+                            <a href="/planes" className="dm-expiry-alert-link">RENOVAR AHORA</a>
+                        </span>
+                    </div>
+                )}
+
+                {!membership.hasAnyPurchase ? (
+                    <div className="dm-membership-empty">
+                        <span className="dm-membership-empty-icon">◫</span>
+                        <span className="dm-membership-empty-text">SIN_PLAN_ACTIVO</span>
+                        <a href="/planes" className="dm-membership-cta">VER_PLANES</a>
+                    </div>
+                ) : (
+                    <div className="dm-membership-grid">
+
+                        {/* PLAN ACTIVO */}
+                        <div className={`dm-membership-card ${membership.activeExpiry && membership.daysRemaining < 7 ? "dm-time-urgent" : ""}`}>
+                            <span className="dm-membership-card-label">PLAN_ACTIVO</span>
+                            {membership.activePlanId ? (
+                                <>
+                                    <span className="dm-membership-plan-name">
+                                        {PLAN_LABELS[membership.activePlanId] ?? membership.activePlanId.toUpperCase()}
+                                    </span>
+                                    <span className="dm-membership-expires">
+                                        Vence el {membership.activeExpiry!.toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="dm-membership-plan-name" style={{ opacity: 0.3 }}>—</span>
+                                    <span className="dm-membership-expires">Sin plan vigente</span>
+                                </>
+                            )}
+                        </div>
+
+                        {/* TIEMPO RESTANTE */}
+                        <div className={`dm-membership-card ${membership.activeExpiry && membership.daysRemaining < 7 ? "dm-time-urgent" : ""}`}>
+                            <span className="dm-membership-card-label">TIEMPO_RESTANTE</span>
+                            {membership.activeExpiry ? (
+                                <>
+                                    <span className="dm-membership-time-value">
+                                        {membership.daysRemaining > 0
+                                            ? `${membership.daysRemaining} día${membership.daysRemaining !== 1 ? "s" : ""}`
+                                            : `${membership.hoursRemaining} hora${membership.hoursRemaining !== 1 ? "s" : ""}`}
+                                    </span>
+                                    <span className="dm-membership-time-detail">
+                                        {membership.daysRemaining > 0
+                                            ? `+ ${membership.hoursRemaining}h`
+                                            : "Vence hoy"}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="dm-membership-time-value" style={{ opacity: 0.3 }}>—</span>
+                                    <span className="dm-membership-time-detail">Sin plan vigente</span>
+                                </>
+                            )}
+                        </div>
+
+                        {/* VOUCHERS DISPONIBLES */}
+                        <div className={`dm-membership-card ${membership.voucherCount === 0 ? "dm-voucher-empty" : ""}`}>
+                            <span className="dm-membership-card-label">VOUCHERS_DISPONIBLES</span>
+                            <span className="dm-membership-voucher-count">{membership.voucherCount}</span>
+                            <span className="dm-membership-voucher-label">
+                                {membership.voucherCount === 0 ? "Sin certificaciones" : "Para certificación"}
+                            </span>
+                        </div>
+
+                    </div>
+                )}
             </div>
 
             {/* ── TABS ── */}

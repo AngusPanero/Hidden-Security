@@ -10,8 +10,17 @@ interface Sale {
     status: string;
     plan: string;
     amount: number;
+    cuotas?: number;
+    discount?: number;
+    couponUsed?: string | null;
     orderId?: string;
-    phone?: string;
+    telefono?: string;
+    nombre?: string;
+    dni?: string;
+    domicilio?: string;
+    ciudad?: string;
+    provincia?: string;
+    codigoPostal?: string;
     mp_payment_id?: string;
     checked?: boolean;
     invoiceSent?: boolean;
@@ -222,8 +231,10 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ allTickets }) => {
                                             {/* datos del cliente */}
                                             <div className="sh-detail-col">
                                                 <span className="sh-detail-title">// DATOS_CLIENTE</span>
+                                                <div className="sh-detail-row"><span>Nombre</span><strong>{sale.nombre || '—'}</strong></div>
+                                                <div className="sh-detail-row"><span>DNI</span><strong>{sale.dni || '—'}</strong></div>
                                                 <div className="sh-detail-row"><span>Email</span><strong>{sale.email}</strong></div>
-                                                <div className="sh-detail-row"><span>Teléfono</span><strong>{sale.phone || '—'}</strong></div>
+                                                <div className="sh-detail-row"><span>Teléfono</span><strong>{sale.telefono || '—'}</strong></div>
                                                 <div className="sh-detail-row"><span>Fecha</span><strong>{new Date(sale.createdAt).toLocaleString('es-AR')}</strong></div>
                                                 <div className="sh-detail-row"><span>Order ID</span><strong>{sale.orderId || '—'}</strong></div>
                                                 <div className="sh-detail-row"><span>MP ID</span><strong>{sale.mp_payment_id || '—'}</strong></div>
@@ -233,6 +244,15 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ allTickets }) => {
                                                         {sale.status?.toUpperCase()}
                                                     </strong>
                                                 </div>
+                                            </div>
+
+                                            {/* datos de facturación */}
+                                            <div className="sh-detail-col">
+                                                <span className="sh-detail-title">// DATOS_FACTURACIÓN</span>
+                                                <div className="sh-detail-row"><span>Domicilio</span><strong>{sale.domicilio || '—'}</strong></div>
+                                                <div className="sh-detail-row"><span>Ciudad</span><strong>{sale.ciudad || '—'}</strong></div>
+                                                <div className="sh-detail-row"><span>Provincia</span><strong>{sale.provincia || '—'}</strong></div>
+                                                <div className="sh-detail-row"><span>Código Postal</span><strong>{sale.codigoPostal || '—'}</strong></div>
                                             </div>
 
                                             {/* resumen financiero */}
@@ -266,10 +286,24 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ allTickets }) => {
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    <div className="sh-detail-row">
-                                                        <span>Total cobrado</span>
-                                                        <strong>${sale.amount?.toLocaleString()}</strong>
-                                                    </div>
+                                                    <>
+                                                        <div className="sh-detail-row">
+                                                            <span>Cuotas</span>
+                                                            <strong>
+                                                                {(sale.cuotas ?? 1) > 1 ? `${sale.cuotas}x CON INTERÉS` : '1x (SIN INTERÉS)'}
+                                                            </strong>
+                                                        </div>
+                                                        {sale.couponUsed && (
+                                                            <div className="sh-detail-row sh-detail-green">
+                                                                <span>Cupón</span>
+                                                                <strong>{sale.couponUsed} — {sale.discount}%</strong>
+                                                            </div>
+                                                        )}
+                                                        <div className="sh-detail-row sh-detail-total">
+                                                            <span>TOTAL COBRADO</span>
+                                                            <strong>${sale.amount?.toLocaleString()}</strong>
+                                                        </div>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>

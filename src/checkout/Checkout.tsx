@@ -9,7 +9,7 @@ import axios from "axios";
 import "./checkout.css";
 import Error from "../processMessages/Error";
 import Loader from "../loader/Loader";
-import useMercadoPago from "../hooks/useMercadoPago";
+/* import useMercadoPago from "../hooks/useMercadoPago"; */
 import CreditCard from "../ui/creditCard/CreditCard";
 import ProcessOk from "../processMessages/ProcessOk";
 
@@ -153,8 +153,7 @@ function PurchaseBlockedBanner({ title, detail }: { title: string; detail: strin
 
 const Checkout = () => {
     const { planId } = useParams();
-    /* const navigate   = useNavigate();
-    const mp         = useMercadoPago(); */
+    /* const mp         = useMercadoPago(); */
     const [idempotencyKey] = useState(v4());
     const { theme }  = UseTheme();
     const { user }   = UseSession();
@@ -174,6 +173,7 @@ const Checkout = () => {
 
     const [formData, setFormData] = useState({
         nombre: "", email: user?.email || "", telefono: "", dni: "",
+        domicilio: "", ciudad: "", provincia: "", codigoPostal: "",
         tarjetaNumero: "", mesVencimiento: "", añoVencimiento: "", cvv: "",
         cuotas: "1",
     });
@@ -249,10 +249,157 @@ const Checkout = () => {
             const { data } = await axios.post(
                 `${import.meta.env.VITE_API_URL}/test-course-payment`,
                 {
-                    payer: { email: formData.email, phone: formData.telefono || null },
+                    payer: {
+                        nombre: formData.nombre.trim(),
+                        dni: formData.dni.trim(),
+                        domicilio: formData.domicilio.trim(),
+                        ciudad: formData.ciudad.trim(),
+                        provincia: formData.provincia.trim(),
+                        codigoPostal: formData.codigoPostal.trim(),
+                        email: formData.email,
+                        telefono: formData.telefono || null,
+                    },
                     idempotencyKey,
                     items,
                     couponCode: appliedCoupon?.code || null,
+                    installments: Number(formData.cuotas),
+                },
+                { withCredentials: true }
+            );
+
+            if (data.mp_status === "approved") {
+                setStatus("ok");
+                try {
+                    await axios.post(
+                        `${import.meta.env.VITE_API_URL}/confirm-order`,
+                        {
+                            name:       formData.nombre,
+                            email:      formData.email,
+                            telefono:   formData.telefono,
+                            dni:        formData.dni,
+                            domicilio:  formData.domicilio,
+                            ciudad:     formData.ciudad,
+                            provincia:  formData.provincia,
+                            codigoPostal: formData.codigoPostal,
+                            items,
+                            totalPrice: data.amount,
+                            couponCode: appliedCoupon?.code    || null,
+                            discount:   appliedCoupon?.discount || null,
+                        },
+                        { withCredentials: true }
+                    );
+                } catch (err: any) {
+                    setError(`PAGO_REALIZADO_PERO_FALLO_CONFIRMACION, ${err}`);
+                }
+            } else {
+                setError(data.message || "ERROR_TRANSACCION");
+            }
+
+        } catch (err: any) {
+            const backendMsg  = err.response?.data?.message;
+            const backendCode = err.response?.data?.code;
+
+            if (backendCode === "ENTERPRISE_CANNOT_BUY_USER_PLANS" || backendCode === "USER_CANNOT_BUY_ENTERPRISE_PLANS") {
+                setError(`TU_TIPO_DE_USUARIO_ESTÁ_INHABILITADO_PARA_ESTA_COMPRA`);
+            } else if (backendCode === "ACTIVE_PLAN_EXISTS") {
+                setError(err.response?.data?.detail || "YA_TENÉS_UN_PLAN_ACTIVO");
+            } else {
+                setError(backendMsg || err.message || "FALLO_CRITICO_SISTEMA_PAGO");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+ 
+
+    // ─── COBRO REAL CON MERCADO PAGO ───────────────────────────────────────────
+    /* const makePayment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedPlan || !user || !mp) return;
+
+        if (!window.confirm("¿Confirmar el procesamiento del pago?")) {
+            return;
+        }
+
+        const items: string[] = [selectedPlan.id];
+        if (voucherAdded) items.push("voucher");
+
+        try {
+            setError(null);
+            setLoading(true);
+
+            const cardNumber = formData.tarjetaNumero.trim().replace(/\s/g, "");
+            const bin = cardNumber.substring(0, 6);
+
+            // 1. Obtener el método de pago a partir del BIN
+            const paymentMethodsResponse = await mp.getPaymentMethods({ bin });
+            const paymentMethod = paymentMethodsResponse && paymentMethodsResponse.results && paymentMethodsResponse.results.length > 0
+                ? paymentMethodsResponse.results[0]
+                : null;
+
+            if (!paymentMethod) {
+                setError("NO_SE_PUDO_IDENTIFICAR_EL_METODO_DE_PAGO");
+                setLoading(false);
+                return;
+            }
+
+            // 2. Obtener el emisor (con fallback al que ya trae paymentMethod)
+            let issuerId = undefined;
+            try {
+                const issuers = await mp.getIssuers({
+                    paymentMethodId: paymentMethod.id,
+                    bin
+                });
+
+                if (issuers && issuers.length > 0) {
+                    issuerId = issuers[0].id;
+                } else if (paymentMethod.issuer && paymentMethod.issuer.id) {
+                    issuerId = paymentMethod.issuer.id;
+                }
+            } catch (issuerError) {
+                console.warn("No se pudo obtener el emisor, continuando sin él...", issuerError);
+            }
+
+            // 3. Generar el CardToken
+            const cardToken = await mp.createCardToken({
+                cardNumber,
+                cardholderName: formData.nombre.trim(),
+                cardExpirationMonth: formData.mesVencimiento.trim(),
+                cardExpirationYear: formData.añoVencimiento.trim(),
+                securityCode: formData.cvv.trim(),
+                identificationType: "DNI",
+                identificationNumber: formData.dni.trim(),
+            });
+
+            if (!cardToken || !cardToken.id) {
+                setError("ERROR_AL_GENERAR_EL_TOKEN_DE_SEGURIDAD");
+                setLoading(false);
+                return;
+            }
+
+            // 4. Enviar el pago al backend (toda la lógica de planes/claims/cupón
+            //    se valida y aplica del lado del servidor, igual que en el test)
+            const { data } = await axios.post(
+                `${import.meta.env.VITE_API_URL}/course-payment`,
+                {
+                    payer: {
+                        nombre: formData.nombre.trim(),
+                        dni: formData.dni.trim(),
+                        domicilio: formData.domicilio.trim(),
+                        ciudad: formData.ciudad.trim(),
+                        provincia: formData.provincia.trim(),
+                        codigoPostal: formData.codigoPostal.trim(),
+                        email: formData.email,
+                        telefono: formData.telefono || null,
+                        identification: { type: "DNI", number: formData.dni.trim() },
+                    },
+                    idempotencyKey,
+                    items,
+                    couponCode: appliedCoupon?.code || null,
+                    token: cardToken.id,
+                    issuer_id: issuerId ? String(issuerId) : undefined,
+                    payment_method_id: paymentMethod.id,
+                    installments: Number(formData.cuotas),
                 },
                 { withCredentials: true }
             );
@@ -289,12 +436,12 @@ const Checkout = () => {
             } else if (backendCode === "ACTIVE_PLAN_EXISTS") {
                 setError(err.response?.data?.detail || "YA_TENÉS_UN_PLAN_ACTIVO");
             } else {
-                setError(backendMsg || err.message || "FALLO_CRITICO_SISTEMA_PAGO");
+                setError(backendMsg || err.message || "Error al procesar el pago. Verifique los datos de su tarjeta.");
             }
         } finally {
             setLoading(false);
         }
-    };
+    }; */
 
     // ─── Guards de renderizado ────────────────────────────────────────────────
     if (!selectedPlan)   return <Error processMessage="PLAN_NO_IDENTIFICADO" />;
@@ -387,6 +534,23 @@ const Checkout = () => {
                                 <div className="input-field">
                                     <label>DNI</label>
                                     <input name="dni" placeholder="NÚMERO" onChange={handleChange} required disabled={!user} />
+                                </div>
+                                <br />
+                                <div className="input-field">
+                                    <label>DIRECCIÓN</label>
+                                    <input name="domicilio" placeholder="DOMICILIO" onChange={handleChange} required disabled={!user} />
+                                </div>
+                                <div className="input-field">
+                                    <label>CIUDAD</label>
+                                    <input name="ciudad" placeholder="CIUDAD" onChange={handleChange} required disabled={!user} />
+                                </div>
+                                <div className="input-field">
+                                    <label>PROVINCIA</label>
+                                    <input name="provincia" placeholder="PROVINCIA" onChange={handleChange} required disabled={!user} />
+                                </div>
+                                <div className="input-field">
+                                    <label>CÓDIGO_POSTAL</label>
+                                    <input name="codigoPostal" placeholder="ej: 1704" onChange={handleChange} required disabled={!user} />
                                 </div>
                             </div>
                         </section>
@@ -546,7 +710,7 @@ const Checkout = () => {
                 disabled={loading || !user}
                 style={{ maxWidth: '1400px', margin: '30px auto 0', display: 'block' }}
             >
-                {!user ? '🔒 INICIÁ SESIÓN PARA COMPRAR' : 'EJECUTAR_COMPRA'}
+                {!user ? 'INICIÁ SESIÓN PARA COMPRAR' : 'EJECUTAR_COMPRA'}
             </button>
 
         </main>

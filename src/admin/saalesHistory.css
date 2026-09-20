@@ -254,7 +254,7 @@
 
 .sh-detail-grid {
     display:               grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap:                   24px;
 }
 
@@ -451,6 +451,10 @@
 }
 
 /* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .sh-detail-grid          { grid-template-columns: 1fr 1fr; }
+}
+
 @media (max-width: 900px) {
     .sh-detail-grid          { grid-template-columns: 1fr; }
     .sh-items-head,

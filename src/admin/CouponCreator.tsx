@@ -5,12 +5,12 @@ import './couponCreator.css';
 import { UseTheme } from '../contexts/ThemeContext';
 
 const ALL_PLANS = [
-    { id: 'starter',  label: 'STARTER'  },
-    { id: 'pro',      label: 'PRO'      },
-    { id: 'elite',    label: 'ELITE'    },
-    { id: 'voucher',  label: 'VOUCHER'  },
-    { id: 'b2b_seis', label: 'B2B_SEIS' },
-    { id: 'b2b_doce', label: 'B2B_DOCE' },
+    { id: 'starter',    label: 'STARTER'    },
+    { id: 'pro',        label: 'PRO'        },
+    { id: 'elite',      label: 'ELITE'      },
+    { id: 'voucher',    label: 'VOUCHER'    },
+    { id: 'business',   label: 'BUSINESS'   },
+    { id: 'enterprise', label: 'ENTERPRISE' },
 ];
 
 const CouponCreator = () => {
