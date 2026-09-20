@@ -67,8 +67,8 @@ interface CourseStep {
   questions?:  QuizQuestion[];
 }
 
-// ── Quiz Módulo 1 — usado también como placeholder de los módulos 4 a 8 y,
-// temporalmente, del Módulo 3 hasta tener su quiz real ─────────────────────
+// ── Quiz Módulo 1 — usado también como placeholder de los módulos 4 a 8
+// hasta tener su contenido real ─────────────────────────────────────────────
 const MODULO_1_QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     question: "¿Qué describe mejor los tres objetivos operativos de un SOC y su relación?",
@@ -230,6 +230,88 @@ const MODULO_2_QUIZ_QUESTIONS: QuizQuestion[] = [
   },
 ];
 
+// ── Quiz Módulo 3 ────────────────────────────────────────────────────────────
+const MODULO_3_QUIZ_QUESTIONS: QuizQuestion[] = [
+  {
+    question: "Un endpoint genera conexiones HTTPS cada 45 segundos hacia sync-cloud-check.net. El proceso es update_service.exe, ubicado en AppData\\Roaming, sin firma digital y visto por primera vez hoy. ¿Cuál es el conjunto de hipótesis y pasos de validación más completo y correcto?",
+    options: [
+      "Hipótesis: posible falso positivo de herramienta de actualización corporativa. Validar: consultar con el equipo de IT si desplegaron algo nuevo y cerrar si confirman",
+      "Hipótesis: beaconing compatible con C2. Validar: reputación del dominio, proceso padre de update_service.exe, si el archivo es nuevo en el host, si hay otros endpoints con el mismo proceso, y actividad previa que explique su origen",
+      "Hipótesis: malware confirmado. Acción: aislar inmediatamente el endpoint y escalar a IR sin más análisis porque el patrón periódico y la ruta son concluyentes",
+      "Hipótesis: exfiltración de datos. Validar: volumen de datos transferidos por sesión, porque si es menor a 1MB probablemente sea legítimo",
+    ],
+    answer: 1,
+  },
+  {
+    question: "El EDR detecta WINWORD.EXE → powershell.exe -nop -w hidden -enc → conexión a raw.githubusercontent.com → archivo creado en C:\\Users\\Public. El usuario pertenece a RRHH. ¿Cuál combinación de factores justifica la alta prioridad?",
+    options: [
+      "El dominio raw.githubusercontent.com tiene mala reputación y cualquier conexión hacia él desde un endpoint corporativo es crítica",
+      "PowerShell con parámetros de evasión iniciado por Word indica posible ejecución de macro maliciosa; el usuario no técnico no tiene razón para que Word ejecute comandos codificados, y el archivo creado en ruta pública puede ser un payload",
+      "La alta prioridad viene del parámetro -enc, que siempre indica actividad maliciosa porque es el único parámetro que oculta comandos en Base64",
+      "Es alta prioridad porque el archivo fue creado en C:\\Users\\Public, que es una ruta restringida donde solo pueden escribir procesos con privilegios elevados",
+    ],
+    answer: 1,
+  },
+  {
+    question: "Un host genera 480 consultas DNS en 15 minutos con patrones como 'akd92kdkd-check.com', 'plq77smmx-update.net'. Todas responden NXDOMAIN. ¿Cuál análisis es correcto?",
+    options: [
+      "Es tráfico de spam o malvertising: el navegador cargó páginas con muchos trackers. Validar que el usuario no esté en sitios sospechosos y cerrar si no hay descarga asociada",
+      "El patrón de subdominios aleatorios con NXDOMAIN puede indicar un algoritmo de generación de dominios (DGA) intentando contactar su C2. Validar: proceso que genera las consultas, si el volumen es inusual para ese host, si ocurre en otros endpoints y si hay alguna conexión exitosa entre las fallidas",
+      "NXDOMAIN confirma que los dominios no existen y que ninguna conexión fue exitosa, por lo que el riesgo real es bajo. Registrar y monitorear sin escalar",
+      "Son dominios con patrones de typosquatting orientados a phishing. Validar si el usuario intentó ingresar a alguno manualmente y si hay credenciales comprometidas en los logs de autenticación",
+    ],
+    answer: 1,
+  },
+  {
+    question: "\"Si el firewall registra 'Action: Blocked' para una conexión saliente hacia un dominio sospechoso, el riesgo quedó mitigado por el control y el analista puede cerrar la alerta documentando que fue bloqueada.\"",
+    options: [
+      "Verdadero — el bloqueo del firewall es suficiente para cerrar la alerta sin más análisis",
+      "Falso — el bloqueo indica que ese intento específico no prosperó, pero no responde qué proceso generó la conexión, si el mismo proceso intentó conectarse a otros destinos que sí fueron permitidos, si hubo actividad previa que explique el origen, si hay otros hosts con el mismo comportamiento, y si el dominio forma parte de una campaña activa",
+    ],
+    answer: 1,
+  },
+  {
+    question: "¿Cuál par de descripciones refleja correctamente los elementos para diferenciar un despliegue masivo de software legítimo de movimiento lateral usando SMB?",
+    options: [
+      "Legítimo: muchos destinos conectados. Sospechoso: pocos destinos conectados. La cantidad de hosts afectados es el indicador principal",
+      "Legítimo: ticket de cambio aprobado, host origen administrativo, herramienta corporativa firmada, ventana de mantenimiento, destinos dentro del alcance del ticket. Sospechoso: origen desde endpoint de usuario, cuenta sin privilegios habituales para esa acción, sin ticket, fuera de horario, con acceso a shares administrativos como ADMIN$ o C$",
+      "Legítimo: el proceso usa puertos estándar SMB (445). Sospechoso: el proceso usa puertos alternativos o no estándar para la transferencia. El puerto es el elemento más discriminante en este caso",
+      "Legítimo: el despliegue se hace con credenciales de dominio. Sospechoso: el movimiento lateral siempre requiere credenciales locales o hashes robados, lo que lo hace detectable por el tipo de autenticación",
+    ],
+    answer: 1,
+  },
+  {
+    question: "El firewall muestra una conexión de USER-LAP-088 hacia suspicious-domain.com puerto 443 permitida. El EDR no está disponible en ese endpoint. ¿Cuál documentación y plan de acción es más correcto?",
+    options: [
+      "Documentar que el EDR no detectó actividad maliciosa en el endpoint y cerrar, ya que la ausencia de alerta del EDR indica que no hubo ejecución de código",
+      "Documentar que la visibilidad está limitada a nivel de red (firewall): se tiene IP, destino y acción, pero no el proceso que generó la conexión ni actividad en el endpoint. Recomendar: buscar el host en otras fuentes disponibles (DNS, proxy, SIEM), verificar reputación del dominio, evaluar si el host puede obtener agente EDR, y escalar si el dominio tiene reputación maliciosa confirmada",
+      "Documentar que el dominio fue contactado exitosamente y escalar como incidente confirmado porque la conexión fue permitida hacia un dominio sospechoso, lo que prueba que hubo comunicación maliciosa",
+      "Recomendar instalar el EDR antes de continuar el análisis, ya que sin visibilidad de endpoint no es posible determinar nada y cualquier conclusión sería especulativa",
+    ],
+    answer: 1,
+  },
+  {
+    question: "¿Cuál respuesta demuestra el uso correcto del modelo OSI como herramienta de diagnóstico, usando el ejemplo de 'un usuario no puede acceder a una aplicación'?",
+    options: [
+      "El modelo OSI es útil para saber qué protocolo está fallando. En el ejemplo, hay que revisar directamente la capa 7 (aplicación) porque el problema es de acceso a una aplicación",
+      "El modelo OSI permite descartar capas de forma ordenada: primero verificar si hay conectividad (capas 1-3), luego si el puerto responde (capa 4), si la sesión se establece (capa 5), si hay problema de cifrado o certificado (capa 6), y finalmente si la aplicación responde correctamente con las credenciales del usuario (capa 7). Cada capa descartada reduce el espacio del problema",
+      "El modelo OSI es útil principalmente para el equipo de redes, no para el SOC. En el ejemplo, el analista debería escalar directamente al equipo de infraestructura porque el problema puede estar en cualquier capa",
+      "El modelo OSI ayuda a identificar si el problema es de red o de aplicación. En el ejemplo, si el ping responde, el problema está en capa 7 y el SOC no tiene responsabilidad de diagnóstico",
+    ],
+    answer: 1,
+  },
+  {
+    question: "Una cuenta admin.backup inicia sesión a las 3 AM desde una notebook de usuario sin MFA, accede a 12 servidores y crea un servicio remoto. ¿Cuál análisis aplica correctamente los conceptos de protocolo, movimiento lateral, autenticación y visibilidad?",
+    options: [
+      "La cuenta admin.backup puede tener actividad nocturna normal para tareas de backup. Validar si existe un job programado que explique el horario y los accesos, y cerrar si se confirma",
+      "El acceso desde notebook de usuario (no host administrativo), sin MFA en cuenta privilegiada, con propagación a 12 servidores y creación de servicio remoto a las 3 AM sin ticket visible combina múltiples señales de movimiento lateral. Validar: ticket de cambio, proceso que creó el servicio, binario instalado, si la cuenta tenía historial de este comportamiento, y correlacionar con alertas previas en los hosts destino",
+      "Es un incidente confirmado de movimiento lateral porque ninguna cuenta de backup legítima necesita crear servicios remotos. Aislar todos los servidores afectados y revocar la cuenta de inmediato",
+      "El principal indicador de compromiso es la ausencia de MFA, porque todos los demás comportamientos podrían explicarse operativamente. Habilitar MFA en la cuenta y monitorear si la actividad continúa",
+    ],
+    answer: 1,
+  },
+];
+
 // ── Contenido de un módulo — 7 PDFs + 1 quiz final ──────────────────────────
 // Solo se usa para el Módulo 1 (7 PDFs — socIntro, soc1..soc6 — y su quiz) y,
 // como placeholder, para simular los módulos 4 a 8 hasta tener su contenido
@@ -250,7 +332,7 @@ function buildModuleSteps(moduleNumber: number): CourseStep[] {
   ];
 }
 
-// ── Módulo 2 — 7 PDFs (socIntro, soc1..soc6, socFinal) + quiz real ─────────
+// ── Módulo 2 — 8 steps: socIntro, soc1..soc6, socFinal + quiz real ─────────
 const MODULO_2_STEPS: CourseStep[] = [
   { type: "pdf", title: "Módulo 2 — Introducción",     pdfSrc: socIntroM2 },
   { type: "pdf", title: "Módulo 2 — Contenido 1",       pdfSrc: soc1M2 },
@@ -263,8 +345,7 @@ const MODULO_2_STEPS: CourseStep[] = [
   { type: "quiz", title: "Módulo 2 — Quiz final", questions: MODULO_2_QUIZ_QUESTIONS },
 ];
 
-// ── Módulo 3 — 8 PDFs (socIntro, soc1..soc6, soc9, socFinal) — quiz todavía
-// sin definir: usa MODULO_1_QUIZ_QUESTIONS como placeholder hasta tener el real
+// ── Módulo 3 — 9 steps: socIntro, soc1..soc6, soc9, socFinal + quiz real ───
 const MODULO_3_STEPS: CourseStep[] = [
   { type: "pdf", title: "Módulo 3 — Introducción",     pdfSrc: socIntroM3 },
   { type: "pdf", title: "Módulo 3 — Contenido 1",       pdfSrc: soc1M3 },
@@ -275,14 +356,13 @@ const MODULO_3_STEPS: CourseStep[] = [
   { type: "pdf", title: "Módulo 3 — Contenido 6",       pdfSrc: soc6M3 },
   { type: "pdf", title: "Módulo 3 — Contenido 7",       pdfSrc: soc9M3 },
   { type: "pdf", title: "Módulo 3 — Cierre",            pdfSrc: socFinalM3 },
-  { type: "quiz", title: "Módulo 3 — Quiz final", questions: MODULO_1_QUIZ_QUESTIONS }, // TODO: reemplazar por el quiz real del Módulo 3
+  { type: "quiz", title: "Módulo 3 — Quiz final", questions: MODULO_3_QUIZ_QUESTIONS },
 ];
 
-// 8 módulos — Módulo 1 con su contenido real, Módulos 2 y 3 con su contenido
-// real, y Módulos 4 a 8 repitiendo el contenido del Módulo 1 como simulación
-// de la estructura final hasta tener el material definitivo. Reemplazá esa
-// última parte por llamadas explícitas con el contenido real a medida que lo
-// tengas, ej:
+// 8 módulos — Módulos 1, 2 y 3 con su contenido real, y Módulos 4 a 8
+// repitiendo el contenido del Módulo 1 como simulación de la estructura
+// final hasta tener el material definitivo. Reemplazá esa última parte por
+// llamadas explícitas con el contenido real a medida que lo tengas, ej:
 //   const COURSE_STEPS: CourseStep[] = [
 //     ...buildModuleSteps(1),
 //     ...MODULO_2_STEPS,
