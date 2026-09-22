@@ -218,6 +218,7 @@
 }
 
 @media (max-width: 768px) {
+    .footer-premium-v4{ padding: 120px 6% 40px 6%; }
     .footer-cta{ margin-bottom: 20px;}
     .footer-main-content { grid-template-columns: 1fr; }
     .footer-legal { flex-direction: column; gap: 20px; text-align: center; }
