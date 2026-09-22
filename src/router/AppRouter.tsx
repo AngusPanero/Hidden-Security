@@ -23,6 +23,8 @@ import ProcessOk from "../processMessages/ProcessOk";
 import Certifications from "../certifications/Certifications";
 import CertificationsRelative from "../certifications/CertificationsRelative";
 import PartnerDashboard from "../partner/PartnerDashboard";
+import TerminosCondiciones from "../terminosCondiciones/TerminosCondiciones";
+import PoliticasPrivacidad from "../privacidad/PoliticasPrivacidad";
 
 const AppRouter = () => {
     return (
@@ -34,7 +36,6 @@ const AppRouter = () => {
                             <Routes>
                                 <Route path="/" element={<Home />} />
                                 <Route path="/company" element={<CompanyInfo />} />
-                                {/* <Route path="/raffles" element={<SorteoDevMinimal />} /> */}
                                 <Route path="/courses-info" element={<CursosParams />} />
                                 <Route path="/courses-info/:courseSlug" element={<Courses />} />
                                 <Route path="/contact" element={<Contact />} />
@@ -44,6 +45,8 @@ const AppRouter = () => {
                                 <Route path="/error" element={<Error processMessage="" />} />
                                 <Route path="/ok" element={<ProcessOk processMessage="Compra Exitosa!" />} />
                                 <Route path="/policy-cookie" element={<PoliticaCookies />} />
+                                <Route path="/policy-privacity" element={<PoliticasPrivacidad />} />
+                                <Route path="/terms-and-conditions" element={<TerminosCondiciones />} />
                                 <Route path="/dashboard" element={<PrivateRoute role="user"><UserDashboard /></PrivateRoute>} />
                                 <Route path="/admin" element={<PrivateRoute role="admin"><AdminDashboard /></PrivateRoute>} />
                                 <Route path="/partner" element={<PrivateRoute role="partner"><PartnerDashboard /></PrivateRoute>} />

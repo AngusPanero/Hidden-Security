@@ -203,7 +203,7 @@
   bottom:         10%;
   left:           6%;
   z-index:        5;
-  max-width:      360px;
+  max-width:      660px;
   pointer-events: none;
   mix-blend-mode: difference;
   color:          white;
@@ -223,7 +223,7 @@
 
 .info-desc {
   font-family:    'Montserrat', sans-serif;
-  font-size:      clamp(14px, 2vw, 18px);
+  font-size:      clamp(14px, 2vw, 15px);
   font-weight:    300;
   letter-spacing: 2px;
   line-height:    1.4;

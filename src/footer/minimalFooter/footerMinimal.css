@@ -155,17 +155,17 @@
 
 .social-links-minimal {
     display: flex;
-    gap: 30px;
+    gap: 20px;
 }
 
 .social-links-minimal a {
     text-decoration: none;
     color: inherit;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 1px;
     transition: color 0.3s ease;
 }
-
+.social-links-minimal a:hover { color: #ccff00; }
 .light .social-links-minimal a:hover { color: #ff5500; }
 
 .dark.footer-premium-v4 {

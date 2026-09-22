@@ -6,28 +6,28 @@ import './mission.css';
 const steps = [
   {
     tag: "01. EL PROBLEMA",
-    title: "Reduciendo la brecha entre aprender y demostrar",
-    desc: "Muchas personas invierten meses o años formándose, pero siguen encontrando dificultades para demostrar lo que realmente saben hacer. Al mismo tiempo, las empresas reciben cientos de perfiles sin una forma objetiva de validar sus capacidades operativas.",
+    title: "Reduciendo la brecha entre talento y oportunidades",
+    desc: "En ciberseguridad, las habilidades de una persona no siempre son fáciles de reflejar en un CV. Al mismo tiempo, las empresas necesitan encontrar profesionales con conocimientos y experiencia alineados a sus necesidades.",
   },
   {
-    tag: "02. VALIDACIÓN BASADA EN ESCENARIOS REALES",
+    tag: "02. PERFIL PROFESIONAL",
+    title: "Más que un CV",
+    desc: "Hidden Security permite crear un perfil profesional especializado en ciberseguridad, donde experiencia, conocimientos, herramientas y habilidades forman parte de una misma identidad profesional.",
+  },
+  {
+    tag: "03. VALIDACIÓN DE HABILIDADES",
     title: "Demostrar habilidades, no memorizar conceptos",
-    desc: "En Hidden Security las evaluaciones se construyen sobre situaciones inspiradas en escenarios reales de ciberseguridad. Buscamos medir cómo una persona analiza, prioriza y toma decisiones, más allá de cuánto contenido pueda recordar.",
-  },
-  {
-    tag: "03. CERTIFICACIONES CON ENFOQUE OPERATIVO",
-    title: "Validar la capacidad de actuar",
-    desc: "Nuestras certificaciones están diseñadas para evaluar habilidades técnicas y pensamiento analítico aplicado a funciones específicas dentro de la industria. Cada certificación representa una validación práctica del desempeño esperado para ese rol.",
+    desc: "Quienes quieran validar sus conocimientos pueden hacerlo mediante certificaciones basadas en escenarios prácticos, diseñadas para evaluar análisis, toma de decisiones y capacidades aplicadas a cada rol.",
   },
   {
     tag: "04. CRECIMIENTO PROFESIONAL",
     title: "Aprender, validar y evolucionar",
-    desc: "La certificación es solo una parte del camino. El objetivo es acompañar el desarrollo profesional mediante formación continua, nuevas certificaciones y una evolución alineada con las necesidades reales del mercado.",
+    desc: "La plataforma también ofrece formación para desarrollar nuevas habilidades y acompañar la evolución profesional dentro de la industria.",
   },
   {
     tag: "05. CONECTANDO TALENTO CON EMPRESAS",
-    title: "Generando confianza para ambas partes",
-    desc: "Facilitamos el encuentro entre profesionales y organizaciones mediante perfiles con habilidades validadas. No reemplazamos los procesos de selección de las empresas; aportamos una nueva forma de generar confianza antes de la contratación.",
+    title: "Habilidades que conectan con oportunidades",
+    desc: "Las empresas pueden encontrar profesionales utilizando criterios propios de ciberseguridad, como roles, habilidades, herramientas y experiencia, facilitando búsquedas más específicas según las necesidades de cada equipo.",
   }
 ];
 
@@ -53,7 +53,7 @@ const Mission: React.FC = () => {
             whileInView={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            Redefiniendo el estándar de validación en la industria de la ciberseguridad.
+            Conectando talento, habilidades y oportunidades en ciberseguridad.
           </motion.p>
         </header>
 

@@ -87,12 +87,19 @@ const FooterMinimal = () => {
                     </div>
                     <div className="legal-right">
                         <div className="social-links-minimal">
-                            <a href="#">YOUTUBE</a>
-                            <a href="#">LINKEDIN</a>
-                            <a href="#">INSTAGRAM</a>
-                            <a href="#">X</a>
+                            <a href="/policy-cookie">POLÍTICAS DE COOKIES</a>
+                            <a href="/policy-privacity">POLÍTICAS DE PRIVACIDAD</a>
+                            <a href="/terms-and-conditions">TÉRMINOS Y CONDICIONES</a>
                         </div>
                     </div>
+                    <div className="legal-right">
+                        <div className="social-links-minimal">
+                            <a href="https://www.youtube.com/channel/UCgVE0HFSuzGECPuiRV-tUwg" target='_blank'>YOUTUBE</a>
+                            <a href="https://www.tiktok.com/@hidden_ciber" target='_blank'>TIKTOK</a>
+                            <a href="https://www.instagram.com/hiddensecurity_ar/" target='_blank'>INSTAGRAM</a>
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
         </footer>
