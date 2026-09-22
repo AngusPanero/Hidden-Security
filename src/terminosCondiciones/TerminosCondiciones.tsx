@@ -4,7 +4,20 @@ import "./terminosCondiciones.css";
 const LAST_UPDATE = "septiembre de 2026";
 const CONTACT_EMAIL = "contacto@hidden-security.org";
 
-const SECTIONS = [
+/* --- TIPOS --- */
+type ParagraphBlock = { type: "p"; text: string };
+type ListBlock = { type: "list"; items: string[] };
+type CardsBlock = { type: "cards"; items: { name: string; desc: string }[] };
+
+type Block = ParagraphBlock | ListBlock | CardsBlock;
+
+interface Section {
+  title: string;
+  blocks: Block[];
+}
+
+/* --- CONTENIDO --- */
+const SECTIONS: Section[] = [
   {
     title: "Identificación y aceptación",
     blocks: [
@@ -330,9 +343,9 @@ const SECTIONS = [
   },
 ];
 
-const pad = (n) => String(n).padStart(2, "0");
+const pad = (n: number): string => String(n).padStart(2, "0");
 
-const renderBlock = (block, key) => {
+const renderBlock = (block: Block, key: number) => {
   switch (block.type) {
     case "p":
       return <p key={key} className="tc-section-text">{block.text}</p>;
