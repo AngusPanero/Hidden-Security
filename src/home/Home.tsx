@@ -1,4 +1,5 @@
 import { useRef, useLayoutEffect, useEffect } from "react";
+import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import "./home.css";
@@ -7,6 +8,7 @@ import { UseTheme } from "../contexts/ThemeContext";
 import FloatingCardSection from "../floatingCard/FloatingCard";
 import LogoCarrousel from "../logoCarrousel/LogoCarrousel";
 import Mission from "../mision/Mission";
+import { openRegisterModal } from "../utils/RegisterModal";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -85,8 +87,9 @@ const Home = () => {
 
       // Estado inicial: info flotante invisible
       gsap.set(floatingInfoRef.current, { autoAlpha: 0, y: 20 });
-      gsap.set(welcomeTextRef.current,  { autoAlpha: 0, y: 30, /* filter: "blur(12px)" */ });
+      gsap.set(welcomeTextRef.current,  { autoAlpha: 0, y: 30 });
       gsap.set(scanlineRef.current,     { autoAlpha: 0 });
+      gsap.set(".hero-choice-card",     { autoAlpha: 0, y: 24 });
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -142,7 +145,6 @@ const Home = () => {
       tl.to(welcomeTextRef.current, {
         autoAlpha: 1,
         y:         0,
-        /* filter:    "blur(0px)", */
         duration:  0.35,
         ease:      "power2.out",
         zIndex:    10,
@@ -162,6 +164,15 @@ const Home = () => {
         duration: 0.25,
         ease:     "power2.out",
       }, 0.70);
+
+      // cards de elección entran después del título
+      tl.to(".hero-choice-card", {
+        autoAlpha: 1,
+        y:         0,
+        duration:  0.2,
+        ease:      "power2.out",
+        stagger:   0.06,
+      }, 0.8);
 
       // info flotante fade out cuando aparece el texto central
       tl.to(floatingInfoRef.current, {
@@ -203,8 +214,34 @@ const Home = () => {
                 </h2>
                 <p className="matrix-welcome-sub">
                   Elegí cómo querés usar Hidden Security.
-
                 </p>
+
+                {/* Cards de elección */}
+                <div className="hero-choice">
+                  <article className="hero-choice-card">
+                    <h3 className="hero-choice-title">Soy profesional</h3>
+                    <p className="hero-choice-desc">
+                      Creá tu perfil, mostrá tus habilidades y accedé a oportunidades en ciberseguridad.
+                    </p>
+                    <button
+                      type="button"
+                      className="hero-choice-cta"
+                      onClick={openRegisterModal}
+                    >
+                      Crear mi perfil <span aria-hidden="true">→</span>
+                    </button>
+                  </article>
+
+                  <article className="hero-choice-card">
+                    <h3 className="hero-choice-title">Soy empresa</h3>
+                    <p className="hero-choice-desc">
+                      Encontrá profesionales según las habilidades, herramientas y experiencia que necesita tu equipo.
+                    </p>
+                    <Link to="/pricing" className="hero-choice-cta">
+                      Buscar talento <span aria-hidden="true">→</span>
+                    </Link>
+                  </article>
+                </div>
               </div>
             </div>
           </div>

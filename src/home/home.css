@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
    home.css — Hidden Security Hero
-   3 fases: info flotante → mask explosion → reveal texto
+   3 fases: info flotante → mask explosion → reveal texto + cards
 ══════════════════════════════════════════════════════════════ */
 
 /* ── Base ────────────────────────────────────────────────────── */
@@ -160,6 +160,109 @@
 .container.dark  .matrix-welcome-sub { color: rgb(255, 255, 255); }
 .container.light .matrix-welcome-sub { color: rgb(0, 0, 0);       }
 
+/* ── Cards de elección (FASE 3) ──────────────────────────────── */
+.hero-choice {
+  display:               grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:                   20px;
+  width:                 100%;
+  max-width:             820px;
+  margin-top:            20px;
+  pointer-events:        auto; /* el overlay padre tiene pointer-events: none */
+}
+
+.hero-choice-card {
+  --hc-accent:  #ccff00;
+  --hc-text:    #ffffff;
+  --hc-muted:   #94a3b8;
+  --hc-border:  #1a1a1c;
+  --hc-surface: rgba(10, 10, 11, 0.82);
+
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             12px;
+  padding:         28px;
+  text-align:      center;
+  background:      var(--hc-surface);
+  border:          1px solid var(--hc-border);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  clip-path:       polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
+  transition:      border-color 0.3s ease;
+}
+
+.container.light .hero-choice-card {
+  --hc-accent:  #ff5500;
+  --hc-text:    #0f172a;
+  --hc-muted:   #64748b;
+  --hc-border:  #e2e8f0;
+  --hc-surface: rgba(255, 255, 255, 0.88);
+}
+
+.hero-choice-card:hover,
+.hero-choice-card:focus-within {
+  border-color: var(--hc-accent);
+}
+
+.hero-choice-title {
+  font-family:    'Montserrat', sans-serif;
+  font-weight:    900;
+  font-size:      1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color:          var(--hc-accent);
+  margin:         0;
+}
+
+.hero-choice-desc {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  font-size:   0.88rem;
+  line-height: 1.55;
+  color:       var(--hc-muted);
+  margin:      0;
+  flex-grow:   1;
+}
+
+.hero-choice-cta {
+  margin-top:      6px;
+  display:         inline-flex;
+  align-items:     center;
+  gap:             10px;
+  padding:         12px 18px;
+  font-family:     'Montserrat', sans-serif;
+  font-weight:     800;
+  font-size:       0.75rem;
+  text-transform:  uppercase;
+  letter-spacing:  2px;
+  color:           #000000;
+  background:      var(--hc-accent);
+  border:          none;
+  cursor:          pointer;
+  text-decoration: none;
+  transition:      background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-choice-cta span {
+  transition: transform 0.3s ease;
+}
+
+.hero-choice-cta:hover {
+  background: transparent;
+  color:      var(--hc-accent);
+  box-shadow: inset 0 0 0 2px var(--hc-accent);
+}
+
+.hero-choice-cta:hover span {
+  transform: translateX(4px);
+}
+
+.hero-choice-cta:focus-visible {
+  outline:        2px solid var(--hc-accent);
+  outline-offset: 3px;
+}
+
 /* ── CAPA 3: Máscara de texto ─────────────────────────────────── */
 .mask {
   position:        absolute;
@@ -170,6 +273,7 @@
   justify-content: center;
   align-items:     center;
   z-index:         4;
+  pointer-events:  none; /* si no, tapa los clicks de las cards (queda encima aunque sea transparente) */
 }
 
 .container.dark .mask {
@@ -275,6 +379,12 @@
   100% { transform: translateX(200%);  }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .hero-choice-card,
+  .hero-choice-cta,
+  .hero-choice-cta span { transition: none; }
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 
 /* Tablet 1024 */
@@ -291,12 +401,26 @@
     letter-spacing: -0.5px;
   }
 
+  .matrix-welcome-inner { gap: 12px; }
+
   .matrix-welcome-title {
     font-size:      clamp(1.6rem, 7vw, 2.2rem);
     letter-spacing: -0.5px;
   }
 
   .matrix-welcome-sub { font-size: 0.62rem; letter-spacing: 1.5px; }
+
+  .hero-choice {
+    grid-template-columns: 1fr;
+    gap:        12px;
+    max-width:  420px;
+    margin-top: 10px;
+  }
+
+  .hero-choice-card  { padding: 18px 20px; gap: 8px; }
+  .hero-choice-title { font-size: 0.95rem; }
+  .hero-choice-desc  { font-size: 0.8rem; line-height: 1.45; }
+  .hero-choice-cta   { padding: 10px 14px; font-size: 0.7rem; margin-top: 4px; }
 
   .hero-floating-info {
     bottom:    8%;
@@ -316,162 +440,10 @@
   .scroll-indicator { display: none; }
 }
 
-/* ANTERIOR */
-/* .mask-page {
-    width: 100%;
-    background-color: #000000;
+/* Pantallas bajas (landscape mobile / laptops chicas): título + cards no entran en 100vh */
+@media (max-height: 640px) {
+  .matrix-welcome-eyebrow,
+  .matrix-welcome-line { display: none; }
+  .hero-choice-desc    { display: none; }
+  .hero-choice-card    { padding: 14px 18px; }
 }
-
-.container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-}
-
-.matrix-underlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-}
-
-.matrix-underlay canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.matrix-content-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2; 
-    pointer-events: none;
-}
-
-.matrix-welcome-title {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 800;
-    font-size: 3.5rem;
-    text-align: center;
-    line-height: 1.1;
-    margin: 0;
-    opacity: 0; 
-}
-
-.container.dark .matrix-welcome-title { color: #ffffff; }
-.container.light .matrix-welcome-title { color: #000000; }
-
-.mask {
-    position: absolute;
-    inset: 0;
-    height: 100vh;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 3; 
-}
-
-.container.light .mask {
-    background-color: #f8f8f8; 
-    mix-blend-mode: screen; 
-}
-
-.container.light .home-title-mask {
-    color: #000000; 
-}
-
-.container.dark .mask {
-    background-color: #000000;
-    mix-blend-mode: darken; 
-}
-
-.container.dark .home-title-mask {
-    color: #ffffff;
-}
-
-.home-title-mask {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 700;
-    font-size: 9vw;
-    text-align: center;
-    letter-spacing: -2px;
-    line-height: 0.9;
-    text-transform: uppercase;
-}
-
-.hero-floating-info {
-    position: absolute;
-    bottom: 10%;
-    left: 6%;
-    z-index: 10;
-    max-width: 450px;
-    pointer-events: none;
-    mix-blend-mode: difference;
-    color: white; 
-}
-
-.info-badge {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 13px;
-    letter-spacing: 4px;
-    margin-bottom: 20px;
-    text-transform: uppercase;
-    font-weight: 700;
-}
-
-.info-desc {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 18px;
-    font-weight: 200;
-    letter-spacing: 2px;
-    line-height: 1.4;
-    text-transform: uppercase;
-}
-
-.scroll-indicator span {
-    font-family: 'Montserrat', sans-serif;
-    color: white; 
-}
-
-.scroll-indicator .line {
-    width: 50px;
-    height: 1px;
-    background: rgba(128, 128, 128, 0.2); 
-    position: relative;
-    overflow: hidden;
-}
-
-.scroll-indicator .line::after {
-    content: "";
-    position: absolute;
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%;
-    background: #ffffff; 
-    animation: scrollLineAnim 2s cubic-bezier(0.23, 1, 0.32, 1) infinite;
-}
-
-.container.dark .scroll-indicator .line::after { background: #ccff00; }
-.container.light .scroll-indicator .line::after { background: #ff5500; }
-
-.container.dark .scroll-indicator span { color: #ffffff; }
-.container.light .scroll-indicator span { color: #000000; }
-
-@keyframes scrollLineAnim {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-
-@media (max-width: 768px) {
-    .home-title-mask { font-size: 45px; }
-    .matrix-welcome-title { font-size: 2rem; }
-} */

@@ -8,6 +8,7 @@ import { UseTheme } from "../../contexts/ThemeContext";
 import LoginMinimal from "./LoginMinimal";
 import RegisterMinimal from "./RegisterMinimal";
 import NavBarMobileMinimal from "./NavBarMobileMinimal";
+import { OPEN_REGISTER_EVENT } from "../../utils/RegisterModal";
 
 
 const NavBarMinimal = () => {
@@ -18,6 +19,7 @@ const NavBarMinimal = () => {
 
     const lastScrollY = useRef(0);
     const menuRef = useRef<HTMLDivElement>(null);
+    const hamburgerRef = useRef<HTMLButtonElement>(null);
     const { user, handleLogout } = UseSession();
 
     /* const { language, handleLanguage, texts } = UseLanguage(); */
@@ -51,6 +53,27 @@ const NavBarMinimal = () => {
         setLoginOpen(true);
         setOpenRegister(false);
     };
+
+    // Abre el Register cuando se dispara el evento desde otras partes (ej: cards del Home).
+    // En mobile (cuando el hamburguesa está visible) abre el menú mobile en su lugar.
+    useEffect(() => {
+        const handleOpenRegister = () => {
+            const isMobileNav = !!hamburgerRef.current && hamburgerRef.current.getClientRects().length > 0;
+
+            setLoginOpen(false);
+
+            if (isMobileNav) {
+                setOpenRegister(false);
+                setMenuOpen(true);
+                return;
+            }
+
+            setMenuOpen(false);
+            setOpenRegister(true);
+        };
+        window.addEventListener(OPEN_REGISTER_EVENT, handleOpenRegister);
+        return () => window.removeEventListener(OPEN_REGISTER_EVENT, handleOpenRegister);
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (e: any) => {
@@ -158,6 +181,7 @@ const NavBarMinimal = () => {
                         </div>
 
                         <button 
+                            ref={hamburgerRef}
                             className={`kaleida-hamburger ${menuOpen ? "open" : ""}`} 
                             onClick={() => setMenuOpen(!menuOpen)}
                             aria-label="Menu"
