@@ -9,8 +9,7 @@ import axios from "axios";
 import "./checkout.css";
 import Error from "../processMessages/Error";
 import Loader from "../loader/Loader";
-// 🚀 PROD: descomentar ↓
-/* import useMercadoPago from "../hooks/useMercadoPago"; */
+import useMercadoPago from "../hooks/useMercadoPago";
 import CreditCard from "../ui/creditCard/CreditCard";
 import ProcessOk from "../processMessages/ProcessOk";
 
@@ -154,13 +153,8 @@ function PurchaseBlockedBanner({ title, detail }: { title: string; detail: strin
 
 const Checkout = () => {
     const { planId } = useParams();
-    // 🚀 PROD: descomentar ↓
-    /* const mp         = useMercadoPago(); */
+    const mp         = useMercadoPago();
 
-    // La key vive mientras la operación siga abierta. Muere (se renueva) cuando el
-    // backend confirma que la operación terminó sin cobro: rechazo, datos inválidos, etc.
-    // Si no hubo respuesta o el error fue 5xx se conserva: puede que MP haya cobrado,
-    // y reintentar con la misma key garantiza que no se cobre dos veces.
     const [idempotencyKey, setIdempotencyKey] = useState(() => v4());
     const renewIdempotencyKey = () => setIdempotencyKey(v4());
 
@@ -256,7 +250,7 @@ const Checkout = () => {
     //  🔧 DEV — COBRO DE PRUEBA (sin tarjeta, sin validaciones de negocio)
     //  Para producción: comentar esta función completa
     // ═════════════════════════════════════════════════════════════════════════
-    const makePaymentTest = async (e: React.FormEvent) => {
+    /* const makePaymentTest = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedPlan || !user) return;
 
@@ -333,14 +327,10 @@ const Checkout = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }; */
 
 
-    // ═════════════════════════════════════════════════════════════════════════
-    //  🚀 PROD — COBRO REAL CON MERCADO PAGO
-    //  Para producción: descomentar esta función completa
-    // ═════════════════════════════════════════════════════════════════════════
-    /* const makePayment = async (e: React.FormEvent) => {
+    const makePayment = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedPlan || !user || !mp) return;
 
@@ -509,7 +499,7 @@ const Checkout = () => {
         } finally {
             setLoading(false);
         }
-    }; */
+    };
 
     // ─── Guards de renderizado ────────────────────────────────────────────────
     if (!selectedPlan)        return <Error processMessage="PLAN_NO_IDENTIFICADO" />;
@@ -579,7 +569,7 @@ const Checkout = () => {
                     </header>
 
                     {/* 🔧 DEV: onSubmit={makePaymentTest}   ·   🚀 PROD: onSubmit={makePayment} */}
-                    <form id="checkout-form" className="main-checkout-form" onSubmit={makePaymentTest}>
+                    <form id="checkout-form" className="main-checkout-form" onSubmit={makePayment}>
                         <section className={`checkout-section ${!user ? 'section-locked' : ''}`}>
                             <span className="section-label">01 // IDENTIDAD_DIGITAL</span>
                             <div className="input-field">
