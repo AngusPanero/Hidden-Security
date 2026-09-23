@@ -309,7 +309,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ allTickets }) => {
                                         </div>
 
                                         {/* tabla de productos */}
-                                        {sale.items && sale.items.length > 0 && (
+                                        {/* {sale.items && sale.items.length > 0 && (
                                             <div className="sh-detail-items">
                                                 <span className="sh-detail-title">// PRODUCTOS_DEL_PEDIDO</span>
                                                 <div className="sh-items-table">
@@ -338,7 +338,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ allTickets }) => {
                                                     ))}
                                                 </div>
                                             </div>
-                                        )}
+                                        )} */}
 
                                         {/* sección factura */}
                                         <div className="sh-invoice-section">

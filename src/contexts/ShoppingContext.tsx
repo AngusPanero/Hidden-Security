@@ -21,15 +21,16 @@ export const ShoppingProvider = ({ children }: ProviderProps) => {
     const [ error, setError ] = useState<boolean>(false)
     const [ loading, setLoading ] = useState<boolean>(false)
 
-    const getPurchased = async (user:string) => {
+    const getPurchased = async () => {
         try {
             setError(false)
             setLoading(true)
-
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/tickets`, { email: user })
-            if(response.status === 200){
-                setPurchased(response.data)
-            }
+    
+            const { data } = await axios.get(
+                `${import.meta.env.VITE_API_URL}/tickets`,
+                { withCredentials: true }
+            )
+            setPurchased(data)
         } catch (error) {
             setError(true)
             console.error("Error al conseguir tickets! 🔴", error)
@@ -37,6 +38,7 @@ export const ShoppingProvider = ({ children }: ProviderProps) => {
             setLoading(false)
         }
     }
+ 
 
     const getAllTickets = async () => {
         try {
