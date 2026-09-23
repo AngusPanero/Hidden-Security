@@ -109,7 +109,10 @@ function getMembershipInfo(user: any): MembershipInfo {
 
 // ─── UserDashboard ────────────────────────────────────────────────────────────
 const UserDashboard = () => {
-    const { user, loading: sessionLoading } = UseSession();
+    const session = UseSession();
+    const { user, loading: sessionLoading } = session;
+    // refreshUser (si el SessionContext lo expone) actualiza el user global
+    const refreshUser = (session as { refreshUser?: () => Promise<void> }).refreshUser;
     const { purchased, getPurchased, loading: loadingPurchases } = UseShopping();
     const { theme } = UseTheme();
     const navigate = useNavigate();
@@ -125,15 +128,44 @@ const UserDashboard = () => {
     const [toast,         setToast]         = useState<{ msg: string; color: string; bg: string } | null>(null);
     const [cvProfile,     setCvProfile]     = useState<{ firstName: string; lastName: string; photo: string } | null>(null);
 
+    // Claims frescas desde Firebase: se piden en cada recarga del dashboard.
+    // El user de la sesión puede venir de una cookie con claims viejas
+    // (p. ej. un voucher ya usado), por eso la membresía se calcula con estas.
+    const [freshClaims, setFreshClaims] = useState<{
+        purchases:      string[];
+        purchaseExpiry: Record<string, string>;
+    } | null>(null);
+
     const sseRef       = useRef<EventSource | null>(null);
     const audioCtxRef  = useRef<AudioContext | null>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const activeTabRef = useRef(activeTab);
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
-    // Info de membresía (plan activo, tiempo restante, vouchers) — se recalcula
-    // solo cuando cambian las claims del usuario.
-    const membership = useMemo(() => getMembershipInfo(user), [user]);
+    // Re-chequear claims al montar (cada recarga). Si la cookie tenía claims
+    // viejas, el backend la renueva y se actualiza también el user global.
+    // Depende de user?.uid (no de user) para no entrar en loop cuando
+    // refreshUser actualiza el usuario.
+    useEffect(() => {
+        if (!user?.uid) return;
+        axios.get(`${import.meta.env.VITE_API_URL}/api/refresh-claims`, { withCredentials: true })
+            .then(({ data }) => {
+                if (!data?.ok) return;
+                setFreshClaims({
+                    purchases:      data.purchases ?? [],
+                    purchaseExpiry: data.purchaseExpiry ?? {},
+                });
+                if (data.sessionRefreshed) refreshUser?.().catch(() => {});
+            })
+            .catch(() => {});
+    }, [user?.uid]); // eslint-disable-line
+
+    // Info de membresía (plan activo, tiempo restante, vouchers): usa las
+    // claims frescas si ya llegaron, si no las del user de la sesión.
+    const membership = useMemo(
+        () => getMembershipInfo(freshClaims ? { ...user, ...freshClaims } : user),
+        [user, freshClaims]
+    );
 
     useEffect(() => {
         if (user?.partner === true || user?.admin === true || user?.isEnterprise === true) {
