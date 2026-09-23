@@ -23,6 +23,25 @@ interface UserNotification {
   read:         boolean;
 }
 
+// Ticket de compra tal como lo devuelve GET /tickets (sin datos de Mercado Pago)
+interface PurchaseTicket {
+    id:          string;
+    reference:   string;
+    date:        string;
+    items:       string[];
+    subtotal:    number;
+    amount:      number;
+    cuotas:      number;
+    couponCode:  string | null;
+    discount:    number;
+    status:      "approved" | "pending" | "rejected" | "cancelled" | "refunded" | "charged_back" | "in_mediation";
+    reason:      string | null;
+    activated:   boolean;
+    expiresAt:   string | null;
+    invoiceSent: boolean;
+    isTest:      boolean;
+}
+
 // ─── Labels de estado ─────────────────────────────────────────────────────────
 const APP_STATUS: Record<string, { label: string; color: string; bg: string; toastMsg: string }> = {
   pending:  { label: "Postulación enviada",              color: "#94a3b8", bg: "rgba(148,163,184,0.1)", toastMsg: "Tu postulación fue recibida"             },
@@ -105,6 +124,129 @@ function getMembershipInfo(user: any): MembershipInfo {
         hoursRemaining,
         hasAnyPurchase: purchases.length > 0,
     };
+}
+
+// ─── Historial de compras: catálogo, estados y mensajes ──────────────────────
+const PRODUCT_INFO: Record<string, { name: string; detail: string; price: number }> = {
+    starter:    { name: "Plan Starter",             detail: "Acceso a todos los cursos · 3 meses",                    price: 100000  },
+    pro:        { name: "Plan Pro",                 detail: "Cursos · 6 meses · incluye 1 voucher de certificación",  price: 200000  },
+    elite:      { name: "Plan Elite",               detail: "Cursos · 12 meses · incluye 2 vouchers de certificación", price: 300000 },
+    voucher:    { name: "Voucher de certificación", detail: "Un intento de examen · sin vencimiento",                  price: 150000  },
+    business:   { name: "Plan Business",            detail: "Bolsa de talento · 6 meses · 3 publicaciones",           price: 900000  },
+    enterprise: { name: "Plan Enterprise",          detail: "Bolsa de talento · 12 meses · publicaciones ilimitadas", price: 1500000 },
+};
+
+type Tone = "ok" | "warn" | "error" | "neutral";
+
+const PAYMENT_STATUS: Record<PurchaseTicket["status"], { label: string; tone: Tone }> = {
+    approved:     { label: "APROBADO",    tone: "ok"      },
+    pending:      { label: "EN REVISIÓN", tone: "warn"    },
+    rejected:     { label: "RECHAZADO",   tone: "error"   },
+    cancelled:    { label: "CANCELADO",   tone: "neutral" },
+    refunded:     { label: "REEMBOLSADO", tone: "neutral" },
+    charged_back: { label: "CONTRACARGO", tone: "error"   },
+    in_mediation: { label: "EN DISPUTA",  tone: "warn"    },
+};
+
+// Motivos de rechazo (códigos propios que arma el backend)
+const REJECTION_MESSAGES: Record<string, string> = {
+    insufficient_funds: "La tarjeta no tenía fondos suficientes.",
+    bad_cvv:            "El código de seguridad ingresado era incorrecto.",
+    bad_expiry:         "La fecha de vencimiento ingresada era incorrecta.",
+    bad_card_number:    "El número de tarjeta ingresado era incorrecto.",
+    bad_data:           "Algún dato de la tarjeta estaba mal cargado.",
+    call_for_authorize: "Tu banco pidió que autorices el pago antes de procesarlo.",
+    card_disabled:      "La tarjeta estaba inhabilitada.",
+    high_risk:          "El pago fue rechazado por controles de seguridad.",
+    max_attempts:       "Se superó la cantidad de intentos permitidos con esa tarjeta.",
+    duplicated:         "Ya existía un pago idéntico reciente.",
+    card_error:         "La tarjeta no pudo procesar el pago.",
+    bank_rejected:      "El banco emisor rechazó el pago.",
+    request_rejected:   "Los datos de pago no pudieron validarse.",
+};
+
+interface TicketMessage {
+    tone:       Tone;
+    title:      string;
+    text:       string;
+    retryPlan?: string;
+}
+
+const formatARS  = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`;
+const formatDate = (d: string | Date) => new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+const formatTime = (d: string | Date) => new Date(d).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+
+// "Plan Starter + voucher", "Voucher de certificación", etc.
+function getTicketTitle(items: string[]): string {
+    const main     = items.find(i => i !== "voucher");
+    const vouchers = items.filter(i => i === "voucher").length;
+    if (!main) return vouchers > 1 ? `${vouchers} vouchers de certificación` : "Voucher de certificación";
+    const name = PRODUCT_INFO[main]?.name ?? main.toUpperCase();
+    return vouchers > 0 ? `${name} + voucher` : name;
+}
+
+// Nota corta que se ve en la fila sin desplegarla
+function getTicketNote(t: PurchaseTicket): string | null {
+    if (t.status === "approved" && !t.activated) return "Activando tu compra…";
+    if (t.status === "pending")                  return "En revisión por Mercado Pago";
+    if (t.status === "rejected")                 return (t.reason && REJECTION_MESSAGES[t.reason]) || "El pago no fue aprobado";
+    return null;
+}
+
+// Mensaje completo del estado, dentro del detalle
+function getTicketMessage(t: PurchaseTicket): TicketMessage {
+    const mainItem = t.items.find(i => i !== "voucher") ?? t.items[0];
+    const hasPlan  = t.items.some(i => i !== "voucher");
+
+    switch (t.status) {
+        case "approved": {
+            if (!t.activated) return {
+                tone:  "warn",
+                title: "Estamos activando tu compra",
+                text:  "El pago está aprobado. La activación puede demorar unos minutos; si todavía no la ves, recargá la página.",
+            };
+            if (hasPlan && t.expiresAt) {
+                const exp = new Date(t.expiresAt);
+                return exp > new Date()
+                    ? { tone: "ok",      title: "Pago acreditado", text: `Tu plan está activo hasta el ${formatDate(exp)}.` }
+                    : { tone: "neutral", title: "Plan finalizado", text: `Este plan venció el ${formatDate(exp)}.` };
+            }
+            return { tone: "ok", title: "Pago acreditado", text: "El voucher quedó disponible en tu cuenta para rendir la certificación." };
+        }
+
+        case "pending":
+            return {
+                tone:  "warn",
+                title: "Pago en revisión",
+                text:  (t.reason === "processing"
+                    ? "El pago se está procesando y suele resolverse en pocas horas."
+                    : "Mercado Pago está revisando el pago. Puede tardar hasta 2 días hábiles.")
+                    + " No hace falta volver a pagar: si se aprueba, tu compra se activa automáticamente.",
+            };
+
+        case "rejected": {
+            const reason = (t.reason && REJECTION_MESSAGES[t.reason]) || "El pago no fue aprobado.";
+            const tip    = t.reason === "call_for_authorize" ? "Comunicate con tu banco para autorizarlo y volvé a intentar."
+                         : t.reason === "duplicated"         ? "Revisá si ya tenés una compra aprobada antes de reintentar."
+                         :                                     "Podés volver a intentarlo con otra tarjeta.";
+            return { tone: "error", title: "Pago rechazado", text: `${reason} No se realizó ningún cobro. ${tip}`, retryPlan: mainItem };
+        }
+
+        case "cancelled":
+            return { tone: "neutral", title: "Pago cancelado", text: "La operación se canceló y no se realizó ningún cobro.", retryPlan: mainItem };
+
+        case "refunded":
+            return { tone: "neutral", title: "Pago reembolsado", text: "Te devolvimos el dinero de esta compra. El reintegro puede tardar algunos días en verse en tu resumen, según tu banco." };
+
+        case "charged_back":
+            return { tone: "error", title: "Pago desconocido ante el banco", text: "Este pago fue desconocido ante tu banco y la compra quedó sin efecto. Si fue un error, contactanos." };
+
+        case "in_mediation":
+            return { tone: "warn", title: "Reclamo abierto", text: "Hay un reclamo abierto sobre este pago en Mercado Pago. Te avisamos cuando se resuelva." };
+
+        default:
+            return { tone: "neutral", title: "Estado desconocido", text: "Si tenés dudas sobre esta compra, contactanos indicando la referencia." };
+    }
 }
 
 // ─── UserDashboard ────────────────────────────────────────────────────────────
@@ -317,7 +459,8 @@ const UserDashboard = () => {
         }
     };
 
-    const purchases = Array.isArray(purchased) ? purchased : [];
+    const purchases: PurchaseTicket[] = Array.isArray(purchased) ? (purchased as unknown as PurchaseTicket[]) : [];
+    const hasPendingPayment = purchases.some(p => p.status === "pending");
 
     if (sessionLoading) {
         return (
@@ -517,62 +660,117 @@ const UserDashboard = () => {
                             <p>SIN_COMPRAS_REGISTRADAS</p>
                         </div>
                     ) : (
-                        <div className="dm-purchase-list">
-                            {purchases.map((p) => {
-                                const isExpanded = expandedId === p._id;
-                                return (
-                                    <div key={p._id} className="dm-purchase-wrapper">
-                                        <div className="dm-purchase-row" onClick={() => setExpandedId(isExpanded ? null : p._id)}>
-                                            <div className="dm-purchase-left">
-                                                <span className="dm-purchase-date">[{new Date(p.createdAt).toLocaleDateString("es-AR")}]</span>
-                                                <span className="dm-purchase-id">{p.plan === "pro" || p.plan === "starter" || p.plan === "elite" ? `PLAN DE CURSOS ${p.plan?.toUpperCase()}` : "VOUCHER DE CERTIFICACIÓN"}</span>
-                                            </div>
-                                            <div className="dm-purchase-right">
-                                                <span className={`dm-status ${p.status?.toLowerCase()}`}>{p.status?.toUpperCase()}</span>
-                                                {p.invoiceSent && <span className="dm-invoice-badge" title="Factura enviada">✓ FACTURA RECIBIDA POR EMAIL</span>}
-                                                <span className="dm-purchase-amount">${(p.calculo?.totalFinal ?? p.amount)?.toLocaleString("es-AR")}</span>
-                                                <span className="dm-chevron">{isExpanded ? "▲" : "▼"}</span>
-                                            </div>
-                                        </div>
-                                        {isExpanded && (
-                                            <div className="dm-purchase-detail">
-                                                <div className="dm-detail-block">
-                                                    <span className="dm-detail-title">RESUMEN DE PAGO</span>
-                                                    {p.calculo ? (
-                                                        <>
-                                                            <div className="dm-detail-row"><span>Cuotas</span><strong>{p.calculo.cuotas}x</strong></div>
-                                                            <div className="dm-detail-row"><span>Subtotal</span><strong>${p.calculo.subtotalBase?.toLocaleString("es-AR")}</strong></div>
-                                                            {p.calculo.descuentoCupon > 0 && <div className="dm-detail-row dm-green"><span>Descuento</span><strong>- ${p.calculo.descuentoCupon?.toLocaleString("es-AR")}</strong></div>}
-                                                            {p.calculo.costoFinanciacion > 0 && <div className="dm-detail-row dm-red"><span>Financiación</span><strong>+ ${p.calculo.costoFinanciacion?.toLocaleString("es-AR")}</strong></div>}
-                                                            {p.calculo.cupon && <div className="dm-detail-row"><span>Cupón</span><strong>{p.calculo.cupon.code} — {p.calculo.cupon.discount}%</strong></div>}
-                                                            <div className="dm-detail-row dm-total"><span>TOTAL</span><strong>${p.calculo.totalFinal?.toLocaleString("es-AR")}</strong></div>
-                                                        </>
-                                                    ) : (
-                                                        <div className="dm-detail-row dm-total"><span>TOTAL</span><strong>${p.amount?.toLocaleString("es-AR")}</strong></div>
-                                                    )}
-                                                </div>
-                                                {p.items && p.items.length > 0 && (
-                                                    <div className="dm-detail-block">
-                                                        <span className="dm-detail-title">PRODUCTOS</span>
-                                                        {p.items.map((item: any, i: any) => (
-                                                            <div key={i} className="dm-item-row">
-                                                                <div className="dm-item-info">
-                                                                    <strong>{item.nombre}</strong>
-                                                                    {item.varianteLabel && <em className="dm-variante">{item.varianteLabel}</em>}
-                                                                </div>
-                                                                <div className="dm-item-right">
-                                                                    <span className="dm-item-price">${item.totalItem?.toLocaleString("es-AR")}</span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                        <>
+                            {/* Aviso general si hay un pago en revisión */}
+                            {hasPendingPayment && (
+                                <div className="dm-hist-banner">
+                                    <span className="dm-hist-banner-dot" />
+                                    <span>
+                                        Tenés un pago en revisión. No hace falta volver a pagar: si se aprueba,
+                                        tu compra se activa automáticamente. Mientras tanto no vas a poder iniciar otra compra.
+                                    </span>
+                                </div>
+                            )}
+
+                            <div className="dm-purchase-list">
+                                {purchases.map((p) => {
+                                    const isExpanded = expandedId === p.id;
+                                    const statusInfo = PAYMENT_STATUS[p.status] ?? { label: String(p.status).toUpperCase(), tone: "neutral" as Tone };
+                                    const note       = getTicketNote(p);
+                                    const message    = getTicketMessage(p);
+                                    const isVoid     = ["rejected", "cancelled", "refunded", "charged_back"].includes(p.status);
+
+                                    return (
+                                        <div key={p.id} className={`dm-purchase-wrapper dm-hist-tone-${statusInfo.tone}`}>
+                                            <div className="dm-purchase-row" onClick={() => setExpandedId(isExpanded ? null : p.id)}>
+                                                <div className="dm-purchase-left">
+                                                    <span className="dm-purchase-date">[{new Date(p.date).toLocaleDateString("es-AR")}]</span>
+                                                    <div className="dm-hist-title-group">
+                                                        <span className="dm-purchase-id">
+                                                            {getTicketTitle(p.items)}
+                                                            {p.isTest && <span className="dm-hist-test">PRUEBA</span>}
+                                                        </span>
+                                                        {note && <span className={`dm-hist-note dm-hist-note--${statusInfo.tone}`}>{note}</span>}
                                                     </div>
-                                                )}
+                                                </div>
+                                                <div className="dm-purchase-right">
+                                                    <span className={`dm-hist-status dm-hist-status--${statusInfo.tone}`}>{statusInfo.label}</span>
+                                                    {p.invoiceSent && <span className="dm-invoice-badge" title="Factura enviada">✓ FACTURA RECIBIDA POR EMAIL</span>}
+                                                    <span className={`dm-purchase-amount ${isVoid ? "dm-hist-amount-void" : ""}`}>{formatARS(p.amount)}</span>
+                                                    <span className="dm-chevron">{isExpanded ? "▲" : "▼"}</span>
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+
+                                            {isExpanded && (
+                                                <div className="dm-purchase-detail">
+
+                                                    {/* Estado */}
+                                                    <div className={`dm-hist-message dm-hist-message--${message.tone}`}>
+                                                        <div className="dm-hist-message-text">
+                                                            <strong>{message.title}</strong>
+                                                            <span>{message.text}</span>
+                                                        </div>
+                                                        {message.retryPlan && !p.isTest && (
+                                                            <a href={`/checkout/${message.retryPlan}`} className="dm-hist-retry">
+                                                                REINTENTAR →
+                                                            </a>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Productos */}
+                                                    <div className="dm-detail-block">
+                                                        <span className="dm-detail-title">DETALLE DE LA COMPRA</span>
+                                                        {p.items.map((item, i) => {
+                                                            const info = PRODUCT_INFO[item];
+                                                            return (
+                                                                <div key={`${item}-${i}`} className="dm-item-row">
+                                                                    <div className="dm-item-info">
+                                                                        <strong>{info?.name ?? item.toUpperCase()}</strong>
+                                                                        {info?.detail && <em className="dm-variante">{info.detail}</em>}
+                                                                    </div>
+                                                                    <div className="dm-item-right">
+                                                                        {info && <span className="dm-item-price">{formatARS(info.price)}</span>}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Resumen de pago */}
+                                                    <div className="dm-detail-block">
+                                                        <span className="dm-detail-title">RESUMEN DE PAGO</span>
+                                                        <div className="dm-detail-row"><span>Subtotal</span><strong>{formatARS(p.subtotal)}</strong></div>
+                                                        {p.discount > 0 && (
+                                                            <div className="dm-detail-row dm-green">
+                                                                <span>Cupón {p.couponCode ?? ""}</span>
+                                                                <strong>- {p.discount}%</strong>
+                                                            </div>
+                                                        )}
+                                                        <div className="dm-detail-row">
+                                                            <span>Forma de pago</span>
+                                                            <strong>
+                                                                {p.cuotas > 1
+                                                                    ? `${p.cuotas} cuotas de ${formatARS(p.amount / p.cuotas)}`
+                                                                    : "1 pago"}
+                                                            </strong>
+                                                        </div>
+                                                        <div className="dm-detail-row dm-total">
+                                                            <span>TOTAL</span>
+                                                            <strong className={isVoid ? "dm-hist-amount-void" : ""}>{formatARS(p.amount)}</strong>
+                                                        </div>
+                                                        <div className="dm-hist-meta">
+                                                            <span>REF #{p.reference}</span>
+                                                            <span>{formatDate(p.date)} · {formatTime(p.date)}</span>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
                     )}
                 </div>
             )}

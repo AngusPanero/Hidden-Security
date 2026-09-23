@@ -1465,3 +1465,184 @@
   .dm-notif-toast { right: 10px; bottom: 10px; max-width: calc(100vw - 20px); font-size: 0.72rem; padding: 10px 14px; }
   .dm-notif-badge { font-size: 0.5rem; min-width: 16px; height: 16px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   HISTORIAL DE COMPRAS — agregar al final de userDashboard.css
+══════════════════════════════════════════════════════════════ */
+
+/* ── Aviso general de pago en revisión ───────────────────────── */
+.dm-hist-banner {
+    display:       flex;
+    align-items:   flex-start;
+    gap:           10px;
+    padding:       14px 18px;
+    margin-bottom: 14px;
+    font-family:   'Montserrat', sans-serif;
+    font-size:     0.78rem;
+    line-height:   1.6;
+    color:         #eab308;
+    background:    rgba(234, 179, 8, 0.08);
+    border:        1px solid rgba(234, 179, 8, 0.3);
+    border-left:   3px solid #eab308;
+}
+
+.dm-hist-banner-dot {
+    width:         7px;
+    height:        7px;
+    margin-top:    6px;
+    border-radius: 50%;
+    background:    #eab308;
+    flex-shrink:   0;
+    animation:     dm-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Borde lateral por estado ────────────────────────────────── */
+.dm-hist-tone-ok      .dm-purchase-row { box-shadow: inset 3px 0 0 #22c55e; }
+.dm-hist-tone-warn    .dm-purchase-row { box-shadow: inset 3px 0 0 #eab308; }
+.dm-hist-tone-error   .dm-purchase-row { box-shadow: inset 3px 0 0 #f43f5e; }
+.dm-hist-tone-neutral .dm-purchase-row { box-shadow: inset 3px 0 0 var(--dm-border); }
+
+/* ── Título + nota corta en la fila ──────────────────────────── */
+.dm-hist-title-group {
+    display:        flex;
+    flex-direction: column;
+    gap:            3px;
+}
+
+.dm-hist-note {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.7rem;
+    font-weight:    600;
+    letter-spacing: 0.02em;
+}
+.dm-hist-note--ok      { color: #22c55e; }
+.dm-hist-note--warn    { color: #eab308; }
+.dm-hist-note--error   { color: #f43f5e; }
+.dm-hist-note--neutral { color: var(--dm-text-dim); }
+
+.dm-hist-test {
+    margin-left:    8px;
+    padding:        1px 6px;
+    font-family:    'JetBrains Mono', monospace;
+    font-size:      0.55rem;
+    font-weight:    800;
+    letter-spacing: 1px;
+    color:          var(--dm-text-dim);
+    border:         1px dashed var(--dm-border);
+    vertical-align: middle;
+}
+
+/* ── Pill de estado ──────────────────────────────────────────── */
+.dm-hist-status {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.68rem;
+    font-weight:    800;
+    letter-spacing: 0.14em;
+    padding:        4px 10px;
+    white-space:    nowrap;
+    border:         1px solid;
+}
+.dm-hist-status--ok      { color: #22c55e; background: rgba(34, 197, 94, 0.1);  border-color: rgba(34, 197, 94, 0.3); }
+.dm-hist-status--warn    { color: #eab308; background: rgba(234, 179, 8, 0.1);  border-color: rgba(234, 179, 8, 0.3); }
+.dm-hist-status--error   { color: #f43f5e; background: rgba(244, 63, 94, 0.1);  border-color: rgba(244, 63, 94, 0.3); }
+.dm-hist-status--neutral { color: var(--dm-text-mid); background: transparent; border-color: var(--dm-border); }
+
+/* Monto de compras sin efecto (rechazadas, canceladas, reembolsadas) */
+.dm-hist-amount-void {
+    text-decoration: line-through;
+    opacity:         0.45;
+}
+
+/* ── Mensaje de estado en el detalle ─────────────────────────── */
+.dm-hist-message {
+    grid-column:     1 / -1;
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             16px;
+    flex-wrap:       wrap;
+    padding:         14px 18px;
+    border:          1px solid;
+    border-left:     3px solid;
+}
+.dm-hist-message--ok      { background: rgba(34, 197, 94, 0.06); border-color: rgba(34, 197, 94, 0.25); border-left-color: #22c55e; }
+.dm-hist-message--warn    { background: rgba(234, 179, 8, 0.06); border-color: rgba(234, 179, 8, 0.25); border-left-color: #eab308; }
+.dm-hist-message--error   { background: rgba(244, 63, 94, 0.06); border-color: rgba(244, 63, 94, 0.25); border-left-color: #f43f5e; }
+.dm-hist-message--neutral { background: var(--dm-surface-2);     border-color: var(--dm-border);        border-left-color: var(--dm-text-dim); }
+
+.dm-hist-message-text {
+    display:        flex;
+    flex-direction: column;
+    gap:            4px;
+    flex:           1;
+    min-width:      220px;
+}
+
+.dm-hist-message-text strong {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.8rem;
+    font-weight:    800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.dm-hist-message--ok      .dm-hist-message-text strong { color: #22c55e; }
+.dm-hist-message--warn    .dm-hist-message-text strong { color: #eab308; }
+.dm-hist-message--error   .dm-hist-message-text strong { color: #f43f5e; }
+.dm-hist-message--neutral .dm-hist-message-text strong { color: var(--dm-text); }
+
+.dm-hist-message-text span {
+    font-family: 'Montserrat', sans-serif;
+    font-size:   0.78rem;
+    line-height: 1.6;
+    color:       var(--dm-text-mid);
+}
+
+.dm-hist-retry {
+    font-family:     'Montserrat', sans-serif;
+    font-size:       0.68rem;
+    font-weight:     800;
+    letter-spacing:  2px;
+    text-decoration: none;
+    color:           var(--dm-accent);
+    border:          1px solid var(--dm-accent);
+    padding:         8px 16px;
+    white-space:     nowrap;
+    transition:      background 0.2s, color 0.2s;
+}
+.dm-hist-retry:hover {
+    background: var(--dm-accent);
+    color:      #000;
+}
+
+/* ── Referencia y fecha ──────────────────────────────────────── */
+.dm-hist-meta {
+    display:         flex;
+    justify-content: space-between;
+    gap:             8px;
+    flex-wrap:       wrap;
+    margin-top:      6px;
+    padding-top:     10px;
+    border-top:      1px dashed var(--dm-border);
+    font-family:     'JetBrains Mono', monospace;
+    font-size:       0.62rem;
+    font-weight:     700;
+    letter-spacing:  1px;
+    color:           var(--dm-text-dim);
+    text-transform:  uppercase;
+}
+
+/* ── Light mode ──────────────────────────────────────────────── */
+.dm-container.light .dm-hist-retry        { color: #ff5500; border-color: #ff5500; }
+.dm-container.light .dm-hist-retry:hover  { background: #ff5500; color: #fff; }
+.dm-container.light .dm-hist-banner,
+.dm-container.light .dm-hist-note--warn,
+.dm-container.light .dm-hist-status--warn,
+.dm-container.light .dm-hist-message--warn .dm-hist-message-text strong { color: #b45309; }
+
+/* ── Mobile ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .dm-hist-status        { font-size: 0.6rem; padding: 3px 7px; }
+    .dm-hist-message       { padding: 12px 14px; }
+    .dm-hist-retry         { width: 100%; text-align: center; }
+    .dm-hist-banner        { font-size: 0.72rem; padding: 12px 14px; }
+}
