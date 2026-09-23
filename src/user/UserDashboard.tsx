@@ -410,7 +410,7 @@ const UserDashboard = () => {
                     <div className="dm-membership-empty">
                         <span className="dm-membership-empty-icon">◫</span>
                         <span className="dm-membership-empty-text">SIN_PLAN_ACTIVO</span>
-                        <a href="/planes" className="dm-membership-cta">VER_PLANES</a>
+                        <a href="/pricing" className="dm-membership-cta">VER_PLANES</a>
                     </div>
                 ) : (
                     <div className="dm-membership-grid">
