@@ -87,7 +87,7 @@ const UserList = () => {
 
     // Conteo por rol para mostrar en cada filtro
     const roleCounts = useMemo(() => {
-        const counts: Record<RoleFilter, number> = { admin: 0, enterprise: 0, partner: 0, trainee: 0, user: 0 };
+        const counts: Record<RoleFilter, number> = { admin: 0, enterprise: 0, partner: 0, user: 0 };
         for (const u of allUsers) counts[getUserRole(u)]++;
         return counts;
     }, [allUsers]);
