@@ -478,3 +478,208 @@
     .sh-items-head span:nth-child(5),
     .sh-items-row span:nth-child(5) { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Estados de operación en SalesHistory
+   Pegar al final de saalesHistory.css. No modifica nada existente
+   salvo .sh-detail-grid (ahora 4 columnas adaptables).
+══════════════════════════════════════════════════════════════ */
+
+.sh-container {
+    --sh-ok:    #22c55e;
+    --sh-warn:  #eab308;
+    --sh-error: #f43f5e;
+}
+.sh-container.light { --sh-warn: #b45309; }
+
+/* ── Aviso general ── */
+.sh-alert-banner {
+    display:       flex;
+    align-items:   flex-start;
+    gap:           10px;
+    padding:       14px 18px;
+    margin-bottom: 20px;
+    font-family:   'Montserrat', sans-serif;
+    font-size:     0.78rem;
+    line-height:   1.6;
+    color:         var(--sh-error);
+    background:    rgba(244, 63, 94, 0.06);
+    border:        1px solid rgba(244, 63, 94, 0.25);
+    border-left:   3px solid var(--sh-error);
+}
+.sh-alert-banner strong { font-weight: 800; }
+
+.sh-alert-dot {
+    width:         7px;
+    height:        7px;
+    margin-top:    7px;
+    border-radius: 50%;
+    background:    var(--sh-error);
+    flex-shrink:   0;
+    animation:     sh-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes sh-pulse {
+    0%, 100% { opacity: 1;   transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ── Tabs de estado ── */
+.sh-status-tabs {
+    display:         flex;
+    margin-bottom:   20px;
+    border-bottom:   1px solid var(--sh-border);
+    overflow-x:      auto;
+    scrollbar-width: none;
+}
+.sh-status-tabs::-webkit-scrollbar { display: none; }
+
+.sh-status-tab {
+    display:        inline-flex;
+    align-items:    center;
+    gap:            8px;
+    padding:        10px 18px;
+    background:     transparent;
+    border:         none;
+    border-bottom:  2px solid transparent;
+    margin-bottom:  -1px;
+    font-family:    'Montserrat', sans-serif;
+    font-size:      12px;
+    font-weight:    700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space:    nowrap;
+    color:          var(--sh-text-dim);
+    cursor:         pointer;
+    transition:     color 0.2s, border-color 0.2s;
+}
+.sh-status-tab:hover { color: var(--sh-text); }
+
+.sh-status-tab-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size:   0.62rem;
+    font-weight: 800;
+    opacity:     0.6;
+}
+
+.sh-status-tab.active                    { color: var(--sh-accent); border-bottom-color: var(--sh-accent); }
+.sh-status-tab--approved.active          { color: var(--sh-ok);     border-bottom-color: var(--sh-ok); }
+.sh-status-tab--review.active            { color: var(--sh-warn);   border-bottom-color: var(--sh-warn); }
+.sh-status-tab--failed.active            { color: var(--sh-error);  border-bottom-color: var(--sh-error); }
+.sh-status-tab--void.active,
+.sh-status-tab--internal.active          { color: var(--sh-text);   border-bottom-color: var(--sh-text-dim); }
+
+/* ── Borde lateral por estado ── */
+.sh-tone-ok      .sh-row { box-shadow: inset 3px 0 0 var(--sh-ok); }
+.sh-tone-warn    .sh-row { box-shadow: inset 3px 0 0 var(--sh-warn); }
+.sh-tone-error   .sh-row { box-shadow: inset 3px 0 0 var(--sh-error); }
+.sh-tone-neutral .sh-row { box-shadow: inset 3px 0 0 var(--sh-border-s); }
+
+/* ── Email + nota ── */
+.sh-user-group {
+    display:        flex;
+    flex-direction: column;
+    gap:            3px;
+}
+
+.sh-row-note {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.7rem;
+    font-weight:    600;
+    letter-spacing: 0.02em;
+}
+.sh-row-note--ok      { color: var(--sh-ok); }
+.sh-row-note--warn    { color: var(--sh-warn); }
+.sh-row-note--error   { color: var(--sh-error); }
+.sh-row-note--neutral { color: var(--sh-text-dim); }
+
+.sh-test-badge {
+    margin-left:    8px;
+    padding:        1px 6px;
+    font-family:    'JetBrains Mono', monospace;
+    font-size:      0.55rem;
+    font-weight:    800;
+    letter-spacing: 1px;
+    color:          var(--sh-text-dim);
+    border:         1px dashed var(--sh-border-s);
+    vertical-align: middle;
+}
+
+/* ── Pill de estado ── */
+.sh-state {
+    display:        inline-block;
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.68rem;
+    font-weight:    800;
+    letter-spacing: 0.14em;
+    padding:        4px 10px;
+    border:         1px solid;
+    white-space:    nowrap;
+}
+.sh-state--ok      { color: var(--sh-ok);    background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
+.sh-state--warn    { color: var(--sh-warn);  background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); }
+.sh-state--error   { color: var(--sh-error); background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.3); }
+.sh-state--neutral { color: var(--sh-text-dim); background: transparent;       border-color: var(--sh-border-s); }
+
+/* Monto no cobrado */
+.sh-amount-void {
+    text-decoration: line-through;
+    opacity:         0.45;
+}
+
+/* ── Mensaje de estado en el detalle ── */
+.sh-op-message {
+    display:        flex;
+    flex-direction: column;
+    gap:            4px;
+    padding:        14px 18px;
+    border:         1px solid;
+    border-left:    3px solid;
+}
+.sh-op-message strong {
+    font-family:    'Montserrat', sans-serif;
+    font-size:      0.8rem;
+    font-weight:    800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.sh-op-message span {
+    font-family: 'Montserrat', sans-serif;
+    font-size:   0.78rem;
+    line-height: 1.6;
+    color:       var(--sh-text-dim);
+}
+.sh-op-message--ok      { background: rgba(34, 197, 94, 0.06); border-color: rgba(34, 197, 94, 0.25); border-left-color: var(--sh-ok); }
+.sh-op-message--warn    { background: rgba(234, 179, 8, 0.06); border-color: rgba(234, 179, 8, 0.25); border-left-color: var(--sh-warn); }
+.sh-op-message--error   { background: rgba(244, 63, 94, 0.06); border-color: rgba(244, 63, 94, 0.25); border-left-color: var(--sh-error); }
+.sh-op-message--neutral { background: var(--sh-surface-2);     border-color: var(--sh-border);        border-left-color: var(--sh-text-dim); }
+.sh-op-message--ok      strong { color: var(--sh-ok); }
+.sh-op-message--warn    strong { color: var(--sh-warn); }
+.sh-op-message--error   strong { color: var(--sh-error); }
+.sh-op-message--neutral strong { color: var(--sh-text); }
+
+/* ── Detalle: 4 columnas adaptables ── */
+.sh-detail-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.sh-mono {
+    font-family:    'JetBrains Mono', monospace !important;
+    font-size:      0.65rem !important;
+    text-transform: none;
+    word-break:     break-all;
+}
+
+.sh-text--ok      { color: var(--sh-ok) !important; }
+.sh-text--warn    { color: var(--sh-warn) !important; }
+.sh-text--error   { color: var(--sh-error) !important; }
+.sh-text--neutral { color: var(--sh-text-dim) !important; }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .sh-status-tab { padding: 10px 14px; font-size: 11px; }
+    .sh-state      { font-size: 0.6rem; padding: 3px 7px; }
+    .sh-alert-banner,
+    .sh-op-message { padding: 12px 14px; font-size: 0.72rem; }
+    .sh-detail-grid { grid-template-columns: 1fr; }
+}
