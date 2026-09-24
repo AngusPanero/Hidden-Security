@@ -22,18 +22,16 @@ interface User {
   isPartner?: boolean
   // Preparado para el futuro rol de "alumno en formación" -- todavía no lo
   // envía el backend, por eso es opcional.
-  isTrainee?: boolean
 }
 
-type RoleFilter = "admin" | "enterprise" | "partner" | "trainee" | "user";
+type RoleFilter = "admin" | "enterprise" | "partner" | "user";
 
-const ROLE_ORDER: RoleFilter[] = ["admin", "enterprise", "partner", "trainee", "user"];
+const ROLE_ORDER: RoleFilter[] = ["admin", "enterprise", "partner", "user"];
 
 const ROLE_LABELS: Record<RoleFilter, string> = {
   admin:      "Admin",
   enterprise: "Enterprise",
   partner:    "Partner",
-  trainee:    "Trainee",
   user:       "Usuario",
 };
 
@@ -46,7 +44,6 @@ function getUserRole(user: User): RoleFilter {
   if (user.isAdmin)      return "admin";
   if (user.isEnterprise) return "enterprise";
   if (user.isPartner)    return "partner";
-  if (user.isTrainee)    return "trainee";
   return "user";
 }
 
@@ -158,7 +155,6 @@ const UserList = () => {
                     >
                         <span className="ul-filter-box" />
                         {ROLE_LABELS[role]}
-                        <span className="ul-filter-count">{roleCounts[role]}</span>
                     </button>
                 ))}
             </div>
