@@ -108,6 +108,7 @@
   margin-bottom:   20px;
   border-bottom:   1px solid var(--ul-border);
   overflow-x:      auto;
+  overflow-y:      hidden;
   scrollbar-width: none;
   animation:       ul-fade-in 0.45s ease 0.05s both;
 }
@@ -479,7 +480,7 @@
   .ul-stat-value  { font-size: 22px; }
   .ul-stat-label  { font-size: 9px; }
 
-  .ul-filter { padding: 10px 14px; font-size: 11px; height: 60px; }
+  .ul-filter { padding: 10px 14px; font-size: 11px; overflow: hidden; }
 
   .ul-row        { padding: 12px 14px; gap: 8px; }
   .ul-row-left   { flex-direction: column; align-items: flex-start; gap: 2px; }
