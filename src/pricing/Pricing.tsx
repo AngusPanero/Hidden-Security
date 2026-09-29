@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { UseTheme } from "../contexts/ThemeContext";
+import { UseSession } from "../contexts/SessionContext";
 import LiveTypingText from "../ui/LiveTypingText";
 import "./pricing.css";
 import { useNavigate } from "react-router-dom";
@@ -33,10 +34,51 @@ const REQUEST_TYPE_COPY: Record<RequestType, { label: string; description: strin
     },
 };
 
+// Mismo criterio que Checkout: primer plan (no voucher) que siga vigente.
+// Solo sirve para mostrar el estado; el backend vuelve a validar al cobrar.
+function getActivePlan(purchases: unknown, purchaseExpiry: Record<string, string> | undefined) {
+    if (!Array.isArray(purchases)) return null;
+    const now = new Date();
+    for (const planId of purchases) {
+        if (planId === "voucher") continue;
+        const expiryStr = purchaseExpiry?.[planId];
+        if (!expiryStr) continue;
+        const expiresAt = new Date(expiryStr);
+        if (expiresAt > now) return { planId: String(planId), expiresAt };
+    }
+    return null;
+}
+
+interface PlanCard {
+    id:         string;
+    title:      string;
+    price:      string;
+    period:     string;
+    desc:       string;
+    features:   string[];
+    label:      string;
+    highlight?: boolean;
+    cuotas:     number;
+}
+
 const Pricing = () => {
     const { theme } = UseTheme();
-    const navigate = useNavigate();
+    const { user }  = UseSession();
+    const navigate  = useNavigate();
     const [view, setView] = useState<"students" | "business">("students");
+
+    // --- Tipo de cuenta del usuario logueado ---------------------------------
+    const isEnterprise   = !!user?.isEnterprise;
+    const companyName    = (user as any)?.companyName as string | undefined;
+    const activePlanInfo = useMemo(
+        () => getActivePlan((user as any)?.purchases, (user as any)?.purchaseExpiry),
+        [user]
+    );
+
+    // Una cuenta enterprise entra directo a la vista corporativa
+    useEffect(() => {
+        if (isEnterprise) setView("business");
+    }, [isEnterprise]);
 
     // --- Estado del modal de solicitud --------------------------------------
     const [requestOpen,      setRequestOpen]      = useState(false);
@@ -64,7 +106,10 @@ const Pricing = () => {
         setRequestType(type);
         setRequestSubmitted(false);
         setRequestError(null);
-        setRequestForm(EMPTY_REQUEST_FORM);
+        setRequestForm({
+            ...EMPTY_REQUEST_FORM,
+            email: user?.email || "",
+        });
         setRequestOpen(true);
     };
 
@@ -96,48 +141,106 @@ const Pricing = () => {
         }
     };
 
-    const handlePurchase = (planTitle: string) => {
-        const planMap: Record<string, string> = {
-            "CERTIFICACIÓN INDIVIDUAL": "voucher",
-        };
-        const planId = planMap[planTitle] ?? planTitle.toLowerCase();
+    // El checkout recibe solo el id del plan: los datos del comprador (email,
+    // empresa, compras vigentes) los toma de la sesión, y el backend recalcula
+    // precio y valida permisos por su cuenta.
+    const handlePurchase = (planId: string) => {
         navigate(`/checkout/${planId}`);
     };
 
-    const studentPlans = [
-        { title: "STARTER", price: "100.000", desc: "Ideal para comenzar tu formación y desarrollar las habilidades necesarias para iniciar una carrera en ciberseguridad.", period: "3 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "01 - TRAINING", cuotas: 3 },
-        { title: "PRO", price: "200.000", desc: "La mejor opción para quienes buscan prepararse y validar sus habilidades.",period: "6 MESES DISPONIBLES", features: ["1 Voucher de certificación Hidden Security", "Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "02 - RECOMENDADO", highlight: true, cuotas: 3},
-        { title: "ELITE", price: "300.000", desc: "La experiencia más completa para quienes desean aprovechar al máximo el ecosistema de Hidden Security.", period: "12 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso", "Voucher de certificación Hidden Security", "2do Voucher de certificación en caso de no aprobar el primero"], label: "03 - FULL_STACK", cuotas: 3 },
-        { title: "CERTIFICACIÓN INDIVIDUAL", desc: "Si ya contás con los conocimientos necesarios, podés rendir la certificación sin necesidad de realizar nuestros cursos.", price: "150.000", period: "UNICO USO", features: ["Un Intento de certificación Hidden Security", "Validación de conocimiento obtenido", "Título de certificacion Hidden Security"], label: "04 - CERTIFICATION", cuotas: 3 }
+    const studentPlans: PlanCard[] = [
+        { id: "starter", title: "STARTER", price: "100.000", desc: "Ideal para comenzar tu formación y desarrollar las habilidades necesarias para iniciar una carrera en ciberseguridad.", period: "3 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "01 - TRAINING", cuotas: 3 },
+        { id: "pro", title: "PRO", price: "200.000", desc: "La mejor opción para quienes buscan prepararse y validar sus habilidades.", period: "6 MESES DISPONIBLES", features: ["1 Voucher de certificación Hidden Security", "Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "02 - RECOMENDADO", highlight: true, cuotas: 3 },
+        { id: "elite", title: "ELITE", price: "300.000", desc: "La experiencia más completa para quienes desean aprovechar al máximo el ecosistema de Hidden Security.", period: "12 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso", "Voucher de certificación Hidden Security", "2do Voucher de certificación en caso de no aprobar el primero"], label: "03 - FULL_STACK", cuotas: 3 },
+        { id: "voucher", title: "CERTIFICACIÓN INDIVIDUAL", desc: "Si ya contás con los conocimientos necesarios, podés rendir la certificación sin necesidad de realizar nuestros cursos.", price: "150.000", period: "UNICO USO", features: ["Un Intento de certificación Hidden Security", "Validación de conocimiento obtenido", "Título de certificacion Hidden Security"], label: "04 - CERTIFICATION", cuotas: 3 },
     ];
 
-    const businessPlans = [
-        { 
-            title: "BUSINESS", // B2B_SEIS
-            price: "900.000", 
+    const businessPlans: PlanCard[] = [
+        {
+            id: "business",
+            title: "BUSINESS",
+            price: "900.000",
             period: "6 MESES",
-            desc: "Ideal para empresas que buscan incorporar talento especializado en ciberseguridad.", 
+            desc: "Ideal para empresas que buscan incorporar talento especializado en ciberseguridad.",
             features: ["Acceso a base de datos de perfiles", "Búsqueda por habilidades, herramientas y certificaciones", "Publicación de ofertas laborales", "Contacto directo con candidatos", "Hasta 10 busquedas activas"],
             label: "01 // BUSINESS",
-            cuotas: 3
+            cuotas: 3,
         },
-        { 
-            title: "ENTERPRISE", // B2B_DOCE
-            price: "1.500.000", 
-            period: "12 MESES", 
+        {
+            id: "enterprise",
+            title: "ENTERPRISE",
+            price: "1.500.000",
+            period: "12 MESES",
             desc: "Para organizaciones con procesos de selección continuos.",
             features: ["Todo lo incluído en Business", "Publicaciones ilimitadas", "Busquedas activas ilimitadas", "Soporte prioritario", "Acceso prioritario a nuevas funcionalidades"],
             label: "02 // ENTERPRISE: RECOMENDADO",
             highlight: true,
-            cuotas: 3
-        }
+            cuotas: 3,
+        },
     ];
+
+    const expiryLabel = activePlanInfo
+        ? activePlanInfo.expiresAt.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })
+        : "";
+
+    // --- CTA de cada card según vista y tipo de cuenta -----------------------
+    const renderCta = (plan: PlanCard) => {
+        if (view === "business") {
+            // Sin cuenta enterprise: primero tiene que pedir acceso
+            if (!isEnterprise) {
+                return (
+                    <button className="plan-cta Montserrat-900" onClick={() => openRequestModal("empresa")}>
+                        SOLICITAR_ACCESO
+                    </button>
+                );
+            }
+            // Enterprise con plan vigente: no puede comprar hasta que venza
+            if (activePlanInfo) {
+                const isCurrent = activePlanInfo.planId === plan.id;
+                return (
+                    <>
+                        <button className="plan-cta plan-cta--disabled Montserrat-900" disabled>
+                            {isCurrent ? "PLAN_ACTIVO" : "NO_DISPONIBLE"}
+                        </button>
+                        <span className="plan-cta-note">
+                            {isCurrent
+                                ? `Vigente hasta el ${expiryLabel}`
+                                : `Disponible cuando venza tu plan actual (${expiryLabel})`}
+                        </span>
+                    </>
+                );
+            }
+            return (
+                <button className="plan-cta Montserrat-900" onClick={() => handlePurchase(plan.id)}>
+                    COMPRAR
+                </button>
+            );
+        }
+
+        // Vista estudiantes: las cuentas enterprise no pueden comprar planes de estudio
+        if (isEnterprise) {
+            return (
+                <>
+                    <button className="plan-cta plan-cta--disabled Montserrat-900" disabled>
+                        EXCLUSIVO_ESTUDIANTES
+                    </button>
+                    <span className="plan-cta-note">Tu cuenta enterprise solo puede adquirir planes corporativos.</span>
+                </>
+            );
+        }
+
+        return (
+            <button className="plan-cta Montserrat-900" onClick={() => handlePurchase(plan.id)}>
+                {plan.id === "voucher" ? "ADQUIRIR_EXAMEN" : "COMPRAR"}
+            </button>
+        );
+    };
 
     return (
         <main className={`pricing-root ${theme}`}>
             <section className="pricing-container">
                 <header className="pricing-header">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8 }}
@@ -150,13 +253,13 @@ const Pricing = () => {
                             <LiveTypingText text="Selecciona el nodo de acceso que mejor se adapte a tus requerimientos operativos. Todos nuestros planes incluyen acceso a la infraestructura de aprendizaje de Hidden Security." />
                         </div>
                     </motion.div>
-                    
+
                     {/* TOGGLE SWITCH CORPORATIVO */}
                     <div className="pricing-selector-container">
                         <div className="pricing-toggle-wrapper">
                             <button className={`toggle-btn ${view === "students" ? "active" : ""}`} onClick={() => setView("students")}>ESTUDIANTES</button>
                             <button className={`toggle-btn ${view === "business" ? "active" : ""}`} onClick={() => setView("business")}>CORPORATIVO</button>
-                            <motion.div 
+                            <motion.div
                                 className="toggle-slider"
                                 animate={{ x: view === "students" ? "0%" : "100%" }}
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -165,38 +268,57 @@ const Pricing = () => {
                     </div>
                 </header>
 
-                {/* -- Banner de solicitud previa -- solo en vista Corporativo -- */}
+                {/* -- Banner vista Corporativo -- */}
                 {view === "business" && (
-                    <motion.div
-                        className="pr-banner"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                    >
-                        <div className="pr-banner-text">
-                            <span className="h-label-mono pr-banner-tag">// ACCESO_RESTRINGIDO</span>
-                            <p>
-                                Los planes corporativos, y la incorporación como trainee/sponsor, requieren
-                                completar una solicitud externa antes de quedar habilitados para la compra.
-                            </p>
-                        </div>
-                        <div className="pr-banner-actions">
-                            <button className="pr-banner-btn" onClick={() => openRequestModal("empresa")}>
-                                SOLICITAR ACCESO EMPRESA
-                            </button>
-                            <button className="pr-banner-btn pr-banner-btn--ghost" onClick={() => openRequestModal("trainee")}>
-                                POSTULARME COMO TRAINEE / SPONSOR
-                            </button>
-                        </div>
-                    </motion.div>
+                    isEnterprise ? (
+                        <motion.div
+                            className="pr-banner pr-banner--verified"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                        >
+                            <div className="pr-banner-text">
+                                <span className="h-label-mono pr-banner-tag">// CUENTA_ENTERPRISE_VERIFICADA</span>
+                                <p>
+                                    {companyName ? <strong>{companyName}</strong> : "Tu cuenta"} está habilitada para adquirir planes corporativos.
+                                    {activePlanInfo
+                                        ? ` Tenés el plan ${activePlanInfo.planId.toUpperCase()} vigente hasta el ${expiryLabel}.`
+                                        : " Elegí el plan y completá el pago en el checkout."}
+                                </p>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            className="pr-banner"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                        >
+                            <div className="pr-banner-text">
+                                <span className="h-label-mono pr-banner-tag">// ACCESO_RESTRINGIDO</span>
+                                <p>
+                                    Los planes corporativos, y la incorporación como trainee/sponsor, requieren
+                                    completar una solicitud externa antes de quedar habilitados para la compra.
+                                </p>
+                            </div>
+                            <div className="pr-banner-actions">
+                                <button className="pr-banner-btn" onClick={() => openRequestModal("empresa")}>
+                                    SOLICITAR ACCESO EMPRESA
+                                </button>
+                                <button className="pr-banner-btn pr-banner-btn--ghost" onClick={() => openRequestModal("trainee")}>
+                                    POSTULARME COMO TRAINEE / SPONSOR
+                                </button>
+                            </div>
+                        </motion.div>
+                    )
                 )}
 
                 <div className="pricing-grid">
                     <AnimatePresence mode="wait">
                         {(view === "students" ? studentPlans : businessPlans).map((plan, i) => (
-                            <motion.div 
-                                key={plan.title}
-                                className={`pricing-card ${plan.highlight ? 'highlight' : ''}`}
+                            <motion.div
+                                key={plan.id}
+                                className={`pricing-card ${plan.highlight ? 'highlight' : ''} ${activePlanInfo?.planId === plan.id ? 'is-active-plan' : ''}`}
                                 initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
@@ -206,7 +328,7 @@ const Pricing = () => {
                                     <span className="h-label-mono">{plan.label}</span>
                                     <h3 className="plan-title Montserrat-900">{plan.title}</h3>
                                 </div>
-                                
+
                                 <div className="price-block">
                                     <div className="plan-price">
                                         <span className="currency">ARS $</span>
@@ -216,7 +338,7 @@ const Pricing = () => {
                                 </div>
 
                                 <p className="plan-desc">{plan.desc}</p>
-                                
+
                                 <ul className="plan-features">
                                     {plan.features.map((f, idx) => (
                                         <li key={idx} className="Montserrat-500">
@@ -225,16 +347,8 @@ const Pricing = () => {
                                     ))}
                                 </ul>
 
-                                {view === "business" ? (
-                                    <button className="plan-cta Montserrat-900" onClick={() => openRequestModal("empresa")}>
-                                        SOLICITAR_ACCESO
-                                    </button>
-                                ) : (
-                                    <button className="plan-cta Montserrat-900" onClick={() => handlePurchase(plan.title)}>
-                                        {plan.title === "CERTIFICACIÓN INDIVIDUAL" ? "ADQUIRIR_EXAMEN" : "COMPRAR"}
-                                    </button>
-                                )}
-                                
+                                {renderCta(plan)}
+
                                 {plan.highlight && <div className="highlight-glow" />}
                             </motion.div>
                         ))}
