@@ -13,9 +13,9 @@ const CompanyInfo: React.FC = () => {
 
     // Acto 1: Métricas de Enfoque (Valores numéricos para el counter)
     const operationalStats = [
-        { id: "LVL", value: "1", suffix: "SOC", label: "Nivel de validación operativa inicial enfocado en analistas de seguridad." },
-        { id: "DEC", value: "100", suffix: "%", label: "Evaluación basada íntegramente en la toma de decisiones críticas." },
-        { id: "GAP", value: "0", suffix: "ERR", label: "Objetivo: eliminar la brecha de error entre el CV y la capacidad real." }
+        { id: "LVL", suffix: "IDENTIDAD PROFESIONAL CYBER", label: "Un perfil especializado para centralizar experiencia, skills, herramientas, formación y certificaciones." },
+        { id: "DEC", suffix: "TALENT ↔ COMPANY", label: "Empresas y profesionales dentro de un ecosistema diseñado específicamente para ciberseguridad." },
+        { id: "GAP", suffix: "SKILLS", label: "Formación y validación para desarrollar nuevas capacidades y fortalecer el perfil profesional." }
     ];
 
     // Acto 2: Métricas de Tracción (Valores numéricos para el counter)
@@ -60,18 +60,18 @@ const CompanyInfo: React.FC = () => {
 
             <HighPerformanceSection 
                 label='// STATUS: EVOLVING_MISSION' 
-                text1="DEL CONTENIDO A" 
-                text1span='LA ORIENTACIÓN' 
-                description='Lo que comenzó como videos informativos detectó un patrón crítico: una gran incertidumbre sobre cómo iniciar una carrera real en la industria de la seguridad.'
+                text1="DE LA ORIENTACIÓN A" 
+                text1span='UNA RED PARA CYBER' 
+                description='Hidden Security nació acercando conocimiento y orientación a personas interesadas en ciberseguridad. Con el tiempo, detectamos un problema más amplio: talento y oportunidades seguían teniendo dificultades para encontrarse.'
             />
 
             <section className="k-evolution">
                 <span className="k-label">01 // EARLY MILESTONES</span>
                 <div className="k-evolution-list">
                     {[
-                        { year: "START", title: "Creación de contenido para democratizar el acceso a la ciberseguridad." },
-                        { year: "EXP", title: "Incorporación de una mirada técnica para orientar nuevos perfiles." },
-                        { year: "GAP", title: "Identificación de la falta de rutas claras para el primer empleo." }
+                        { year: "START", title: "CREACIÓN DE CONTENIDO PARA ACERCAR LA CIBERSEGURIDAD A MÁS PERSONAS." },
+                        { year: "EXP", title: "INCORPORACIÓN DE EXPERIENCIA TÉCNICA PARA ORIENTAR EL DESARROLLO PROFESIONAL." },
+                        { year: "GAP", title: "IDENTIFICACIÓN DE UNA BRECHA ENTRE EL TALENTO EN CIBERSEGURIDAD Y LAS OPORTUNIDADES DE LA INDUSTRIA." }
                     ].map((milestone, i) => (
                         <motion.div key={i} className="k-evolution-row" initial={{ x: -20, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 1, delay: i * 0.1 }} viewport={{ once: true }}>
                             <span className="k-evo-year">{milestone.year}</span>
@@ -92,7 +92,9 @@ const CompanyInfo: React.FC = () => {
                     <div className="k-dna-left"><span className="k-label">02 // METHODOLOGY</span></div>
                     <div className="k-dna-right">
                         <p className="k-dna-text">
-                            <LiveTypingText text="Evolucionamos para conectar dos problemas: personas que necesitan una guía clara y empresas que requieren validaciones concretas sobre las capacidades de sus candidatos, más allá de lo que indica un CV." className="k-dna-typing" />
+                            <LiveTypingText text="Experiencia, skills, herramientas, certificaciones y formación reunidas en un perfil profesional pensado desde cero para la industria de la ciberseguridad.
+
+Las habilidades pueden ser declaradas por el profesional, desarrolladas mediante formación o respaldadas mediante procesos de validación, aportando distintos niveles de evidencia al perfil." className="k-dna-typing" />
                         </p>
                     </div>
                 </div>
@@ -100,8 +102,8 @@ const CompanyInfo: React.FC = () => {
 
             <HighPerformanceSection 
                 label='// FOCUS: REAL_SKILLS' 
-                text1="VALIDACIÓN BASADA EN" 
-                text1span='ESCENARIOS PRÁCTICOS' 
+                text1="UN PERFIL QUE EVOLUCIONA" 
+                text1span='CON TU CARRERA' 
                 description='Nos centramos en cómo las personas analizan, priorizan y toman decisiones en contextos reales de trabajo. Menos teoría, más ejecución operativa.'
             />
 
@@ -109,9 +111,9 @@ const CompanyInfo: React.FC = () => {
                 <span className="k-label">02 // OPERATIONAL FOCUS</span>
                 <div className="k-evolution-list">
                     {[
-                        { year: "SOC L1", title: "Validación intensiva para el rol con mayor demanda inicial en la industria." },
-                        { year: "DECISION", title: "Evaluación de procesos de pensamiento crítico bajo presión operativa." },
-                        { year: "BRIDGE", title: "Conexión directa entre el talento validado y las necesidades corporativas." }
+                        { year: "VALIDATE", title: "VALIDACIÓN DE HABILIDADES MEDIANTE EVALUACIONES TÉCNICAS Y ESCENARIOS PRÁCTICOS." },
+                        { year: "LEARN", title: "FORMACIÓN PARA DESARROLLAR CAPACIDADES Y PREPARARSE PARA NUEVOS DESAFÍOS." },
+                        { year: "CONNECT", title: "CONEXIÓN ENTRE PERFILES CYBER Y OPORTUNIDADES PROFESIONALES." }
                     ].map((milestone, i) => (
                         <motion.div key={i} className="k-evolution-row" initial={{ x: -20, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 1, delay: i * 0.1 }} viewport={{ once: true }}>
                             <span className="k-evo-year">{milestone.year}</span>
@@ -132,7 +134,7 @@ const CompanyInfo: React.FC = () => {
                     <div className="k-dna-left"><span className="k-label">03 // VISION</span></div>
                     <div className="k-dna-right">
                         <p className="k-dna-text">
-                            <LiveTypingText text="Hidden Security busca contribuir a un cambio en la forma en que el talento se desarrolla y se evalúa. No somos solo un curso; somos el motor de validación para la próxima generación de especialistas." className="k-dna-typing" />
+                            <LiveTypingText text="Hidden Security busca construir un espacio donde una carrera en ciberseguridad pueda desarrollarse de punta a punta: crear una identidad profesional, demostrar capacidades, continuar aprendiendo y conectarse con empresas y oportunidades especializadas." className="k-dna-typing" />
                         </p>
                     </div>
                 </div>
@@ -140,18 +142,18 @@ const CompanyInfo: React.FC = () => {
 
             <HighPerformanceSection 
                 label='// TARGET: GLOBAL_REACH' 
-                text1="REDEFINIENDO EL" 
-                text1span='ESTÁNDAR DE LA INDUSTRIA' 
-                description='Partimos del SOC, pero nuestra visión se expande hacia dominios estratégicos y operativos complejos, alineados con las necesidades reales de las organizaciones.'
+                text1="EL ECOSISTEMA PROFESIONAL" 
+                text1span='DE CIBERSEGURIDAD' 
+                description='Comenzamos en Argentina con una visión regional y global, incorporando progresivamente nuevos roles, especialidades y formas de validar talento.'
             />
 
             <section className="k-evolution">
                 <span className="k-label">03 // STRATEGIC ROADMAP</span>
                 <div className="k-evolution-list">
                     {[
-                        { year: "SOC+", title: "Expansión hacia arquitecturas de seguridad y respuesta avanzada." },
-                        { year: "VALID", title: "Consolidación como el estándar de oro en validación de habilidades reales." },
-                        { year: "GLOBAL", title: "Soberanía digital y desarrollo de talento a escala internacional." }
+                        { year: "CONNECT", title: "CONSOLIDAR UNA COMUNIDAD PROFESIONAL Y UN MERCADO DE TALENTO ESPECIALIZADO EN CIBERSEGURIDAD." },
+                        { year: "EXPAND", title: "INCORPORAR NUEVOS ROLES, DOMINIOS, FORMACIONES Y CERTIFICACIONES." },
+                        { year: "GLOBAL", title: "ESCALAR EL ECOSISTEMA HACIA LATINOAMÉRICA Y NUEVOS MERCADOS." }
                     ].map((milestone, i) => (
                         <motion.div key={i} className="k-evolution-row" initial={{ x: -20, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 1, delay: i * 0.1 }} viewport={{ once: true }}>
                             <span className="k-evo-year">{milestone.year}</span>
@@ -166,12 +168,12 @@ const CompanyInfo: React.FC = () => {
             <section className="k-network">
                 <div className="k-net-wrapper">
                     <div className="k-net-item">
-                        <span className="k-city">ALUMNOS</span>
-                        <span className="k-coord">Validación técnica y acceso a oportunidades de carrera reales.</span>
+                        <span className="k-city">PROFESIONALES</span>
+                        <span className="k-coord">Construí tu perfil, desarrollá tus habilidades y conectate con oportunidades.</span>
                     </div>
                     <div className="k-net-item">
                         <span className="k-city">EMPRESAS</span>
-                        <span className="k-coord">Acceso a especialistas probados en escenarios críticos.</span>
+                        <span className="k-coord">Descubrí talento especializado y buscá perfiles según las necesidades de tu organización.</span>
                     </div>
                 </div>
             </section>

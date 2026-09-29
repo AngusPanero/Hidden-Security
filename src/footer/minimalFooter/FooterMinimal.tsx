@@ -19,10 +19,10 @@ const FooterMinimal = () => {
                         transition={{ duration: 0.8 }}
                         className="footer-cta"
                     >
-                        <span className="cta-label">¿LISTO PARA ASEGURAR TU FUTURO?</span>
+                        <span className="cta-label">TU CARRERA EN CIBERSEGURIDAD, EN UN SOLO LUGAR.</span>
                         <img className='hidden-logo-footer' src={logo} alt="hidden-security-logo" />
                         <a href="mailto:contacto@hidden-security.org" className="cta-email">
-                            COMIENZA TU CARRERA
+                            SUMATE A LA RED DE CYBER
                         </a>
                     </motion.div>
                 </div>
@@ -96,7 +96,7 @@ const FooterMinimal = () => {
                         <div className="social-links-minimal">
                             <a href="https://www.linkedin.com/company/hidden-security-r/" target='_blank'>LINKEDIN</a>
                             <a href="https://www.youtube.com/channel/UCgVE0HFSuzGECPuiRV-tUwg" target='_blank'>YOUTUBE</a>
-                            <a href="https://www.tiktok.com/@hidden_ciber" target='_blank'>TIKTOK</a>
+                            <a href="https://www.tiktok.com/@hiddensecurity_ar" target='_blank'>TIKTOK</a>
                             <a href="https://www.instagram.com/hiddensecurity_ar/" target='_blank'>INSTAGRAM</a>
                         </div>
                     </div>
