@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { UseTheme } from "../contexts/ThemeContext";
 import { UseSession } from "../contexts/SessionContext";
+import { Link } from "react-router-dom";
 import { HS_SKILLS } from "../skills/Skills"; // ajustar esta ruta si difiere de la del CV Builder
 import "./usersDataBase.css";
 
@@ -967,9 +968,12 @@ function EnterpriseBlockedScreen({ isLight, isEnterprise }: { isLight: boolean; 
           La búsqueda de candidatos es una funcionalidad exclusiva de los planes Business y Enterprise
           de Hidden Security.
           {isEnterprise
-            ? " Tu plan venció — renovalo desde tu dashboard para recuperar el acceso."
+            ? " Tu plan venció — renovalo para recuperar el acceso."
             : " Contactanos para activar tu cuenta enterprise."}
         </p>
+        <Link to="/pricing?tipo=empresas" className="udb-blocked-cta">
+          {isEnterprise ? "Renovar plan" : "Ver planes corporativos"}
+        </Link>
       </div>
     </div>
   );

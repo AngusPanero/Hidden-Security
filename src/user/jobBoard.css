@@ -753,3 +753,85 @@
 
   .jb-toast { right: 10px; bottom: 10px; max-width: calc(100vw - 20px); }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Pestañas Todas / Mis postulaciones / No postuladas
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+.jb-view-tabs {
+  display:       flex;
+  gap:           0;
+  margin:        30px 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-x:    auto;
+  scrollbar-width: none;
+}
+.jb-view-tabs::-webkit-scrollbar { display: none; }
+
+.dm-container.light .jb-view-tabs { border-bottom-color: rgba(0, 0, 0, 0.12); }
+
+.jb-view-tab {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            8px;
+  background:     transparent;
+  border:         none;
+  border-bottom:  2px solid transparent;
+  margin-bottom:  -1px;
+  color:          inherit;
+  opacity:        0.5;
+  font-family:    'JetBrains Mono', monospace;
+  font-size:      0.68rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding:        12px 18px;
+  cursor:         pointer;
+  white-space:    nowrap;
+  transition:     opacity 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.jb-view-tab:hover { opacity: 0.85; }
+
+.jb-view-tab:focus-visible {
+  outline:        2px solid #ccff00;
+  outline-offset: -2px;
+}
+
+.jb-view-tab--active {
+  opacity:             1;
+  color:               #ccff00;
+  border-bottom-color: #ccff00;
+}
+
+.dm-container.light .jb-view-tab--active {
+  color:               #ff5500;
+  border-bottom-color: #ff5500;
+}
+.dm-container.light .jb-view-tab:focus-visible { outline-color: #ff5500; }
+
+.jb-view-tab-count {
+  font-size:     0.6rem;
+  font-weight:   900;
+  padding:       1px 7px;
+  border-radius: 99px;
+  background:    rgba(255, 255, 255, 0.08);
+  color:         inherit;
+}
+
+.jb-view-tab--active .jb-view-tab-count {
+  background: #ccff00;
+  color:      #000;
+}
+
+.dm-container.light .jb-view-tab-count { background: rgba(0, 0, 0, 0.06); }
+.dm-container.light .jb-view-tab--active .jb-view-tab-count {
+  background: #ff5500;
+  color:      #fff;
+}
+
+@media (max-width: 768px) {
+  .jb-view-tabs { margin-top: 20px; }
+  .jb-view-tab  { padding: 10px 12px; font-size: 0.62rem; }
+}

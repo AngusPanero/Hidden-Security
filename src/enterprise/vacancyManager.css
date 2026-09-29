@@ -1129,3 +1129,96 @@
 @media (max-width: 768px) {
   .hs-accordion-options { max-height: 200px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Bloque sin plan activo, con link a /pricing
+   Misma estética que la pantalla de bloqueo de UsersDatabase
+   (.udb-blocked), adaptada a las variables --h-*.
+   Solo agrega estilos nuevos, no modifica nada existente.
+══════════════════════════════════════════════════════════════ */
+
+.hs-plan-blocked {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  text-align:      center;
+  gap:             14px;
+  padding:         56px 24px;
+  margin-bottom:   32px;
+  border:          1px solid var(--h-border);
+  background:      var(--h-surface);
+}
+
+.hs-plan-blocked .hs-terminal-text { margin-bottom: 0; }
+
+/* Marca de bloqueo: cuadrado con línea diagonal, sin emojis */
+.hs-plan-blocked-mark {
+  width:         44px;
+  height:        44px;
+  border:        2px solid var(--h-border);
+  position:      relative;
+  margin-bottom: 6px;
+  flex-shrink:   0;
+}
+.hs-plan-blocked-mark::before {
+  content:    "";
+  position:   absolute;
+  top:        50%;
+  left:       -6px;
+  right:      -6px;
+  height:     2px;
+  background: #f43f5e;
+  transform:  rotate(-38deg);
+}
+
+.hs-plan-blocked-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      clamp(1.2rem, 2.6vw, 1.9rem);
+  font-weight:    900;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  line-height:    1.1;
+  margin:         0;
+}
+
+.hs-plan-blocked-text {
+  font-size:   0.8rem;
+  font-weight: 500;
+  line-height: 1.6;
+  opacity:     0.6;
+  max-width:   520px;
+  margin:      0 auto;
+}
+
+.hs-plan-blocked-cta {
+  margin-top:      10px;
+  display:         inline-block;
+  background:      var(--h-accent);
+  border:          1px solid var(--h-accent);
+  color:           #000;
+  font-family:     'Montserrat', sans-serif;
+  font-size:       0.72rem;
+  font-weight:     900;
+  letter-spacing:  1.5px;
+  text-transform:  uppercase;
+  text-decoration: none;
+  padding:         12px 24px;
+  transition:      background 0.2s, border-color 0.2s;
+}
+.hs-plan-blocked-cta:hover {
+  background:   var(--h-btn-accent-hover);
+  border-color: var(--h-btn-accent-hover);
+}
+.hs-plan-blocked-cta:focus-visible {
+  outline:        2px solid var(--h-accent);
+  outline-offset: 3px;
+}
+
+.hs-vacancy-manager.light .hs-plan-blocked-cta       { color: #fff; }
+.hs-vacancy-manager.light .hs-plan-blocked-title     { color: #000; }
+
+@media (max-width: 768px) {
+  .hs-plan-blocked     { padding: 40px 18px; }
+  .hs-plan-blocked-cta { width: 100%; box-sizing: border-box; text-align: center; }
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import { UseTheme } from "../contexts/ThemeContext";
 import { UseSession } from "../contexts/SessionContext";
 import { HS_SKILLS } from "../skills/Skills"; // ⚠️ ajustá esta ruta si difiere de la del CV Builder
@@ -638,6 +639,27 @@ function VacancyCard({ vacancy, onEdit, onDelete, onToggleStatus }: VacancyCardP
   );
 }
 
+// ─── Bloque sin plan activo (misma estética que la pantalla de bloqueo de UsersDatabase) ──
+function NoPlanBlock({ planExpired }: { planExpired: boolean }) {
+  return (
+    <div className="hs-plan-blocked">
+      <span className="hs-plan-blocked-mark" aria-hidden="true"></span>
+      <span className="hs-terminal-text">// SIN_PLAN_ACTIVO</span>
+      <h2 className="hs-plan-blocked-title">
+        SOLO PARA CUENTAS <span className="hs-accent">BUSINESS / ENTERPRISE</span>
+      </h2>
+      <p className="hs-plan-blocked-text">
+        Necesitás un plan de empresa activo para publicar vacantes y gestionar postulantes.
+        Podés ver las vacantes existentes pero no crear nuevas.
+        {planExpired && " Tu plan venció — renovalo para volver a publicar."}
+      </p>
+      <Link to="/pricing?tipo=empresas" className="hs-plan-blocked-cta">
+        {planExpired ? "Renovar plan" : "Ver planes corporativos"}
+      </Link>
+    </div>
+  );
+}
+
 // ─── Toast ────────────────────────────────────────────────────────────────────
 interface ToastState { msg: string; type: "success" | "error" }
 
@@ -659,6 +681,12 @@ export default function VacancyManager() {
   const [vacanciesUsed,    setVacanciesUsed]    = useState<number>(0);
   const [planExpiry,       setPlanExpiry]       = useState<Date | null>(null);
   const [hasActivePlan,    setHasActivePlan]    = useState(false);
+
+  // Tuvo un plan que ya venció (para mostrar "Renovar plan" en vez de "Ver planes")
+  const planExpired =
+    !hasActivePlan &&
+    !!(user as any)?.enterprisePlan &&
+    !!(user as any)?.enterprisePlanExpiry;
 
   useEffect(() => {
     if (!user) return;
@@ -820,27 +848,7 @@ export default function VacancyManager() {
 
       {/* Banner estado del plan */}
       {!hasActivePlan ? (
-        <div style={{
-          border:     "1px solid rgba(244,63,94,0.3)",
-          background: "rgba(244,63,94,0.04)",
-          borderLeft: "3px solid #f43f5e",
-          padding:    "16px 22px",
-          marginBottom: 28,
-          display:    "flex",
-          alignItems: "flex-start",
-          gap:        14,
-        }}>
-          <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>🔒</span>
-          <div>
-            <p style={{ fontFamily: "Montserrat, monospace", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "2px", color: "#f43f5e", margin: "0 0 6px", textTransform: "uppercase" }}>
-              // SIN_PLAN_ACTIVO
-            </p>
-            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.82rem", fontWeight: 600, margin: 0, opacity: 0.75, lineHeight: 1.6 }}>
-              Necesitás un plan B2B activo para publicar vacantes y gestionar postulantes.
-              Podés ver las vacantes existentes pero no crear nuevas.
-            </p>
-          </div>
-        </div>
+        <NoPlanBlock planExpired={planExpired} />
       ) : (
         <div style={{
           border:     `1px solid rgba(204,255,0,0.15)`,

@@ -3,6 +3,8 @@ import axios from "axios";
 import { UseSession } from "../contexts/SessionContext";
 import "./jobBoard.css";
 
+const REQUIRE_CERTIFICATION = false; // Cambiar a true si se requiere certificación para postularse
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SalaryRange {
   min: number | null;
@@ -36,6 +38,9 @@ interface Application {
   appliedAt: string | null;
 }
 
+// Vista de la lista: todas, solo a las que me postulé, o solo a las que no
+type ViewFilter = "all" | "applied" | "not_applied";
+
 // ─── Estado de postulación — labels y colores ─────────────────────────────────
 const APP_STATUS: Record<string, { label: string; color: string; bg: string }> = {
   pending:  { label: "Postulación enviada",    color: "#94a3b8", bg: "rgba(148,163,184,0.1)"  },
@@ -51,6 +56,8 @@ const APP_STATUS: Record<string, { label: string; color: string; bg: string }> =
 export default function JobBoard() {
   const { user } = UseSession();
   const isCertified = user?.userCertificated === true;
+  // Puede usar el flujo de postulación (el CV se valida aparte)
+  const canApply = !REQUIRE_CERTIFICATION || isCertified;
 
   const [vacancies,    setVacancies]    = useState<Vacancy[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -61,6 +68,7 @@ export default function JobBoard() {
   const [hasCV,        setHasCV]        = useState<boolean | null>(null); // null = cargando
   const [showConsent,  setShowConsent]  = useState(false);
   const [consentVacancy, setConsentVacancy] = useState<Vacancy | null>(null);
+  const [viewFilter,   setViewFilter]   = useState<ViewFilter>("all");
 
   // Filtros
   const [filterExp,          setFilterExp]          = useState("");
@@ -96,9 +104,9 @@ export default function JobBoard() {
       .finally(() => setLoading(false));
   };
 
-  // Cargar postulaciones existentes del usuario — solo si está certificado
+  // Cargar postulaciones existentes del usuario — solo si puede postularse
   const fetchApplications = () => {
-    if (!isCertified) return;
+    if (!canApply) return;
     axios
       .get(`${import.meta.env.VITE_API_URL}/api/user/applications`, { withCredentials: true })
       .then(({ data }) => setApplications(Array.isArray(data.data) ? data.data : []))
@@ -108,15 +116,15 @@ export default function JobBoard() {
   useEffect(() => {
     fetchVacancies();
     fetchApplications();
-  }, [filterExp, filterModality, filterSkill, isCertified]);
+  }, [filterExp, filterModality, filterSkill, canApply]);
 
-  // Verificar si el usuario certificado tiene CV creado
+  // Verificar si el usuario tiene CV creado
   useEffect(() => {
-    if (!isCertified) return;
+    if (!canApply) return;
     axios.get(`${import.meta.env.VITE_API_URL}/api/cv/me`, { withCredentials: true })
       .then(({ data }) => setHasCV(!!data.data))
       .catch(() => setHasCV(false));
-  }, [isCertified]);
+  }, [canApply]);
 
   const clearFilters = () => {
     setFilterExp(""); setFilterModality(""); setFilterContractType("");
@@ -129,7 +137,8 @@ export default function JobBoard() {
     filterCurrency || filterSalaryMin || filterSalaryMax ||
     filterDateFrom || sortOrder !== "desc";
 
-  const filtered = vacancies
+  // Primero los filtros de búsqueda (nivel, modalidad, salario, fecha...)
+  const byFilters = vacancies
     .filter((v) => {
       if (filterContractType && v.contractType !== filterContractType) return false;
       if (filterCurrency && v.salaryRange?.currency !== filterCurrency) return false;
@@ -148,9 +157,31 @@ export default function JobBoard() {
       return sortOrder === "desc" ? db - da : da - db;
     });
 
+  // Conteos por pestaña — sobre lo que ya pasó los filtros de búsqueda
+  const appliedCount    = byFilters.filter((v) => !!getApplication(v._id)).length;
+  const notAppliedCount = byFilters.length - appliedCount;
+
+  // Después la pestaña (todas / postuladas / no postuladas)
+  const filtered = byFilters.filter((v) => {
+    if (viewFilter === "all") return true;
+    const applied = !!getApplication(v._id);
+    return viewFilter === "applied" ? applied : !applied;
+  });
+
+  const VIEW_TABS: { id: ViewFilter; label: string; count: number }[] = [
+    { id: "all",         label: "Todas",             count: byFilters.length },
+    { id: "applied",     label: "Mis postulaciones", count: appliedCount     },
+    { id: "not_applied", label: "No postuladas",     count: notAppliedCount  },
+  ];
+
+  const emptyMessage =
+    viewFilter === "applied"       ? "Todavía no te postulaste a ninguna vacante."
+    : viewFilter === "not_applied" ? "Ya te postulaste a todas las vacantes disponibles."
+    : "SIN_VACANTES_DISPONIBLES";
+
   // Abre el modal de consentimiento o bloquea si no tiene CV
   const requestApply = (vacancy: Vacancy) => {
-    if (!isCertified) return;
+    if (!canApply) return;
     if (!hasCV) {
       notify("Debés crear tu CV antes de postularte. Andá al tab MI CV.", "error");
       return;
@@ -161,7 +192,7 @@ export default function JobBoard() {
   };
 
   const handleApply = async () => {
-    if (!consentVacancy || !isCertified) return;
+    if (!consentVacancy || !canApply) return;
     setApplying(true);
     setShowConsent(false);
     try {
@@ -192,14 +223,33 @@ export default function JobBoard() {
   return (
     <div className="jb-wrap">
 
-      {/* Banner certificación */}
-      {!isCertified && (
+      {/* Banner certificación — solo si la certificación es requisito para postularse */}
+      {REQUIRE_CERTIFICATION && !isCertified && (
         <div className="jb-cert-banner">
           <span className="jb-cert-icon">🔒</span>
           <div>
             <p className="jb-cert-title">Completá tu certificación para postularte</p>
-            <p className="jb-cert-sub">Podés ver todas las ofertas, pero necesitás el certificado Hidden Security para aplicar y ver los datos de contacto y salarios.</p>
+            <p className="jb-cert-sub">Podés ver todas las ofertas, pero necesitás el certificado Hidden Security para aplicar.</p>
           </div>
+        </div>
+      )}
+
+      {/* Pestañas: todas / mis postulaciones / no postuladas — solo si puede postularse */}
+      {canApply && (
+        <div className="jb-view-tabs" role="tablist" aria-label="Filtrar vacantes por postulación">
+          {VIEW_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={viewFilter === tab.id}
+              className={`jb-view-tab${viewFilter === tab.id ? " jb-view-tab--active" : ""}`}
+              onClick={() => setViewFilter(tab.id)}
+            >
+              {tab.label}
+              <span className="jb-view-tab-count">{tab.count}</span>
+            </button>
+          ))}
         </div>
       )}
 
@@ -263,7 +313,7 @@ export default function JobBoard() {
       ) : filtered.length === 0 ? (
         <div className="jb-empty">
           <span className="jb-empty-icon">◫</span>
-          <p>SIN_VACANTES_DISPONIBLES</p>
+          <p>{emptyMessage}</p>
         </div>
       ) : (
         <div className="jb-grid">
@@ -278,8 +328,8 @@ export default function JobBoard() {
                 className={`jb-card${applied ? " jb-card--applied" : ""}`}
                 onClick={() => setSelected(v)}
               >
-                {/* Empresa — solo certificado */}
-                {isCertified && (v.companyName || v.companyLogo) && (
+                {/* Empresa */}
+                {(v.companyName || v.companyLogo) && (
                   <div className="jb-card-company">
                     {v.companyLogo
                       ? <img src={v.companyLogo} alt={v.companyName ?? "empresa"} className="jb-card-logo" />
@@ -302,7 +352,7 @@ export default function JobBoard() {
                   </div>
                 )}
 
-                {isCertified && v.salaryRange?.visible && (v.salaryRange.min || v.salaryRange.max) && (
+                {v.salaryRange?.visible && (v.salaryRange.min || v.salaryRange.max) && (
                   <p className="jb-card-salary">
                     <span className="jb-salary-currency">{v.salaryRange.currency}</span>{" "}
                     {v.salaryRange.min ? Number(v.salaryRange.min).toLocaleString("es-AR") : ""}
@@ -333,7 +383,7 @@ export default function JobBoard() {
                         {appStatus.label}
                       </span>
                     </div>
-                  ) : isCertified ? (
+                  ) : canApply ? (
                     <span className="jb-cta">VER Y POSTULARSE →</span>
                   ) : (
                     <span className="jb-cta jb-cta--locked">🔒 CERTIFICACIÓN REQUERIDA</span>
@@ -358,7 +408,7 @@ export default function JobBoard() {
 
               <button className="jb-modal-close" onClick={() => setSelected(null)}>×</button>
 
-              {isCertified && (selected.companyName || selected.companyLogo) && (
+              {(selected.companyName || selected.companyLogo) && (
                 <div className="jb-modal-company">
                   {selected.companyLogo
                     ? <img src={selected.companyLogo} alt={selected.companyName ?? ""} className="jb-modal-logo" />
@@ -375,7 +425,7 @@ export default function JobBoard() {
                 {selected.location ? ` · ${selected.location}` : ""}
               </p>
 
-              {isCertified && selected.salaryRange?.visible && (selected.salaryRange.min || selected.salaryRange.max) && (
+              {selected.salaryRange?.visible && (selected.salaryRange.min || selected.salaryRange.max) && (
                 <p className="jb-modal-salary">
                   <span className="jb-modal-salary-label">{selected.salaryRange.currency}</span>{" "}
                   {selected.salaryRange.min ? Number(selected.salaryRange.min).toLocaleString("es-AR") : ""}
@@ -427,7 +477,7 @@ export default function JobBoard() {
                       )}
                     </div>
                   </div>
-                ) : isCertified ? (
+                ) : canApply ? (
                   <button
                     className="jb-apply-btn"
                     disabled={applying}
@@ -449,12 +499,16 @@ export default function JobBoard() {
       })()}
 
       {/* Banner CV requerido */}
-      {isCertified && hasCV === false && (
+      {canApply && hasCV === false && (
         <div className="jb-cert-banner" style={{ borderColor: "rgba(249,115,22,0.35)", background: "rgba(249,115,22,0.05)" }}>
-          <span className="jb-cert-icon">📄</span>
+          {/* <span className="jb-cert-icon">📄</span> */}
           <div>
             <p className="jb-cert-title" style={{ color: "#f97316" }}>CV requerido para postularse</p>
-            <p className="jb-cert-sub">Tenés la certificación pero aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</p>
+            <p className="jb-cert-sub">
+              {REQUIRE_CERTIFICATION
+                ? <>Tenés la certificación pero aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</>
+                : <>Aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</>}
+            </p>
           </div>
         </div>
       )}

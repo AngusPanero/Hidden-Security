@@ -9,6 +9,7 @@ import CVBuilder        from "./CvBuilder";
 import CourseCatalog    from "../courses/CourseCatalog";
 import CertificationCatalog from "../certifications/CertificationCatalog";
 import { useNavigate } from "react-router-dom";
+const REQUIRE_CERTIFICATION = false; // Cambiar a true si se requiere certificación para postularse
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserNotification {
@@ -259,6 +260,10 @@ const UserDashboard = () => {
     const { theme } = UseTheme();
     const navigate = useNavigate();
 
+    // Puede postularse y, por lo tanto, recibir notificaciones de sus postulaciones.
+    // Mismo criterio que JobBoard y que applyGuard en el backend.
+    const canUseJobs = !!user && (!REQUIRE_CERTIFICATION || user.userCertificated === true);
+
     const [expandedId,    setExpandedId]    = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos" | "certificaciones">(() => {
         const stored = localStorage.getItem("hs_user_tab");
@@ -317,16 +322,14 @@ const UserDashboard = () => {
 
     // Cargar notificaciones desde DB al montar
     useEffect(() => {
-        console.log("USER", user);
-        
-        if (!user?.userCertificated) return;
+        if (!user?.uid || !canUseJobs) return;
         axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, { withCredentials: true })
             .then(({ data }) => {
                 setNotifications(Array.isArray(data.data) ? data.data : []);
                 setUnreadCount(data.unreadCount ?? 0);
             })
             .catch(() => {});
-    }, [user?.uid, user?.userCertificated]);
+    }, [user?.uid, canUseJobs]);
 
     useEffect(() => {
         if (user && user.email) getPurchased(user.email);
@@ -395,7 +398,7 @@ const UserDashboard = () => {
 
     // ── SSE notificaciones ────────────────────────────────────────────────────
     useEffect(() => {
-        if (!user?.userCertificated) return;
+        if (!canUseJobs) return;
 
         const connect = () => {
             if (sseRef.current) sseRef.current.close();
@@ -443,7 +446,7 @@ const UserDashboard = () => {
 
         connect();
         return () => { sseRef.current?.close(); sseRef.current = null; };
-    }, [user, playSound, showToast]); // eslint-disable-line
+    }, [user?.uid, canUseJobs, playSound, showToast]); // eslint-disable-line
 
     const handleTabChange = (tab: typeof activeTab) => {
         setActiveTab(tab);
@@ -524,7 +527,7 @@ const UserDashboard = () => {
                     <div className="dm-hero-badge">
                         {user.userCertificated ? "CERTIFICADO" : "ESTUDIANTE"}
                     </div>
-                    {user.userCertificated && (
+                    {canUseJobs && (
                         <span className="dm-live-badge">
                             <span className="dm-live-dot" />
                             ONLINE
@@ -632,7 +635,7 @@ const UserDashboard = () => {
                 <button className={`dm-tab ${activeTab === "cv" ? "active" : ""}`} onClick={() => handleTabChange("cv")}>
                     MI CV
                 </button>
-                {user.userCertificated && (
+                {canUseJobs && (
                     <button className={`dm-tab dm-tab--notif ${activeTab === "notif" ? "active" : ""}`} onClick={() => handleTabChange("notif")}>
                         NOTIFICACIONES
                         {unreadCount > 0 && (

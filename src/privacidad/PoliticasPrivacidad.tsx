@@ -17,8 +17,14 @@ type ParagraphBlock = { type: "p"; text: string };
 type ListBlock = { type: "list"; items: string[] };
 type CardsBlock = { type: "cards"; items: { name: string; desc: string }[] };
 type LinkBlock = { type: "link"; label: string; href: string; external?: boolean };
+type RevealBlock = {
+  type: "reveal";
+  openLabel: string;
+  closeLabel: string;
+  items: { name: string; desc: string }[];
+};
 
-type Block = ParagraphBlock | ListBlock | CardsBlock | LinkBlock;
+type Block = ParagraphBlock | ListBlock | CardsBlock | LinkBlock | RevealBlock;
 
 interface Section {
   title: string;
@@ -31,11 +37,14 @@ const SECTIONS: Section[] = [
     title: "Responsable del tratamiento",
     blocks: [
       { type: "p", text: "Hidden Security se compromete a proteger la privacidad y los datos personales de las personas que utilizan su plataforma." },
-      { type: "p", text: "El responsable del tratamiento de los datos personales es:" },
+      { type: "p", text: "Los datos identificatorios del responsable del tratamiento son los siguientes:" },
       {
-        type: "cards",
+        type: "reveal",
+        openLabel: "Ver datos",
+        closeLabel: "Ocultar datos",
         items: [
-          { name: "María Belén Arroyo – Hidden Security", desc: `Correo electrónico: ${CONTACT_EMAIL}` },
+          { name: "Responsable", desc: "María Belén Arroyo – Hidden Security" },
+          { name: "Correo electrónico", desc: CONTACT_EMAIL },
           { name: "Domicilio para el ejercicio de derechos", desc: CONTACT_ADDRESS },
         ],
       },
@@ -156,13 +165,15 @@ const SECTIONS: Section[] = [
     blocks: [
       { type: "p", text: "Para prestar sus servicios, Hidden Security utiliza proveedores tecnológicos externos. Actualmente estos incluyen:" },
       {
-        type: "cards",
+        type: "reveal",
+        openLabel: "Ver stack de desarrollo",
+        closeLabel: "Ocultar stack de desarrollo",
         items: [
-          { name: "Google Firebase Authentication", desc: "Autenticación." },
-          { name: "Render", desc: "Infraestructura de backend." },
-          { name: "MongoDB Atlas", desc: "Almacenamiento de datos." },
-          { name: "Cloudflare", desc: "Servicios de red, proxy/CDN y seguridad." },
-          { name: "Mercado Pago", desc: "Procesamiento de pagos." },
+          { name: "Google Firebase Authentication", desc: "autenticación." },
+          { name: "Render", desc: "infraestructura de backend." },
+          { name: "MongoDB Atlas", desc: "almacenamiento de datos." },
+          { name: "Cloudflare", desc: "servicios de red, proxy/CDN y seguridad." },
+          { name: "Mercado Pago", desc: "procesamiento de pagos." },
         ],
       },
       { type: "p", text: "Estos proveedores podrán procesar determinada información en la medida necesaria para prestar sus respectivos servicios." },
@@ -291,6 +302,24 @@ const renderBlock = (block: Block, key: number) => {
           {block.label}
           {block.external && <span className="pp-sr-only"> (se abre en una nueva pestaña)</span>}
         </a>
+      );
+
+    case "reveal":
+      return (
+        <details key={key} className="pp-reveal">
+          <summary className="pp-reveal-toggle">
+            <span className="pp-reveal-icon" aria-hidden="true">+</span>
+            <span className="pp-reveal-label-open">{block.openLabel}</span>
+            <span className="pp-reveal-label-close">{block.closeLabel}</span>
+          </summary>
+          <ul className="pp-reveal-list">
+            {block.items.map((item, j) => (
+              <li key={j} className="pp-reveal-item">
+                <strong>{item.name}:</strong> {item.desc}
+              </li>
+            ))}
+          </ul>
+        </details>
       );
 
     default:

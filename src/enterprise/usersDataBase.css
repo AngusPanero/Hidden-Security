@@ -1104,3 +1104,25 @@
 @media (max-width: 768px) {
   .udb-blocked { min-height: 50vh; padding: 40px 20px; }
 }
+
+.udb-blocked-cta {
+  margin-top:      10px;
+  display:         inline-block;
+  background:      var(--udb-accent);
+  border:          1px solid var(--udb-accent);
+  color:           #000;
+  font-family:     'Montserrat', sans-serif;
+  font-size:       0.72rem;
+  font-weight:     900;
+  letter-spacing:  1.5px;
+  text-transform:  uppercase;
+  text-decoration: none;
+  padding:         12px 24px;
+  transition:      opacity 0.2s;
+}
+.udb-blocked-cta:hover { opacity: 0.85; }
+.udb-blocked-cta:focus-visible {
+  outline:        2px solid var(--udb-accent);
+  outline-offset: 3px;
+}
+.udb-wrap.light .udb-blocked-cta { color: #fff; }

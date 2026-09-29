@@ -1559,3 +1559,102 @@
   /* 401 */
   .hs-401 { font-size: 4.5rem; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   postuladosPlanBlocked.css — HIDDEN SECURITY
+   Bloque "sin plan activo" del tab Postulados, con link a /pricing.
+   Misma estética que .udb-blocked (UsersDatabase) y .hs-plan-blocked
+   (VacancyManager), usando las variables --h-* de .hs-admin.
+══════════════════════════════════════════════════════════════ */
+
+.hs-pp-blocked {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  text-align:      center;
+  gap:             14px;
+  padding:         56px 24px;
+  margin-bottom:   32px;
+  border:          1px solid var(--h-border);
+  background:      var(--h-surface);
+}
+
+/* Marca de bloqueo: cuadrado con línea diagonal, sin emojis */
+.hs-pp-blocked-mark {
+  width:         44px;
+  height:        44px;
+  border:        2px solid var(--h-border);
+  position:      relative;
+  margin-bottom: 6px;
+  flex-shrink:   0;
+}
+.hs-pp-blocked-mark::before {
+  content:    "";
+  position:   absolute;
+  top:        50%;
+  left:       -6px;
+  right:      -6px;
+  height:     2px;
+  background: #f43f5e;
+  transform:  rotate(-38deg);
+}
+
+.hs-pp-blocked-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      clamp(1.2rem, 2.6vw, 1.9rem);
+  font-weight:    900;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  line-height:    1.1;
+  margin:         0;
+  color:          var(--h-text);
+}
+
+.hs-pp-blocked-accent { color: var(--h-accent); }
+
+.hs-pp-blocked-text {
+  font-size:   0.8rem;
+  font-weight: 500;
+  line-height: 1.6;
+  opacity:     0.6;
+  max-width:   520px;
+  margin:      0 auto;
+}
+
+.hs-pp-blocked-cta {
+  margin-top:      10px;
+  display:         inline-block;
+  background:      var(--h-accent);
+  border:          1px solid var(--h-accent);
+  color:           #000;
+  font-family:     'Montserrat', sans-serif;
+  font-size:       0.72rem;
+  font-weight:     900;
+  letter-spacing:  1.5px;
+  text-transform:  uppercase;
+  text-decoration: none;
+  padding:         12px 24px;
+  transition:      background 0.2s, border-color 0.2s;
+}
+.hs-pp-blocked-cta:hover {
+  background:   #d4ff1a;
+  border-color: #d4ff1a;
+}
+.hs-pp-blocked-cta:focus-visible {
+  outline:        2px solid var(--h-accent);
+  outline-offset: 3px;
+}
+
+/* ── LIGHT MODE ──────────────────────────────────────────────── */
+.hs-admin.light .hs-pp-blocked-cta { color: #fff; }
+.hs-admin.light .hs-pp-blocked-cta:hover {
+  background:   #e04a00;
+  border-color: #e04a00;
+}
+
+/* ── MOBILE ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hs-pp-blocked     { padding: 40px 18px; }
+  .hs-pp-blocked-cta { width: 100%; box-sizing: border-box; text-align: center; }
+}
