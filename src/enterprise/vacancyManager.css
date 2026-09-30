@@ -1041,6 +1041,7 @@
   font-family: 'Montserrat', sans-serif;
   font-size:   0.8rem;
   font-weight: 700;
+  color:      var(--h-text);
 }
 
 .hs-accordion-header-right {

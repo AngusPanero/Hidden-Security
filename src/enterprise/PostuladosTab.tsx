@@ -30,6 +30,156 @@ const APPLICANT_STATUS_LABELS: Record<string, { label: string; color: string }> 
   rejected:   { label: "No seleccionado",    color: "#f43f5e" },
 };
 
+// ─── Helpers del CV ───────────────────────────────────────────────────────────
+// Escapa texto del postulante antes de meterlo en el HTML del PDF.
+// La ventana del PDF comparte origen con la app, así que un <script> en la
+// descripción de un CV se ejecutaría con la sesión de la empresa.
+const esc = (v: unknown): string =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+// Solo URLs http(s) o imágenes en base64 para la foto
+const safeImgSrc = (u: unknown): string =>
+  typeof u === "string" && /^(https?:\/\/|data:image\/)/i.test(u) ? esc(u) : "";
+
+// Skills del CV: formato nuevo { roles, habilidades, herramientas } o array viejo
+function flattenCvSkills(raw: any): string[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== "object") return [];
+  return [...(raw.roles ?? []), ...(raw.habilidades ?? []), ...(raw.herramientas ?? [])];
+}
+
+// Arma el HTML imprimible del CV
+function buildCvHtml(cv: any, name: string): string {
+  const p        = cv.personalInfo ?? {};
+  const filename = `CV_${name.replace(/\s+/g, "_")}`;
+
+  const section = (title: string, content: string) => !content.trim() ? "" : `
+      <div style="page-break-inside:avoid;margin-bottom:28px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;page-break-after:avoid;">
+          <span style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:900;letter-spacing:5px;text-transform:uppercase;color:#111;white-space:nowrap;">${title}</span>
+          <div style="flex:1;height:2px;background:#000;"></div>
+        </div>${content}
+      </div>`;
+
+  const entry = (inner: string) => `<div style="page-break-inside:avoid;margin-bottom:18px;">${inner}</div>`;
+
+  const skillTags = flattenCvSkills(cv.skills).map((s: string) =>
+    `<span style="display:inline-block;border:1.5px solid #111;color:#111;font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${esc(s)}</span>`
+  ).join("");
+
+  const experienceHTML = (cv.experience ?? []).map((e: any) => entry(`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
+        <div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${esc(e.position)}</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#555;margin-top:2px;">${esc(e.company)}${e.location ? ` · ${esc(e.location)}` : ""}</div>
+        </div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#888;letter-spacing:1px;white-space:nowrap;padding-top:3px;">
+          ${esc(e.startDate)}${e.startDate ? " — " : ""}${e.current ? "Actualidad" : esc(e.endDate)}
+        </div>
+      </div>
+      ${e.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:6px 0 0;white-space:pre-line;">${esc(e.description)}</p>` : ""}`
+  )).join("");
+
+  const educationHTML = (cv.education ?? []).map((e: any) => entry(`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
+        <div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${esc(e.degree)}${e.field ? ` — ${esc(e.field)}` : ""}</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#555;margin-top:2px;">${esc(e.institution)}</div>
+        </div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#888;letter-spacing:1px;white-space:nowrap;padding-top:3px;">
+          ${esc(e.startDate)}${e.startDate ? " — " : ""}${e.current ? "Actualidad" : esc(e.endDate)}
+        </div>
+      </div>
+      ${e.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:6px 0 0;white-space:pre-line;">${esc(e.description)}</p>` : ""}`
+  )).join("");
+
+  const certsHTML = (cv.certifications ?? []).map((c: any) => entry(`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <span style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:900;color:#000;">${esc(c.name)}</span>
+          <span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;margin-left:8px;">· ${esc(c.issuer)}</span>
+          ${c.credentialId ? `<div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:#999;margin-top:3px;">ID: ${esc(c.credentialId)}</div>` : ""}
+        </div>
+        <span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#999;letter-spacing:1px;white-space:nowrap;">${esc(c.date)}</span>
+      </div>`
+  )).join("");
+
+  const langsHTML = `<div style="display:flex;flex-wrap:wrap;gap:28px;">${(cv.languages ?? []).map((l: any) => `
+      <div style="page-break-inside:avoid;">
+        <div style="font-family:'Montserrat',sans-serif;font-size:14px;font-weight:900;text-transform:uppercase;color:#000;">${esc(l.language)}</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#777;text-transform:uppercase;margin-top:2px;">${esc(l.level)}</div>
+      </div>`).join("")}</div>`;
+
+  const projectsHTML = (cv.projects ?? []).map((proj: any) => entry(`
+      <div style="border-left:3px solid #000;padding-left:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
+          <span style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${esc(proj.name)}</span>
+          <div style="display:flex;gap:10px;">
+            ${proj.url     ? `<span style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:800;letter-spacing:2px;color:#555;text-transform:uppercase;">↗ DEMO</span>` : ""}
+            ${proj.repoUrl ? `<span style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:800;letter-spacing:2px;color:#888;text-transform:uppercase;">↗ REPO</span>` : ""}
+          </div>
+        </div>
+        ${proj.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:0 0 8px;white-space:pre-line;">${esc(proj.description)}</p>` : ""}
+        ${(proj.technologies ?? []).length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${proj.technologies.map((t: string) => `<span style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border:1px solid #bbb;color:#444;padding:3px 8px;">${esc(t)}</span>`).join("")}</div>` : ""}
+      </div>`
+  )).join("");
+
+  const wp = cv.workPreferences ?? {};
+  const dispHTML = `
+      <div style="page-break-inside:avoid;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <span style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;color:#000;">${esc(cv.availability)}</span>
+        ${wp.modality?.length > 0 ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;">${wp.modality.map(esc).join(" · ")}</span>` : ""}
+        ${wp.salaryMin || wp.salaryMax ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:#555;">${esc(wp.currency ?? "USD")} ${wp.salaryMin?.toLocaleString("es-AR") ?? ""}${wp.salaryMin && wp.salaryMax ? " — " : ""}${wp.salaryMax?.toLocaleString("es-AR") ?? ""}</span>` : ""}
+      </div>`;
+
+  const photo = safeImgSrc(p.photo);
+
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>${esc(filename)}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+      <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#fff;color:#000;font-family:'Montserrat',sans-serif;}@page{size:A4;margin:18mm 16mm;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.no-print{display:none!important;}}</style>
+    </head><body><div style="max-width:794px;margin:0 auto;padding:0 0 48px;">
+      <div style="page-break-inside:avoid;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:20px;border-bottom:3px solid #000;margin-bottom:28px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;padding:30px;">
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:#888;margin-bottom:8px;">CURRICULUM VITAE</div>
+          <h1 style="font-family:'Montserrat',sans-serif;font-size:42px;font-weight:900;letter-spacing:-2.5px;text-transform:uppercase;line-height:0.92;color:#000;margin-bottom:10px;">${esc(p.firstName)}<br/>${esc(p.lastName)}</h1>
+          ${p.headline ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;color:#555;line-height:1.5;margin-top:8px;max-width:380px;">${esc(p.headline)}</p>` : ""}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-top:30px;">
+          ${photo ? `<img src="${photo}" alt="Foto" style="width:90px;height:90px;object-fit:cover;border:2px solid #000;border-radius:2px;display:block;" />` : ""}
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            ${p.email    ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${esc(p.email)}</span>` : ""}
+            ${p.phone    ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${esc(p.phone)}</span>` : ""}
+            ${p.location ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${esc(p.location)}</span>` : ""}
+            ${p.linkedin ? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#000;text-transform:uppercase;">${esc(p.linkedin)}</span>` : ""}
+            ${p.github   ? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#555;text-transform:uppercase;">${esc(p.github)}</span>` : ""}
+            ${p.portfolio? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#555;text-transform:uppercase;">${esc(p.portfolio)}</span>` : ""}
+          </div>
+        </div>
+      </div>
+      ${p.summary ? section("PERFIL PROFESIONAL", `<p style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;color:#222;line-height:1.85;border-left:3px solid #000;padding-left:16px;white-space:pre-line;">${esc(p.summary)}</p>`) : ""}
+      ${experienceHTML ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
+      ${educationHTML  ? section("EDUCACIÓN",           educationHTML)  : ""}
+      ${skillTags      ? section("SKILLS TÉCNICAS",    `<div style="display:flex;flex-wrap:wrap;gap:4px;">${skillTags}</div>`) : ""}
+      ${projectsHTML   ? section("PROYECTOS",           projectsHTML)   : ""}
+      ${certsHTML      ? section("CERTIFICACIONES",     certsHTML)      : ""}
+      ${(cv.languages ?? []).length > 0 ? section("IDIOMAS", langsHTML) : ""}
+      ${cv.availability ? section("DISPONIBILIDAD", dispHTML) : ""}
+    </div>
+    <div class="no-print" style="position:fixed;bottom:24px;right:24px;">
+      <button onclick="window.print()" style="background:#000;border:none;color:#fff;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:14px 28px;cursor:pointer;">↓ GUARDAR PDF</button>
+    </div></body></html>`;
+}
+
+// Mensaje simple dentro de la ventana del PDF (cargando / error)
+const windowMessage = (msg: string) =>
+  `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>CV</title></head>` +
+  `<body style="font-family:Montserrat,Arial,sans-serif;padding:32px;color:#333;">${esc(msg)}</body></html>`;
+
 // ─── Bloque sin plan activo (misma estética que VacancyManager / UsersDatabase) ──
 function PostuladosNoPlanBlock({ planExpired }: { planExpired: boolean }) {
   return (
@@ -103,129 +253,34 @@ export default function PostuladosTab() {
   };
 
   // ── Descargar PDF ─────────────────────────────────────────────
-  const downloadCV = (_userId: string, name: string) => {
-    if (!cvData) return;
-    const p        = cvData.personalInfo ?? {};
-    const filename = `CV_${name.replace(/\s+/g, "_")}`;
-
-    const section = (title: string, content: string) => !content.trim() ? "" : `
-      <div style="page-break-inside:avoid;margin-bottom:28px;">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;page-break-after:avoid;">
-          <span style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:900;letter-spacing:5px;text-transform:uppercase;color:#111;white-space:nowrap;">${title}</span>
-          <div style="flex:1;height:2px;background:#000;"></div>
-        </div>${content}
-      </div>`;
-
-    const entry = (inner: string) => `<div style="page-break-inside:avoid;margin-bottom:18px;">${inner}</div>`;
-
-    const skillTags = (cvData.skills ?? []).map((s: string) =>
-      `<span style="display:inline-block;border:1.5px solid #111;color:#111;font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${s}</span>`
-    ).join("");
-
-    const experienceHTML = (cvData.experience ?? []).map((e: any) => entry(`
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
-        <div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${e.position}</div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#555;margin-top:2px;">${e.company}${e.location ? ` · ${e.location}` : ""}</div>
-        </div>
-        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#888;letter-spacing:1px;white-space:nowrap;padding-top:3px;">
-          ${e.startDate}${e.startDate ? " — " : ""}${e.current ? "Actualidad" : e.endDate}
-        </div>
-      </div>
-      ${e.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:6px 0 0;">${e.description}</p>` : ""}`
-    )).join("");
-
-    const educationHTML = (cvData.education ?? []).map((e: any) => entry(`
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
-        <div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${e.degree}${e.field ? ` — ${e.field}` : ""}</div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#555;margin-top:2px;">${e.institution}</div>
-        </div>
-        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#888;letter-spacing:1px;white-space:nowrap;padding-top:3px;">
-          ${e.startDate}${e.startDate ? " — " : ""}${e.current ? "Actualidad" : e.endDate}
-        </div>
-      </div>
-      ${e.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:6px 0 0;">${e.description}</p>` : ""}`
-    )).join("");
-
-    const certsHTML = (cvData.certifications ?? []).map((c: any) => entry(`
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-        <div>
-          <span style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:900;color:#000;">${c.name}</span>
-          <span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;margin-left:8px;">· ${c.issuer}</span>
-          ${c.credentialId ? `<div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:#999;margin-top:3px;">ID: ${c.credentialId}</div>` : ""}
-        </div>
-        <span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#999;letter-spacing:1px;white-space:nowrap;">${c.date}</span>
-      </div>`
-    )).join("");
-
-    const langsHTML = `<div style="display:flex;flex-wrap:wrap;gap:28px;">${(cvData.languages ?? []).map((l: any) => `
-      <div style="page-break-inside:avoid;">
-        <div style="font-family:'Montserrat',sans-serif;font-size:14px;font-weight:900;text-transform:uppercase;color:#000;">${l.language}</div>
-        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#777;text-transform:uppercase;margin-top:2px;">${l.level}</div>
-      </div>`).join("")}</div>`;
-
-    const projectsHTML = (cvData.projects ?? []).map((proj: any) => entry(`
-      <div style="border-left:3px solid #000;padding-left:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
-          <span style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${proj.name}</span>
-          <div style="display:flex;gap:10px;">
-            ${proj.url     ? `<span style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:800;letter-spacing:2px;color:#555;text-transform:uppercase;">↗ DEMO</span>` : ""}
-            ${proj.repoUrl ? `<span style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:800;letter-spacing:2px;color:#888;text-transform:uppercase;">↗ REPO</span>` : ""}
-          </div>
-        </div>
-        ${proj.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:0 0 8px;">${proj.description}</p>` : ""}
-        ${(proj.technologies ?? []).length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${proj.technologies.map((t: string) => `<span style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border:1px solid #bbb;color:#444;padding:3px 8px;">${t}</span>`).join("")}</div>` : ""}
-      </div>`
-    )).join("");
-
-    const wp = cvData.workPreferences ?? {};
-    const dispHTML = `
-      <div style="page-break-inside:avoid;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-        <span style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;color:#000;">${cvData.availability ?? ""}</span>
-        ${wp.modality?.length > 0 ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;">${wp.modality.join(" · ")}</span>` : ""}
-        ${wp.salaryMin || wp.salaryMax ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:#555;">${wp.currency ?? "USD"} ${wp.salaryMin?.toLocaleString("es-AR") ?? ""}${wp.salaryMin && wp.salaryMax ? " — " : ""}${wp.salaryMax?.toLocaleString("es-AR") ?? ""}</span>` : ""}
-      </div>`;
-
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>${filename}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-      <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#fff;color:#000;font-family:'Montserrat',sans-serif;}@page{size:A4;margin:18mm 16mm;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.no-print{display:none!important;}}</style>
-    </head><body><div style="max-width:794px;margin:0 auto;padding:0 0 48px;">
-      <div style="page-break-inside:avoid;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:20px;border-bottom:3px solid #000;margin-bottom:28px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:200px;padding:30px;">
-          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:#888;margin-bottom:8px;">CURRICULUM VITAE</div>
-          <h1 style="font-family:'Montserrat',sans-serif;font-size:42px;font-weight:900;letter-spacing:-2.5px;text-transform:uppercase;line-height:0.92;color:#000;margin-bottom:10px;">${p.firstName ?? ""}<br/>${p.lastName ?? ""}</h1>
-          ${p.headline ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;color:#555;line-height:1.5;margin-top:8px;max-width:380px;">${p.headline}</p>` : ""}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-top:30px;">
-          ${p.photo ? `<img src="${p.photo}" alt="Foto" style="width:90px;height:90px;object-fit:cover;border:2px solid #000;border-radius:2px;display:block;" />` : ""}
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-            ${p.email    ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${p.email}</span>` : ""}
-            ${p.phone    ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${p.phone}</span>` : ""}
-            ${p.location ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${p.location}</span>` : ""}
-            ${p.linkedin ? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#000;text-transform:uppercase;">${p.linkedin}</span>` : ""}
-            ${p.github   ? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#555;text-transform:uppercase;">${p.github}</span>` : ""}
-            ${p.portfolio? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#555;text-transform:uppercase;">${p.portfolio}</span>` : ""}
-          </div>
-        </div>
-      </div>
-      ${p.summary ? section("PERFIL PROFESIONAL", `<p style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;color:#222;line-height:1.85;border-left:3px solid #000;padding-left:16px;">${p.summary}</p>`) : ""}
-      ${experienceHTML ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
-      ${educationHTML  ? section("EDUCACIÓN",           educationHTML)  : ""}
-      ${skillTags      ? section("SKILLS TÉCNICAS",    `<div style="display:flex;flex-wrap:wrap;gap:4px;">${skillTags}</div>`) : ""}
-      ${projectsHTML   ? section("PROYECTOS",           projectsHTML)   : ""}
-      ${certsHTML      ? section("CERTIFICACIONES",     certsHTML)      : ""}
-      ${(cvData.languages ?? []).length > 0 ? section("IDIOMAS", langsHTML) : ""}
-      ${cvData.availability ? section("DISPONIBILIDAD", dispHTML) : ""}
-    </div>
-    <div class="no-print" style="position:fixed;bottom:24px;right:24px;">
-      <button onclick="window.print()" style="background:#000;border:none;color:#fff;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:14px 28px;cursor:pointer;">↓ GUARDAR PDF</button>
-    </div></body></html>`;
-
+  // Funciona desde la fila (sin abrir el modal) y desde el modal.
+  // La ventana se abre en el mismo click, ANTES del await: si se abre después
+  // de pedir el CV, el navegador la trata como popup y la bloquea.
+  const downloadCV = async (userId: string, name: string) => {
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(html);
+    win.document.write(windowMessage("Generando CV..."));
     win.document.close();
+
+    try {
+      // Si el modal ya tiene cargado el CV de este postulante, se reusa
+      let cv = cvModal?.userId === userId ? cvData : null;
+      if (!cv) {
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/cv/user/${userId}`,
+          { withCredentials: true }
+        );
+        cv = data.data;
+      }
+
+      win.document.open();
+      win.document.write(cv ? buildCvHtml(cv, name) : windowMessage("Este postulante no tiene CV completo."));
+      win.document.close();
+    } catch {
+      win.document.open();
+      win.document.write(windowMessage("No se pudo cargar el CV. Probá de nuevo."));
+      win.document.close();
+    }
   };
 
   // ── Cambiar estado ────────────────────────────────────────────
@@ -580,11 +635,11 @@ export default function PostuladosTab() {
                         ))}
                       </div>
                     )}
-                    {(cvData.skills ?? []).length > 0 && (
+                    {flattenCvSkills(cvData.skills).length > 0 && (
                       <div className="hs-cv-section">
                         <span className="hs-cv-section-title">// SKILLS</span>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                          {cvData.skills.map((s: string) => (
+                          {flattenCvSkills(cvData.skills).map((s: string) => (
                             <span key={s} style={{ border: "1px solid rgba(204,255,0,0.3)", color: "rgba(204,255,0,0.8)", fontFamily: "'JetBrains Mono',monospace", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "1px", padding: "3px 10px", textTransform: "uppercase" }}>{s}</span>
                           ))}
                         </div>

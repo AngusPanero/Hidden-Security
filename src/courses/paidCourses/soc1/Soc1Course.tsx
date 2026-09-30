@@ -1007,6 +1007,7 @@ export default function Soc1Course() {
           completed={progress?.completedSteps.length ?? 0}
           total={TOTAL_STEPS}
         />
+        <p>Curso desarrolado y creado por Hidden Security. <br /><br />Desarrollá las habilidades técnicas, operativas y analíticas que hoy demandan los Centros de Operaciones de Seguridad. Aprendé a investigar alertas, correlacionar eventos, responder incidentes y trabajar junto a herramientas de automatización e inteligencia artificial en escenarios inspirados en situaciones reales.</p>
       </div>
 
       <div className="sc-modules" ref={contentRef}>
