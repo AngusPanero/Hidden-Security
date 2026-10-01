@@ -382,3 +382,87 @@ body:has(.ccx-fullscreen-overlay) {
   .ccx-title { font-size: 1.3rem; }
   .ccx-card  { padding: 18px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Aviso "voucher requerido" al abrir una certificación
+   Pegar al final de certificationCatalog.css
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+
+.ccx-novoucher-overlay {
+  position:        fixed;
+  inset:           0;
+  z-index:         500;
+  background:      rgba(0, 0, 0, 0.8);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         20px;
+}
+
+.ccx-novoucher-modal {
+  position:   relative;
+  width:      100%;
+  max-width:  460px;
+  background: var(--ccx-bg);
+  border:     1px solid var(--ccx-accent);
+  padding:    32px 28px 28px;
+  box-sizing: border-box;
+}
+
+.ccx-novoucher-close {
+  position:    absolute;
+  top:         12px;
+  right:       16px;
+  background:  transparent;
+  border:      none;
+  color:       var(--ccx-text-dim);
+  font-size:   24px;
+  line-height: 1;
+  cursor:      pointer;
+  transition:  color 0.2s;
+}
+.ccx-novoucher-close:hover { color: var(--ccx-text); }
+
+.ccx-novoucher-title {
+  font-size:      1.2rem;
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  margin:         0 0 12px;
+  line-height:    1.2;
+}
+
+.ccx-novoucher-text {
+  font-size:   0.82rem;
+  line-height: 1.7;
+  opacity:     0.75;
+  margin:      0 0 24px;
+}
+
+.ccx-novoucher-actions {
+  display:   flex;
+  gap:       10px;
+  flex-wrap: wrap;
+}
+
+.ccx-novoucher-cta {
+  flex:            1;
+  text-align:      center;
+  text-decoration: none;
+  display:         inline-block;
+}
+
+.ccx-wrap.light .ccx-novoucher-cta { color: #fff; }
+
+.ccx-btn:focus-visible,
+.ccx-novoucher-close:focus-visible {
+  outline:        2px solid var(--ccx-accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .ccx-novoucher-modal   { padding: 28px 20px 20px; }
+  .ccx-novoucher-actions { flex-direction: column; }
+  .ccx-novoucher-actions .ccx-btn { width: 100%; box-sizing: border-box; text-align: center; }
+}

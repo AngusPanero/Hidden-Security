@@ -11,14 +11,15 @@ import { useNavigate } from "react-router-dom";
 type RequestType = "empresa" | "trainee";
 
 interface RequestFormState {
-    email:   string;
+    email:    string;
     fullName: string;
-    company: string;
-    country: string;
+    phone:    string;
+    company:  string;
+    country:  string;
 }
 
 const EMPTY_REQUEST_FORM: RequestFormState = {
-    email: "", fullName: "", company: "", country: "",
+    email: "", fullName: "", phone: "", company: "", country: "",
 };
 
 const REQUEST_TYPE_COPY: Record<RequestType, { label: string; description: string }> = {
@@ -124,6 +125,14 @@ const Pricing = () => {
     const handleRequestSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setRequestError(null);
+
+        // Validación rápida del teléfono (el backend vuelve a validar)
+        const phoneDigits = requestForm.phone.replace(/\D/g, "");
+        if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+            setRequestError("Ingresá un teléfono válido, con código de área (por ejemplo +54 9 11 1234 5678).");
+            return;
+        }
+
         setRequestLoading(true);
 
         try {
@@ -436,6 +445,24 @@ const Pricing = () => {
                                                 placeholder="Nombre y apellido"
                                                 value={requestForm.fullName}
                                                 onChange={handleRequestChange}
+                                                required
+                                                disabled={requestLoading}
+                                            />
+                                        </div>
+
+                                        <div className="pr-field">
+                                            <label htmlFor="pr-phone">TELÉFONO</label>
+                                            <input
+                                                id="pr-phone"
+                                                name="phone"
+                                                type="tel"
+                                                inputMode="tel"
+                                                autoComplete="tel"
+                                                className="pr-input"
+                                                placeholder="+54 9 11 1234 5678"
+                                                value={requestForm.phone}
+                                                onChange={handleRequestChange}
+                                                maxLength={25}
                                                 required
                                                 disabled={requestLoading}
                                             />

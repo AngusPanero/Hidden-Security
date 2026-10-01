@@ -287,6 +287,8 @@ function VacancyModal({ initial, onSave, onClose }: VacancyModalProps) {
   );
 
   const [errors, setErrors] = useState<Partial<Record<keyof VacancyForm, string>>>({});
+  // Evita doble envío: mientras se guarda, el botón queda deshabilitado
+  const [saving, setSaving] = useState(false);
 
   const set = <K extends keyof VacancyForm>(key: K, value: VacancyForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -306,7 +308,15 @@ function VacancyModal({ initial, onSave, onClose }: VacancyModalProps) {
     return Object.keys(e).length === 0;
   };
 
-  const submit = () => { if (validate()) onSave(form); };
+  const submit = async () => {
+    if (saving || !validate()) return;
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="hs-modal-overlay">
@@ -496,8 +506,8 @@ function VacancyModal({ initial, onSave, onClose }: VacancyModalProps) {
           <button className="hs-btn hs-btn--ghost" onClick={onClose}>
             Cancelar
           </button>
-          <button className="hs-btn hs-btn--accent" onClick={submit}>
-            {initial ? "Guardar cambios" : "Publicar vacante"}
+          <button className="hs-btn hs-btn--accent" onClick={submit} disabled={saving}>
+            {saving ? "Guardando..." : initial ? "Guardar cambios" : "Publicar vacante"}
           </button>
         </div>
 

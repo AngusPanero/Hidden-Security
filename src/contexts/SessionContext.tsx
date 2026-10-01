@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { auth } from "../firebase/firebase.ts"
 import { sendPasswordResetEmail } from "firebase/auth";
 import axios from "axios";
@@ -30,7 +30,12 @@ interface SessionContextType {
     // ── Nuevo estado para email no verificado ─────────────────────────────────
     emailNotVerified: boolean;
     setEmailNotVerified: React.Dispatch<React.SetStateAction<boolean>>;
+        // Refresca las custom claims sin cerrar sesión
+    refreshClaims: (opts?: { force?: boolean }) => Promise<void>;
 }
+
+// Mínimo entre refrescos automáticos — no es un intervalo, no hay polling
+const REFRESH_MIN_INTERVAL = 30_000;
 
 export const SessionProvider = ({ children }: ProviderProps) => {
     const navigate = useNavigate()
@@ -42,6 +47,10 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     const [ user,             setUser ]             = useState<unknown>(null)
     const [ isAdmin,          setIsAdmin ]          = useState<boolean | null>(null)
     const [ emailNotVerified, setEmailNotVerified ] = useState(false)
+        // Refresh de claims — un solo pedido en vuelo + mínimo entre refrescos
+    const refreshInFlight = useRef<Promise<void> | null>(null);
+    const lastRefreshAt   = useRef(0);
+    const userUid: string | null = (user as any)?.uid ?? null;
 
     // Auto Logout
     useEffect(() => {
@@ -267,27 +276,75 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         if(isAdmin){ setIsAdmin(true) } else { setIsAdmin(false) }
     }
 
-    // Refresh
-    useEffect(() => {
-        const checkSession = async () => {
-            try {
-                setLoading(true);
-                const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/check-auth`, { withCredentials: true });
-                if (data.authenticated) {
-                    setUser({ ...data.user, isEnterprise: data.isEnterprise, admin: data.isAdmin, partner: data.partner });
-                    /* console.log("USER AUTENTIADO REFRESH", data); */
-                } else {
-                    setUser(null);
-                }
-            } catch (error) {
+        // ── Carga la sesión desde la cookie (/check-auth) ─────────────────────────
+    // silent = true → sin spinner global y, si falla la red, mantiene el usuario.
+    // expectedUid → si mientras tanto cambió el usuario, la respuesta se descarta.
+    const loadSession = useCallback(async (silent = false, expectedUid: string | null = null) => {
+        try {
+            if (!silent) setLoading(true);
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/check-auth`, { withCredentials: true });
+            if (data.authenticated) {
+                const freshUser = { ...data.user, isEnterprise: data.isEnterprise, admin: data.isAdmin, partner: data.partner };
+                setUser((prev: any) => {
+                    if (expectedUid && prev?.uid !== expectedUid) return prev;
+                    return freshUser;
+                });
+            } else {
                 setUser(null);
-                console.error("Error checking session on refresh 🔴", error);
-            } finally {
-                setLoading(false);
             }
-        };
-        checkSession();
+        } catch (error) {
+            if (!silent) setUser(null);
+            console.error("Error checking session 🔴", error);
+        } finally {
+            if (!silent) setLoading(false);
+        }
     }, []);
+
+    // ── Refresca las claims sin cerrar sesión ─────────────────────────────────
+    const refreshClaims = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+        if (!userUid) return;
+        if (refreshInFlight.current) return refreshInFlight.current;
+        if (!force && Date.now() - lastRefreshAt.current < REFRESH_MIN_INTERVAL) return;
+
+        const uidAtStart = userUid;
+
+        refreshInFlight.current = (async () => {
+            try {
+                const { data } = await axios.get(
+                    `${import.meta.env.VITE_API_URL}/api/refresh-claims`,
+                    { withCredentials: true, timeout: 8000 }
+                );
+                lastRefreshAt.current = Date.now();
+                if (data?.ok && data.sessionRefreshed) {
+                    await loadSession(true, uidAtStart);
+                }
+            } catch (err: any) {
+                // 401 = sesión vencida o cuenta baneada → se cierra la sesión local
+                if (err?.response?.status === 401) setUser(null);
+                // Otros errores (red, timeout, 500): se mantiene la sesión actual
+            } finally {
+                refreshInFlight.current = null;
+            }
+        })();
+
+        return refreshInFlight.current;
+    }, [userUid, loadSession]);
+
+    // Refresh — carga inicial de la sesión al abrir / recargar la página
+    useEffect(() => {
+        loadSession(false);
+    }, [loadSession]);
+
+    // Refresh de claims: al haber sesión y cada vez que se vuelve a la pestaña
+    useEffect(() => {
+        if (!userUid) return;
+        refreshClaims();
+        const onVisible = () => {
+            if (document.visibilityState === "visible") refreshClaims();
+        };
+        document.addEventListener("visibilitychange", onVisible);
+        return () => document.removeEventListener("visibilitychange", onVisible);
+    }, [userUid]); // eslint-disable-line
 
     return(
         <SessionContext.Provider value={{
@@ -296,7 +353,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             error, setError, loading, setLoading,
             user, setUser,
             handleUnbanUser, verifyIsAdmin, isAdmin, handleBanUser,
-            emailNotVerified, setEmailNotVerified,
+            emailNotVerified, setEmailNotVerified, refreshClaims,
         }}>
             { children }
         </SessionContext.Provider>
