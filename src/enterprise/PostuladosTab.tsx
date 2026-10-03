@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { UseSession } from "../contexts/SessionContext";
@@ -53,6 +53,33 @@ function flattenCvSkills(raw: any): string[] {
   return [...(raw.roles ?? []), ...(raw.habilidades ?? []), ...(raw.herramientas ?? [])];
 }
 
+// ─── Validaciones de Hidden ───────────────────────────────────────────────────
+// Las agrega el backend al CV (no viven en el documento CV):
+// - skillsCertifiedByHidden: examen controlado
+// - modernSocSkills: curso completado
+const strArr = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
+
+function getValidations(cv: any) {
+  const certified = strArr(cv?.skillsCertifiedByHidden);
+  const course    = strArr(cv?.modernSocSkills);
+  return { certified, course, isCertified: certified.length > 0 };
+}
+
+// Chips del modal: declarada / certificada por examen / validada por curso
+const CHIP_BASE: CSSProperties = {
+  fontFamily: "'JetBrains Mono',monospace", fontSize: "0.62rem", fontWeight: 800,
+  letterSpacing: "1px", padding: "3px 10px", textTransform: "uppercase",
+};
+const CHIP_VARIANTS: Record<"plain" | "cert" | "course", CSSProperties> = {
+  plain:  { border: "1px solid rgba(204,255,0,0.3)", color: "rgba(204,255,0,0.8)" },
+  cert:   { border: "1px solid #facc15", color: "#facc15", background: "rgba(250,204,21,0.08)" },
+  course: { border: "1px solid rgba(56,189,248,0.5)", color: "#38bdf8", background: "rgba(56,189,248,0.08)" },
+};
+function CvChip({ label, kind }: { label: string; kind: "plain" | "cert" | "course" }) {
+  return <span style={{ ...CHIP_BASE, ...CHIP_VARIANTS[kind] }}>{kind === "cert" ? "✓ " : ""}{label}</span>;
+}
+
 // Arma el HTML imprimible del CV
 function buildCvHtml(cv: any, name: string): string {
   const p        = cv.personalInfo ?? {};
@@ -68,9 +95,27 @@ function buildCvHtml(cv: any, name: string): string {
 
   const entry = (inner: string) => `<div style="page-break-inside:avoid;margin-bottom:18px;">${inner}</div>`;
 
-  const skillTags = flattenCvSkills(cv.skills).map((s: string) =>
-    `<span style="display:inline-block;border:1.5px solid #111;color:#111;font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${esc(s)}</span>`
-  ).join("");
+  // Skills: declaradas (✓ si además están certificadas por examen),
+  // certificadas no declaradas y validadas por curso
+  const { certified, course, isCertified } = getValidations(cv);
+  const declared = flattenCvSkills(cv.skills);
+
+  const TAG_STYLES = {
+    plain:  "border:1.5px solid #111;background:transparent;color:#111;",
+    cert:   "border:1.5px solid #999;background:#111;color:#fff;",
+    course: "border:1.5px solid #0284c7;background:#e0f2fe;color:#075985;",
+  };
+  const tag = (s: string, kind: keyof typeof TAG_STYLES) =>
+    `<span style="display:inline-block;${TAG_STYLES[kind]}font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${kind === "cert" ? "✓ " : ""}${esc(s)}</span>`;
+
+  const skillTags          = declared.map(s => tag(s, certified.includes(s) ? "cert" : "plain")).join("");
+  const certifiedExtraTags = certified.filter(s => !declared.includes(s)).map(s => tag(s, "cert")).join("");
+  const courseTags         = course.map(s => tag(s, "course")).join("");
+
+  const badgeBase = "display:inline-block;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;padding:6px 14px;margin:8px 6px 0 0;";
+  const badgesHTML =
+    (isCertified ? `<div style="${badgeBase}background:#000;color:#fff;">✓ CERTIFICADO — HIDDEN SECURITY</div>` : "") +
+    (course.length > 0 ? `<div style="${badgeBase}background:#e0f2fe;color:#075985;border:1.5px solid #0284c7;">CURSO SOC COMPLETADO</div>` : "");
 
   const experienceHTML = (cv.experience ?? []).map((e: any) => entry(`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
@@ -148,6 +193,7 @@ function buildCvHtml(cv: any, name: string): string {
           <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:#888;margin-bottom:8px;">CURRICULUM VITAE</div>
           <h1 style="font-family:'Montserrat',sans-serif;font-size:42px;font-weight:900;letter-spacing:-2.5px;text-transform:uppercase;line-height:0.92;color:#000;margin-bottom:10px;">${esc(p.firstName)}<br/>${esc(p.lastName)}</h1>
           ${p.headline ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;color:#555;line-height:1.5;margin-top:8px;max-width:380px;">${esc(p.headline)}</p>` : ""}
+          ${badgesHTML}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-top:30px;">
           ${photo ? `<img src="${photo}" alt="Foto" style="width:90px;height:90px;object-fit:cover;border:2px solid #000;border-radius:2px;display:block;" />` : ""}
@@ -165,6 +211,8 @@ function buildCvHtml(cv: any, name: string): string {
       ${experienceHTML ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
       ${educationHTML  ? section("EDUCACIÓN",           educationHTML)  : ""}
       ${skillTags      ? section("SKILLS TÉCNICAS",    `<div style="display:flex;flex-wrap:wrap;gap:4px;">${skillTags}</div>`) : ""}
+      ${certifiedExtraTags ? section("✓ CERTIFICADAS POR EXAMEN HIDDEN SECURITY", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${certifiedExtraTags}</div>`) : ""}
+      ${courseTags     ? section("VALIDADAS EN CURSO — HIDDEN SECURITY", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${courseTags}</div>`) : ""}
       ${projectsHTML   ? section("PROYECTOS",           projectsHTML)   : ""}
       ${certsHTML      ? section("CERTIFICACIONES",     certsHTML)      : ""}
       ${(cv.languages ?? []).length > 0 ? section("IDIOMAS", langsHTML) : ""}
@@ -591,6 +639,9 @@ export default function PostuladosTab() {
                 <p style={{ opacity: 0.4, fontSize: "0.8rem" }}>Este postulante no tiene CV completo.</p>
               ) : (() => {
                 const p = cvData.personalInfo ?? {};
+                const v = getValidations(cvData);
+                const declared       = flattenCvSkills(cvData.skills);
+                const certifiedExtra = v.certified.filter(s => !declared.includes(s));
                 return (
                   <div className="hs-cv-view">
                     <div className="hs-cv-header">
@@ -598,6 +649,12 @@ export default function PostuladosTab() {
                       <div className="hs-cv-header-info">
                         <h2 className="hs-cv-name">{p.firstName} {p.lastName}</h2>
                         {p.headline && <p className="hs-cv-headline">{p.headline}</p>}
+                        {(v.isCertified || v.course.length > 0) && (
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                            {v.isCertified && <CvChip label="Certificado Hidden Security" kind="cert" />}
+                            {v.course.length > 0 && <CvChip label="Curso SOC completado" kind="course" />}
+                          </div>
+                        )}
                         <div className="hs-cv-contacts">
                           {p.email    && <span>{p.email}</span>}
                           {p.phone    && <span>{p.phone}</span>}
@@ -635,13 +692,32 @@ export default function PostuladosTab() {
                         ))}
                       </div>
                     )}
-                    {flattenCvSkills(cvData.skills).length > 0 && (
+                    {declared.length > 0 && (
                       <div className="hs-cv-section">
                         <span className="hs-cv-section-title">// SKILLS</span>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                          {flattenCvSkills(cvData.skills).map((s: string) => (
-                            <span key={s} style={{ border: "1px solid rgba(204,255,0,0.3)", color: "rgba(204,255,0,0.8)", fontFamily: "'JetBrains Mono',monospace", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "1px", padding: "3px 10px", textTransform: "uppercase" }}>{s}</span>
+                          {declared.map((s: string) => (
+                            <CvChip key={s} label={s} kind={v.certified.includes(s) ? "cert" : "plain"} />
                           ))}
+                        </div>
+                      </div>
+                    )}
+                    {certifiedExtra.length > 0 && (
+                      <div className="hs-cv-section">
+                        <span className="hs-cv-section-title">// ✓ CERTIFICADAS POR EXAMEN</span>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                          {certifiedExtra.map(s => <CvChip key={s} label={s} kind="cert" />)}
+                        </div>
+                      </div>
+                    )}
+                    {v.course.length > 0 && (
+                      <div className="hs-cv-section">
+                        <span className="hs-cv-section-title">// VALIDADAS EN CURSO HIDDEN SECURITY</span>
+                        <p className="hs-cv-text" style={{ opacity: 0.6, fontSize: "0.72rem" }}>
+                          Obtenidas al completar el curso SOC — Modern Operations y aprobar sus evaluaciones.
+                        </p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                          {v.course.map(s => <CvChip key={s} label={s} kind="course" />)}
                         </div>
                       </div>
                     )}
