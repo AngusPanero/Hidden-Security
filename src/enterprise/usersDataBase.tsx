@@ -801,7 +801,7 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
               <div className="udb-entry-header">
                 <div>
                   <strong>{c.name}</strong>
-                  <span className="udb-entry-sub"> · {c.issuer}</span>
+                  <span className="udb-entry-sub"> · {c.issuer}</span> · <a style={{ color: "white" }} href={c.url} target="_blank" rel="noreferrer">Ver certificación</a>
                   {c.credentialId && <div className="udb-entry-credential">ID: {c.credentialId}</div>}
                 </div>
                 <span className="udb-entry-dates">{c.date}</span>

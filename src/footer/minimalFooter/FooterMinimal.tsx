@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { color, motion } from 'framer-motion';
 import "./footerMinimal.css";
 import { UseTheme } from "../../contexts/ThemeContext";
 import logo from "/logos/logo-hidden-final.png"
@@ -63,12 +63,12 @@ const FooterMinimal = () => {
                     {/* COLUMNA 4: CONTACTO */}
                     <div className="footer-column">
                         <h4 className="column-title">SOPORTE</h4>
-                        <div className="location-item">
+                        {/* <div className="location-item">
                             <span className="city">ADMISIONES</span>
                             <span className="phone">contacto@hidden-security.org</span>
-                        </div>
+                        </div> */}
                         <div className="location-item">
-                            <span className="city">ALUMNOS</span>
+                            <a style={{ textDecoration: "none", color: "white" }} href="/contact"><span className="city">CONTACTO</span></a>
                             <span className="phone">contacto@hidden-security.org</span>
                         </div>
                     </div>

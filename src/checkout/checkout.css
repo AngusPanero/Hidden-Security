@@ -825,3 +825,7 @@
     font-weight: 600;
     line-height: 1.6;
 }
+
+.input-coupon{
+    font-size: 16px !important;
+}

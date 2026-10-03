@@ -719,7 +719,7 @@ const Checkout = () => {
                         {/* CUPÓN */}
                         <div className="checkout-coupon-box">
                             <div className="coupon-input-group">
-                                <input placeholder="CODIGO_CUPON" value={couponInput} onChange={(e) => setCouponInput(e.target.value)} disabled={!user} />
+                                <input className="input-coupon" placeholder="CODIGO_CUPON" value={couponInput} onChange={(e) => setCouponInput(e.target.value)} disabled={!user} />
                                 <button type="button" onClick={handleApplyCoupon} className="Montserrat-900" disabled={!user}>APPLY</button>
                             </div>
                             {couponMsg.text && <p className={`coupon-msg ${couponMsg.isError ? 'err' : 'ok'}`}>{couponMsg.text}</p>}
