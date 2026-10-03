@@ -1,4 +1,4 @@
-import { color, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import "./footerMinimal.css";
 import { UseTheme } from "../../contexts/ThemeContext";
 import logo from "/logos/logo-hidden-final.png"
