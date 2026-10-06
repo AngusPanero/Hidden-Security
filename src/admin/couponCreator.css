@@ -492,3 +492,7 @@ select.code-input {
 
   .active-coupons-section > div { flex-direction: column; }
 }
+
+.tag-policy.tag-active   { color: #22c55e; }
+.tag-policy.tag-expired  { color: #ef4444; }
+.tag-policy.tag-disabled { color: #f59e0b; }

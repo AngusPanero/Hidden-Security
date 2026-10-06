@@ -21,7 +21,6 @@ export const ThemeProvider = ({ children }: ProviderProps) => {
     const handleTheme = (e: any) => {
         setTheme(e)
         localStorage.setItem("theme", theme)
-        console.log("Theme: ", theme);
         
     }
 

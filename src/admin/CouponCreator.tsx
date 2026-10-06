@@ -13,6 +13,29 @@ const ALL_PLANS = [
     { id: 'enterprise', label: 'ENTERPRISE' },
 ];
 
+type CouponStatus = { label: string; className: string };
+
+// El estado se calcula a partir de los datos reales del cupón.
+// isActive solo indica desactivación manual (o lo que haya escrito el backend).
+const getCouponStatus = (coupon: any): CouponStatus => {
+    const now = new Date();
+
+    if (coupon.type === 'date_limited' && coupon.expiryDate && new Date(coupon.expiryDate) < now) {
+        return { label: 'VENCIDO', className: 'tag-expired' };
+    }
+    if (coupon.type === 'limited_uses' && coupon.maxUses != null && (coupon.usesCount ?? 0) >= coupon.maxUses) {
+        return { label: 'AGOTADO', className: 'tag-expired' };
+    }
+    // Si single_use es "una vez por usuario" (via usedBy) y no "una vez en total", quitá este bloque.
+    if (coupon.type === 'single_use' && (coupon.usesCount ?? 0) >= 1) {
+        return { label: 'USADO', className: 'tag-expired' };
+    }
+    if (!coupon.isActive) {
+        return { label: 'DESACTIVADO', className: 'tag-disabled' };
+    }
+    return { label: 'ACTIVO', className: 'tag-active' };
+};
+
 const CouponCreator = () => {
     const { theme } = UseTheme();
 
@@ -246,49 +269,52 @@ const CouponCreator = () => {
                         ACTIVE_COUPONS_LIST
                     </label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                        {Array.isArray(coupons) && coupons.map((coupon) => (
-                            <div key={coupon._id} className="coupon-tag">
-                                <div className="tag-info">
-                                    <span className="tag-code">{coupon.code}</span>
-                                    <span className="tag-discount">{coupon.discount}%</span>
+                        {Array.isArray(coupons) && coupons.map((coupon) => {
+                            const couponStatus = getCouponStatus(coupon);
 
-                                    {/* tipo */}
-                                    <div className="tag-policy">
-                                        {coupon.type === 'single_use' ? (
-                                            <><User size={12} /> SINGLE</>
-                                        ) : coupon.type === 'limited_uses' ? (
-                                            <><Hash size={12} /> {coupon.usesCount}/{coupon.maxUses} USES</>
-                                        ) : (
-                                            <><Clock size={12} /> {
-                                                coupon.expiryDate
-                                                    ? new Date(coupon.expiryDate).toLocaleDateString('es-AR', {
-                                                        day: '2-digit', month: '2-digit', year: 'numeric',
-                                                        timeZone: 'America/Argentina/Buenos_Aires'
-                                                    })
-                                                    : 'SIN FECHA'
-                                            }</>
-                                        )}
-                                    </div>
+                            return (
+                                <div key={coupon._id} className="coupon-tag">
+                                    <div className="tag-info">
+                                        <span className="tag-code">{coupon.code}</span>
+                                        <span className="tag-discount">{coupon.discount}%</span>
 
-                                    {/* scope */}
-                                    {coupon.scope === 'plans' && coupon.allowedPlans?.length > 0 && (
-                                        <div className="tag-policy" style={{ marginTop: '3px' }}>
-                                            🎯 {coupon.allowedPlans.map((p: string) => p.toUpperCase()).join(', ')}
+                                        {/* tipo */}
+                                        <div className="tag-policy">
+                                            {coupon.type === 'single_use' ? (
+                                                <><User size={12} /> SINGLE</>
+                                            ) : coupon.type === 'limited_uses' ? (
+                                                <><Hash size={12} /> {coupon.usesCount ?? 0}/{coupon.maxUses} USES</>
+                                            ) : (
+                                                <><Clock size={12} /> {
+                                                    coupon.expiryDate
+                                                        ? new Date(coupon.expiryDate).toLocaleDateString('es-AR', {
+                                                            day: '2-digit', month: '2-digit', year: 'numeric',
+                                                            timeZone: 'America/Argentina/Buenos_Aires'
+                                                        })
+                                                        : 'SIN FECHA'
+                                                }</>
+                                            )}
                                         </div>
-                                    )}
 
-                                    {/* estado */}
-                                    <div className={`tag-policy ${coupon.isActive ? 'tag-active' : 'tag-expired'}`}
-                                        style={{ color: coupon.isActive ? '#0071e3' : 'red' }}>
-                                        {coupon.isActive ? '● ACTIVO' : '● CADUCADO'}
+                                        {/* scope */}
+                                        {coupon.scope === 'plans' && coupon.allowedPlans?.length > 0 && (
+                                            <div className="tag-policy" style={{ marginTop: '3px' }}>
+                                                🎯 {coupon.allowedPlans.map((p: string) => p.toUpperCase()).join(', ')}
+                                            </div>
+                                        )}
+
+                                        {/* estado */}
+                                        <div className={`tag-policy tag-status ${couponStatus.className}`}>
+                                            ● {couponStatus.label}
+                                        </div>
                                     </div>
-                                </div>
 
-                                <button onClick={() => handleDelete(coupon._id)} className="tag-delete-btn">
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
-                        ))}
+                                    <button onClick={() => handleDelete(coupon._id)} className="tag-delete-btn">
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

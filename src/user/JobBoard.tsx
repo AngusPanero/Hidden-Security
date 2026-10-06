@@ -75,6 +75,7 @@ export default function JobBoard() {
   const [filterModality,     setFilterModality]     = useState("");
   const [filterContractType, setFilterContractType] = useState("");
   const [filterSkill,        setFilterSkill]        = useState("");
+  const [filterCompany,      setFilterCompany]      = useState("");
   const [filterCurrency,     setFilterCurrency]     = useState("");
   const [filterSalaryMin,    setFilterSalaryMin]    = useState("");
   const [filterSalaryMax,    setFilterSalaryMax]    = useState("");
@@ -130,16 +131,23 @@ export default function JobBoard() {
     setFilterExp(""); setFilterModality(""); setFilterContractType("");
     setFilterSkill(""); setFilterCurrency(""); setFilterSalaryMin("");
     setFilterSalaryMax(""); setFilterDateFrom(""); setSortOrder("desc");
+    setFilterCompany("");
   };
 
   const hasActiveFilters =
     filterExp || filterModality || filterContractType || filterSkill ||
     filterCurrency || filterSalaryMin || filterSalaryMax ||
-    filterDateFrom || sortOrder !== "desc";
+    filterDateFrom || sortOrder !== "desc" ||
+    filterCompany.trim();
 
   // Primero los filtros de búsqueda (nivel, modalidad, salario, fecha...)
   const byFilters = vacancies
     .filter((v) => {
+      // Empresa — sin distinguir mayúsculas/minúsculas
+      if (filterCompany.trim()) {
+        const company = (v.companyName ?? "").toLowerCase();
+        if (!company.includes(filterCompany.trim().toLowerCase())) return false;
+      }
       if (filterContractType && v.contractType !== filterContractType) return false;
       if (filterCurrency && v.salaryRange?.currency !== filterCurrency) return false;
       if (filterSalaryMin !== "" && (v.salaryRange?.min == null || Number(v.salaryRange.min) < Number(filterSalaryMin))) return false;
@@ -273,6 +281,12 @@ export default function JobBoard() {
             placeholder="Filtrar por skill..."
             value={filterSkill}
             onChange={(e) => setFilterSkill(e.target.value)}
+          />
+          <input
+            className="jb-filter-input"
+            placeholder="Filtrar por empresa..."
+            value={filterCompany}
+            onChange={(e) => setFilterCompany(e.target.value)}
           />
         </div>
 

@@ -500,3 +500,8 @@
   .ul-pagination { gap: 12px; flex-wrap: wrap; }
   .ul-page-btn   { font-size: 0.6rem; padding: 8px 14px; }
 }
+
+input.ul-search-input{ 
+  width: 100%;
+  margin-bottom: 18px;
+}

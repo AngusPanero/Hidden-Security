@@ -57,7 +57,6 @@ const EnterpriseDashboard = () => {
   } | null>(null);
 
   useEffect(() => {
-    console.log(user);
     
     if (!user) return;
     const plan      = (user as any).enterprisePlan       ?? null;

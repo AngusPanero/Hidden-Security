@@ -3,7 +3,6 @@ import "./navBarMinimal.css";
 import moon from "/logos/moon2.svg";
 import sun from "/logos/sun.svg";
 import { UseSession } from "../../contexts/SessionContext";
-/* import { UseLanguage } from "../../contexts/LanguageContext"; */
 import { UseTheme } from "../../contexts/ThemeContext";
 import LoginMinimal from "./LoginMinimal";
 import RegisterMinimal from "./RegisterMinimal";
@@ -21,10 +20,8 @@ const NavBarMinimal = () => {
     const menuRef = useRef<HTMLDivElement>(null);
     const { user, handleLogout } = UseSession();
 
-    /* const { language, handleLanguage, texts } = UseLanguage(); */
     const { theme, handleTheme } = UseTheme();
 
-    // --- LÓGICA ROUND MORPH PROPIA DE ESCRITORIO ---
     const toggleThemeWithAnimation = (e: React.MouseEvent<HTMLButtonElement>) => {
         const x = e.clientX;
         const y = e.clientY;
@@ -53,8 +50,6 @@ const NavBarMinimal = () => {
         setOpenRegister(false);
     };
 
-    // Abre el Register cuando se dispara el evento desde otras partes (ej: cards del Home).
-    // Funciona igual en desktop y mobile: cierra login y menú mobile si estaban abiertos.
     useEffect(() => {
         const handleOpenRegister = () => {
             setLoginOpen(false);
@@ -113,11 +108,11 @@ const NavBarMinimal = () => {
                             <li><a href="/company"><span className="index">02</span> Empresa</a></li>
                             <li><a href="/pricing"><span className="index">03</span> Precios</a></li>
                             <li><a href="/certifications"><span className="index">04</span> Certificaciones</a></li>
-                            <li><a href="/contact"><span className="index">05</span> Contacto</a></li>
+                            {/* <li><a href="/contact"><span className="index">05</span> Contacto</a></li> */}
                             {user && user.admin !== true && user.isEnterprise !== true && user.partner !== true &&(
                                 <li>
                                     <a href="/dashboard" className="nav-link-special">
-                                        <span className="index">06</span> DASHBOARD
+                                        <span className="index">05</span> DASHBOARD
                                     </a>
                                 </li>
                             )}

@@ -64,6 +64,10 @@ const formatDateTime = (dateString?: string) => {
     });
 }
 
+// Minúsculas y sin tildes, para que "ADMIN" o "usuário" matcheen igual
+const normalize = (s?: string) =>
+    (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 const UserList = () => {
     const { theme } = UseTheme()
     const { getUsers, users } = UseUsers()
@@ -71,6 +75,7 @@ const UserList = () => {
 
     const [page, setPage]             = useState(1);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [search, setSearch]         = useState("");
 
     const [activeRoles, setActiveRoles] = useState<Set<RoleFilter>>(
         new Set(ROLE_ORDER)
@@ -94,10 +99,17 @@ const UserList = () => {
 
     const bannedCount = useMemo(() => allUsers.filter(u => u.isBanned).length, [allUsers]);
 
-    const filteredUsers = useMemo(
-        () => allUsers.filter((u: User) => activeRoles.has(getUserRole(u))),
-        [allUsers, activeRoles]
-    );
+    // Filtro por rol + búsqueda por nombre, email o rol
+    const filteredUsers = useMemo(() => {
+        const q = normalize(search.trim());
+        return allUsers.filter((u: User) => {
+            const role = getUserRole(u);
+            if (!activeRoles.has(role)) return false;
+            if (!q) return true;
+            return [u.displayName, u.email, ROLE_LABELS[role], role]
+                .some(field => normalize(field).includes(q));
+        });
+    }, [allUsers, activeRoles, search]);
 
     const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
     const pageUsers  = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -106,6 +118,11 @@ const UserList = () => {
         setPage(1);
         setExpandedId(null);
     }, [activeRoles]);
+
+    useEffect(() => {
+        setPage(1);
+        setExpandedId(null);
+    }, [search]);
 
     useEffect(() => {
         setExpandedId(null);
@@ -157,6 +174,28 @@ const UserList = () => {
                         {ROLE_LABELS[role]}
                     </button>
                 ))}
+            </div>
+
+            {/* ── Búsqueda ── */}
+            <div className="ul-search">
+                <input
+                    type="search"
+                    className="ul-search-input"
+                    placeholder="Buscar por nombre, email o rol…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    aria-label="Buscar usuarios"
+                />
+                {/* {search && (
+                    <button
+                        type="button"
+                        className="ul-search-clear"
+                        onClick={() => setSearch("")}
+                        aria-label="Limpiar búsqueda"
+                    >
+                        ✕
+                    </button>
+                )} */}
             </div>
 
             {/* ── Lista ── */}

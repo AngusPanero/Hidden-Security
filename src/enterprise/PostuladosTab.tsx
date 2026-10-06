@@ -745,6 +745,7 @@ export default function PostuladosTab() {
                           <div key={i} className="hs-cv-entry">
                             <div className="hs-cv-entry-header">
                               <strong>{c.name}</strong>
+                              <span className="udb-entry-sub">{c.issuer}</span> <a style={{ color: "white" }} href={c.url} target="_blank" rel="noreferrer">Ver certificación</a>
                               <span style={{ fontSize: "0.72rem", opacity: 0.4 }}>{c.issuer} · {c.date}</span>
                             </div>
                           </div>
