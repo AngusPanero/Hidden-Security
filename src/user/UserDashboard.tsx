@@ -9,6 +9,7 @@ import CVBuilder        from "./CvBuilder";
 import CourseCatalog    from "../courses/CourseCatalog";
 import CertificationCatalog from "../certifications/CertificationCatalog";
 import { useNavigate } from "react-router-dom";
+import HeroCredentialBadge from "./HeroCredentialBadge";
 const REQUIRE_CERTIFICATION = false; // Cambiar a true si se requiere certificación para postularse
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -524,9 +525,8 @@ const UserDashboard = () => {
                     </div>
                 </div>
                 <div className="dm-hero-right">
-                    <div className="dm-hero-badge">
-                        {user.userCertificated ? "CERTIFICADO" : "ESTUDIANTE"}
-                    </div>
+                        <HeroCredentialBadge user={user} theme={theme} />
+                    
                     {canUseJobs && (
                         <span className="dm-live-badge">
                             <span className="dm-live-dot" />
@@ -547,7 +547,7 @@ const UserDashboard = () => {
                                 ? `${membership.daysRemaining} día${membership.daysRemaining !== 1 ? "s" : ""}`
                                 : `${membership.hoursRemaining} hora${membership.hoursRemaining !== 1 ? "s" : ""}`}
                             {" — "}
-                            <a href="/planes" className="dm-expiry-alert-link">RENOVAR AHORA</a>
+                            <a href="/pricing" className="dm-expiry-alert-link">RENOVAR AHORA</a>
                         </span>
                     </div>
                 )}
@@ -620,8 +620,8 @@ const UserDashboard = () => {
 
             {/* ── TABS ── */}
             <div className="dm-tabs">
-                <button className={`dm-tab ${activeTab === "compras" ? "active" : ""}`} onClick={() => handleTabChange("compras")}>
-                    HISTORIAL
+                <button className={`dm-tab ${activeTab === "cv" ? "active" : ""}`} onClick={() => handleTabChange("cv")}>
+                    MI CV
                 </button>
                 <button className={`dm-tab ${activeTab === "cursos" ? "active" : ""}`} onClick={() => handleTabChange("cursos")}>
                     CURSOS
@@ -632,9 +632,7 @@ const UserDashboard = () => {
                 <button className={`dm-tab ${activeTab === "bolsa" ? "active" : ""}`} onClick={() => handleTabChange("bolsa")}>
                     BOLSA DE TRABAJO
                 </button>
-                <button className={`dm-tab ${activeTab === "cv" ? "active" : ""}`} onClick={() => handleTabChange("cv")}>
-                    MI CV
-                </button>
+                
                 {canUseJobs && (
                     <button className={`dm-tab dm-tab--notif ${activeTab === "notif" ? "active" : ""}`} onClick={() => handleTabChange("notif")}>
                         NOTIFICACIONES
@@ -647,6 +645,9 @@ const UserDashboard = () => {
                 )}
                 <button className={`dm-tab ${activeTab === "cuenta" ? "active" : ""}`} onClick={() => handleTabChange("cuenta")}>
                     MI CUENTA
+                </button>
+                <button className={`dm-tab ${activeTab === "compras" ? "active" : ""}`} onClick={() => handleTabChange("compras")}>
+                    HISTORIAL
                 </button>
             </div>
 

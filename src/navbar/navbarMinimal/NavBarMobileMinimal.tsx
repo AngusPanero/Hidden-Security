@@ -1,14 +1,14 @@
 import { forwardRef } from "react";
-import moon from "/logos/moon2.svg";
-import sun from "/logos/sun.svg";
+/* import moon from "/logos/moon2.svg";
+import sun from "/logos/sun.svg"; */
 import { UseSession } from "../../contexts/SessionContext";
 import "./navBarMobileMinimal.css";
 
-const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ theme, handleTheme, /* handleLanguage, */ openLogin }: any, ref: any) => {
+const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ theme, /* handleTheme, */ /* handleLanguage, */ openLogin }: any, ref: any) => {
     const { user, handleLogout } = UseSession();
 
     // Lógica para Round Morph
-    const toggleThemeWithAnimation = (e: React.MouseEvent<HTMLButtonElement>) => {
+    /* const toggleThemeWithAnimation = (e: React.MouseEvent<HTMLButtonElement>) => {
         const x = e.clientX;
         const y = e.clientY;
         
@@ -23,7 +23,7 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ them
         document.startViewTransition(() => {
             handleTheme();
         });
-    };
+    }; */
 
     return (
         <div className={`kaleida-mobile-overlay ${theme}`} ref={ref}>
@@ -88,9 +88,9 @@ const NavBarMobileMinimal = forwardRef(({ closeMenu, /* texts, language, */ them
                         </select>
                     </div> */}
                     
-                    <button className="kaleida-theme-toggle" onClick={toggleThemeWithAnimation}>
+                    {/* <button className="kaleida-theme-toggle" onClick={toggleThemeWithAnimation}>
                         <img src={theme === "dark" ? sun : moon} alt="theme icon" />
-                    </button>
+                    </button> */}
                 </div>
 
                 <div className="kaleida-auth-box">

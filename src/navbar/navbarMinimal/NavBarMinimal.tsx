@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "./navBarMinimal.css";
-import moon from "/logos/moon2.svg";
-import sun from "/logos/sun.svg";
+/* import moon from "/logos/moon2.svg";
+import sun from "/logos/sun.svg"; */
 import { UseSession } from "../../contexts/SessionContext";
 import { UseTheme } from "../../contexts/ThemeContext";
 import LoginMinimal from "./LoginMinimal";
@@ -20,9 +20,9 @@ const NavBarMinimal = () => {
     const menuRef = useRef<HTMLDivElement>(null);
     const { user, handleLogout } = UseSession();
 
-    const { theme, handleTheme } = UseTheme();
+    const { theme/* , handleTheme */ } = UseTheme();
 
-    const toggleThemeWithAnimation = (e: React.MouseEvent<HTMLButtonElement>) => {
+    /* const toggleThemeWithAnimation = (e: React.MouseEvent<HTMLButtonElement>) => {
         const x = e.clientX;
         const y = e.clientY;
         
@@ -38,7 +38,7 @@ const NavBarMinimal = () => {
         document.startViewTransition(() => {
             handleTheme(theme === "dark" ? "light" : "dark");
         });
-    };
+    }; */
 
     const openRegisterFromLogin = () => {
         setLoginOpen(false);
@@ -144,13 +144,13 @@ const NavBarMinimal = () => {
                         <div className="interface-controls">
                             
                             {/* Theme Toggle con animación round morph */}
-                            <button 
+                            {/* <button 
                                 className="control-btn theme-toggle" 
                                 onClick={toggleThemeWithAnimation}
                                 title="Switch Theme"
                             >
                                 <img src={theme === "dark" ? sun : moon} alt="theme icon" />
-                            </button>
+                            </button> */}
 
                             <div className="auth-wrap">
                                 {user ? (
@@ -187,7 +187,7 @@ const NavBarMinimal = () => {
                     /* texts={texts}
                     language={language} */
                     theme={theme}
-                    handleTheme={() => handleTheme(theme === "dark" ? "light" : "dark")}
+                    /* handleTheme={() => handleTheme(theme === "dark" ? "light" : "dark")} */
                     /* handleLanguage={handleLanguage} */
                     openLogin={() => setLoginOpen(true)}
                 />
