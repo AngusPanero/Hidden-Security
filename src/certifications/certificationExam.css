@@ -558,7 +558,11 @@
   font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; letter-spacing: 2px;
   color: var(--cex-exp); text-transform: uppercase; margin-bottom: 8px;
 }
-.cex-transition-wrap.is-new .cex-transition { animation: cex-toast-in 0.4s ease; box-shadow: 0 0 0 1px var(--cex-exp); }
+.cex-transition-wrap.is-new .cex-transition { animation: cex-transition-in 0.35s ease both; box-shadow: 0 0 0 1px var(--cex-exp); }
+@keyframes cex-transition-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* ── Pregunta ─────────────────────────────────────────────────── */
 .cex-question-head {

@@ -289,7 +289,7 @@ function MonitorPanel({ stream, camera, mic }: { stream: MediaStream; camera: bo
     <div className="cex-monitor">
       <div className="cex-monitor-head">
         <span className="cex-monitor-rec" />
-        <span>SUPERVISIÓN ACTIVA</span>
+        {/* <span>SUPERVISIÓN ACTIVA</span> */}
       </div>
       {camera && (
         <div className="cex-monitor-cam">
@@ -299,7 +299,7 @@ function MonitorPanel({ stream, camera, mic }: { stream: MediaStream; camera: bo
           />
           <i className="cex-cam-corner tl" /><i className="cex-cam-corner tr" />
           <i className="cex-cam-corner bl" /><i className="cex-cam-corner br" />
-          <span className="cex-monitor-live">● LIVE</span>
+          {/* <span className="cex-monitor-live">● LIVE</span> */}
         </div>
       )}
       {mic && <AudioSpectrum stream={stream} />}
