@@ -741,7 +741,7 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
       {extraCertified.length > 0 && (
         <div className="udb-detail-section">
           <span className="udb-detail-section-title udb-detail-section-title--gold">
-            // CERTIFICACIONES ADICIONALES (no declaradas por el candidato)
+            // CONOCIMIENTO CERTIFICADO POR HIDDEN SECURITY
           </span>
           <div className="udb-skills-row">
             {extraCertified.map(skill => (
