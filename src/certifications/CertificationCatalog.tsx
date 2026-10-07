@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { UseTheme } from "../contexts/ThemeContext"; 
@@ -35,7 +36,7 @@ const CATALOG: CatalogEntry[] = [
     description: "Examen controlado y cronometrado que valida tus conocimientos reales como analista SOC — fundamentos, operaciones, detección y respuesta a incidentes.",
     tags:        ["SIEM", "Incident Response", "Threat Intel", "SOC"],
     level:       "Avanzado",
-    duration:    "5 módulos",
+    duration:    "80 preguntas · 2 h",
     status:      "available",
     component: ModernSocCertification,
     intro: {
@@ -47,7 +48,7 @@ const CATALOG: CatalogEntry[] = [
         {
           /* icon: "⏱️", */
           title: "Tiempo limitado",
-          text: "El examen tiene un tiempo máximo para completarse. Una vez iniciado, no se puede pausar.",
+          text: "Tenés 2 horas para completar el examen. Una vez iniciado, no se puede pausar.",
         },
         {
           /* icon: "🔒", */
@@ -57,7 +58,7 @@ const CATALOG: CatalogEntry[] = [
         {
           /* icon: "🎯", */
           title: "Nota de aprobación",
-          text: "Necesitás un porcentaje mínimo de respuestas correctas para aprobar y certificarte.",
+          text: "Necesitás al menos el 80% del puntaje para aprobar. Si reintentás, siempre se guarda tu mejor resultado.",
         },
         {
           /* icon: "📜", */
@@ -66,8 +67,9 @@ const CATALOG: CatalogEntry[] = [
         },
       ],
       details: [
-        { label: "// MÓDULOS",      value: "5" },
-        { label: "// PREGUNTAS",    value: "5" },
+        { label: "// MÓDULOS",      value: "8" },
+        { label: "// PREGUNTAS",    value: "80" },
+        { label: "// TIEMPO",       value: "2 h" },
         { label: "// DISPOSITIVO",  value: "Desktop" },
         { label: "// REQUIERE",     value: "1 voucher" },
       ],
@@ -92,6 +94,34 @@ const CATALOG: CatalogEntry[] = [
     },
   },
 ];
+
+// Resultado vigente del usuario en una certificación (GET /api/certification/summary)
+interface CertSummary {
+  attempts:      number;
+  passed:        boolean;
+  bestScore:     number;
+  lastScore:     number;
+  lastAttemptAt: string | null;
+  passingScore:  number;
+}
+
+type Filter = "all" | "taken" | "passed" | "failed";
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: "all",    label: "TODAS" },
+  { id: "taken",  label: "RENDIDAS" },
+  { id: "passed", label: "APROBADAS" },
+  { id: "failed", label: "NO APROBADAS" },
+];
+
+function matchesFilter(filter: Filter, s: CertSummary | null | undefined): boolean {
+  if (filter === "all")    return true;
+  if (!s || s.attempts === 0) return false;
+  if (filter === "taken")  return true;
+  if (filter === "passed") return s.passed;
+  return !s.passed; // "failed"
+}
+
+const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 // Mismos colores de nivel que en CourseCatalog, para consistencia visual
 const LEVEL_COLORS: Record<string, string> = {
@@ -119,6 +149,25 @@ export default function CertificationCatalog() {
   const [showExam,      setShowExam]      = useState(false);
   // Certificación que el usuario intentó abrir sin voucher (muestra el aviso)
   const [noVoucherCert, setNoVoucherCert] = useState<CatalogEntry | null>(null);
+
+  // Resultados del usuario por certificación (los calcula el backend)
+  const [summaries, setSummaries] = useState<Record<string, CertSummary | null>>({});
+  const [filter,    setFilter]    = useState<Filter>("all");
+
+  useEffect(() => {
+    if (!user) return;
+    axios.get(`${import.meta.env.VITE_API_URL}/api/certification/summary`, { withCredentials: true })
+      .then(({ data }) => setSummaries(data.data ?? {}))
+      .catch(() => setSummaries({}));
+  }, [user]);
+
+  const counts: Record<Filter, number> = {
+    all:    CATALOG.length,
+    taken:  CATALOG.filter(c => matchesFilter("taken",  summaries[c.id])).length,
+    passed: CATALOG.filter(c => matchesFilter("passed", summaries[c.id])).length,
+    failed: CATALOG.filter(c => matchesFilter("failed", summaries[c.id])).length,
+  };
+  const visible = CATALOG.filter(c => matchesFilter(filter, summaries[c.id]));
 
   // Click en una card: sin voucher no se abre la certificación
   const handleCardClick = (cert: CatalogEntry) => {
@@ -200,10 +249,39 @@ export default function CertificationCatalog() {
         Validá tus conocimientos con un examen controlado y sumá una certificación real a tu perfil.
       </p>
 
+      {/* Filtros por resultado */}
+      <div className="ccx-filters" role="tablist" aria-label="Filtrar certificaciones">
+        {FILTERS.map(f => (
+          <button
+            key={f.id}
+            role="tab"
+            aria-selected={filter === f.id}
+            className={`ccx-filter${filter === f.id ? " active" : ""} ccx-filter--${f.id}`}
+            onClick={() => setFilter(f.id)}
+          >
+            {f.label}
+            <span className="ccx-filter-count">{counts[f.id]}</span>
+          </button>
+        ))}
+      </div>
+
+      {visible.length === 0 && (
+        <div className="ccx-empty">
+          <span className="ccx-eyebrow">// SIN_RESULTADOS</span>
+          <p>
+            {filter === "passed" ? "Todavía no aprobaste ninguna certificación."
+              : filter === "failed" ? "No tenés certificaciones pendientes de aprobar."
+              : "Todavía no rendiste ninguna certificación."}
+          </p>
+        </div>
+      )}
+
       <div className="ccx-grid">
-        {CATALOG.map((cert) => {
+        {visible.map((cert) => {
           const isSoon     = cert.status === "soon";
           const levelColor = LEVEL_COLORS[cert.level] ?? "#ccff00";
+          const summary    = summaries[cert.id];
+          const taken      = !!summary && summary.attempts > 0;
 
           return (
             <div
@@ -223,6 +301,10 @@ export default function CertificationCatalog() {
                   <span className="ccx-badge ccx-badge--soon">
                     PRÓXIMAMENTE {cert.comingSoon}
                   </span>
+                ) : taken ? (
+                  <span className={`ccx-badge ccx-badge--${summary!.passed ? "passed" : "failed"}`}>
+                    {summary!.passed ? "✓ APROBADA" : "✕ NO APROBADA"}
+                  </span>
                 ) : (
                   <span className="ccx-badge ccx-badge--available">
                     DISPONIBLE
@@ -239,6 +321,23 @@ export default function CertificationCatalog() {
               {/* Descripción */}
               <p className="ccx-card-description">{cert.description}</p>
 
+              {/* Resultado obtenido (mejor intento) */}
+              {taken && (
+                <div className={`ccx-result ccx-result--${summary!.passed ? "passed" : "failed"}`}>
+                  <div className="ccx-result-head">
+                    <span className="ccx-result-label">// {summary!.passed ? "TU RESULTADO" : "MEJOR INTENTO"}</span>
+                    <span className="ccx-result-pct">{pct(summary!.bestScore)}</span>
+                  </div>
+                  <div className="ccx-result-bar">
+                    <i style={{ width: pct(summary!.bestScore) }} />
+                    <b style={{ left: pct(summary!.passingScore) }} />
+                  </div>
+                  <span className="ccx-result-meta">
+                    {summary!.attempts} intento{summary!.attempts > 1 ? "s" : ""} · mínimo {pct(summary!.passingScore)}
+                  </span>
+                </div>
+              )}
+
               {/* Tags */}
               <div className="ccx-card-tags">
                 {cert.tags.map(t => (
@@ -250,7 +349,9 @@ export default function CertificationCatalog() {
               <div className="ccx-card-footer">
                 <span className="ccx-card-meta">{cert.duration}</span>
                 {!isSoon ? (
-                  <span className="ccx-card-cta">VER DETALLES →</span>
+                  <span className="ccx-card-cta">
+                    {!taken ? "VER DETALLES →" : summary!.passed ? "MEJORAR NOTA →" : "REINTENTAR →"}
+                  </span>
                 ) : (
                   <span className="ccx-card-cta ccx-card-cta--soon">EN DESARROLLO</span>
                 )}

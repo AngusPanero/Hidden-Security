@@ -14,7 +14,7 @@ const CompanyInfo: React.FC = () => {
     // Acto 1: Métricas de Enfoque (Valores numéricos para el counter)
     const operationalStats = [
         { id: "LVL", suffix: "IDENTIDAD PROFESIONAL CYBER", label: "Un perfil especializado para centralizar experiencia, skills, herramientas, formación y certificaciones." },
-        { id: "DEC", suffix: "TALENT ↔ COMPANY", label: "Empresas y profesionales dentro de un ecosistema diseñado específicamente para ciberseguridad." },
+        { id: "DEC", suffix: "TALENT - COMPANY", label: "Empresas y profesionales dentro de un ecosistema diseñado específicamente para ciberseguridad." },
         { id: "GAP", suffix: "SKILLS", label: "Formación y validación para desarrollar nuevas capacidades y fortalecer el perfil profesional." }
     ];
 

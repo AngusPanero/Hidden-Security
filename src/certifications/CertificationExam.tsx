@@ -1,51 +1,108 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import type { ReactNode } from "react";
 import axios from "axios";
 import { UseSession } from "../contexts/SessionContext"; // ⚠️ ajustá según dónde quede esta carpeta
 import { UseTheme } from "../contexts/ThemeContext";     // ⚠️ ídem
 import "./certificationExam.css";
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  TIPOS
+//  TIPOS — todo lo que llega acá ya viene sanitizado por el backend: no hay
+//  respuestas correctas, pesos ni preguntas futuras. El front solo muestra.
 // ══════════════════════════════════════════════════════════════════════════════
-interface CertQuestion { id: number; moduleId: number; question: string; options: string[]; }
-interface CertModule   { id: number; title: string; }
 interface ConfettiColors { dark: string[]; light: string[]; }
+
+interface CaseTransition { beforePosition: number; html: string; isNew: boolean; }
+interface CaseInfo {
+  id: string; kind: "sjt" | "exp"; name: string;
+  position: number; size: number;
+  contextHtml: string;
+  transitions: CaseTransition[];
+}
+interface ExamQuestion {
+  id: string;
+  number: number;
+  kind: "sjt" | "exp" | "ind";
+  module: string | null;
+  responseType: "single" | "multi" | "truefalse";
+  difficulty: string | null;
+  text: string;
+  options: string[];
+  selected: number[];
+  flagged: boolean;
+  case: CaseInfo | null;
+}
+interface MapItem { number: number; state: "done" | "current" | "locked"; answered: boolean; flagged: boolean; inCase: boolean; }
+interface ReviewItem { questionId: string; number: number; answered: boolean; flagged: boolean; }
+interface ExamView {
+  phase: "exam" | "review";
+  total: number;
+  currentIndex: number;
+  isLast: boolean;
+  question: ExamQuestion | null;
+  review: { queue: ReviewItem[]; index: number } | null;
+  map: MapItem[];
+  progress: { answered: number; flagged: number; unanswered: number };
+}
 
 interface AttemptPayload {
   attemptId: string;
-  questions: CertQuestion[];
-  modules:   CertModule[];
   expiresAt: string;
-  answers:   Record<string, number>;
-  flagged:   number[];
+  serverNow: string;
   passingScore:               number;
+  totalQuestions:             number;
   timeWarningEnabled:         boolean;
   timeWarningPercent:         number;
   timeWarningDurationSeconds: number;
   timeLimitMinutes:           number;
   showConfetti:               boolean;
   confettiColors:             ConfettiColors;
+  view: ExamView;
 }
 
 interface SubmitResult {
-  passed: boolean; score: number; correct: number; total: number;
-  passingScore: number; expired: boolean;
+  passed: boolean; expired: boolean;
+  score: number; correct: number; total: number; passingScore: number;
+  byModule: { module: string; correct: number; total: number; score: number }[];
+  certifiedSkill: string | null;
   showConfetti: boolean; confettiColors: ConfettiColors;
+  // Contexto de reintentos (lo calcula el servidor)
+  previousBest: number | null;  // mejor % antes de este intento
+  bestScore:    number;         // mejor % vigente después de este intento
+  isNewBest:    boolean;        // este intento superó al mejor anterior
+  wasCertified: boolean;        // ya estaba aprobado antes de este intento
+  certified:    boolean;        // certificación vigente después del intento
+  attempts:     number;
+}
+
+// Resultado vigente del usuario en esta certificación (intentos anteriores)
+interface PreviousSummary {
+  attempts:      number;
+  passed:        boolean;
+  passedAt:      string | null;
+  bestScore:     number;
+  bestAt:        string | null;
+  lastScore:     number;
+  lastResult:    "passed" | "failed" | "expired" | "violation" | null;
+  lastAttemptAt: string | null;
+  passingScore:  number;
 }
 
 const EXAM_RULES: string[] = [
   "¿Estás seguro/a que deseás canjear tu voucher para rendir esta certificación? Esta acción consume un ticket de tu cuenta.",
   "Una vez que ingreses, el examen comenzará: no podrá pausarse ni continuarse en otro momento.",
-  "Vas a disponer de un tiempo límite para completar el examen. Cuando se agote, se enviará automáticamente con las respuestas que hayas cargado hasta ese momento.",
-  "Antes de enviar el examen a validación vas a poder revisar las preguntas que hayas marcado con dudas.",
+  "Vas a disponer de 2 horas para completar el examen. Cuando se agote el tiempo, se enviará automáticamente con las respuestas que hayas cargado hasta ese momento.",
+  "El examen tiene 80 preguntas, entre casos prácticos y preguntas individuales. Las preguntas se responden en orden y no se puede volver atrás.",
+  "Si tenés dudas con una pregunta, marcala para revisar: al llegar al final vas a poder volver únicamente a las preguntas marcadas antes de enviar el examen.",
+  "Para aprobar necesitás obtener al menos el 80% del puntaje.",
   "Se verificará de forma continua que no estés usando un segundo monitor ni tengas otras pestañas de este examen abiertas — la verificación no se hace una sola vez, sino durante todo el examen.",
   "El examen debe rendirse en una computadora de escritorio o notebook (Windows, Linux o macOS) — no está disponible en celulares ni tablets.",
   "Si tu dispositivo cuenta con cámara y/o micrófono, se solicitará permiso para usarlos durante el examen, con el fin de validar que lo estés rindiendo vos y sin ayuda de terceros.",
 ];
 
 const VIOLATION_GRACE_SECONDS = 30;
+const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
-type Phase = "loading" | "mobile_blocked" | "rules" | "device_check" | "permissions" | "ready" | "exam" | "review" | "result";
+type Phase = "loading" | "mobile_blocked" | "previous" | "rules" | "device_check" | "permissions" | "ready" | "exam" | "review" | "result";
 type CheckStatus = "pending" | "ok" | "fail" | "unknown";
 
 function isMobileDevice(): boolean {
@@ -109,11 +166,48 @@ function violationReasonLabel(reason: string): string {
   }
 }
 
+// `código` → <code>. Sin dangerouslySetInnerHTML: el texto se escapa por React.
+function renderInline(text: string): ReactNode[] {
+  return text.split("`").map((chunk, i) =>
+    i % 2 === 1 ? <code key={i} className="cex-inline-code">{chunk}</code> : <Fragment key={i}>{chunk}</Fragment>
+  );
+}
+
+// Los enunciados del banco usan doble espacio como salto y " - " como viñetas.
+function QuestionText({ text }: { text: string }) {
+  const blocks = text.split(/\s{2,}/).map(b => b.trim()).filter(Boolean);
+  return (
+    <div className="cex-question-text">
+      {blocks.map((b, i) =>
+        b.startsWith("- ") ? (
+          <ul key={i} className="cex-question-list">
+            {b.slice(2).split(/\s-\s/).map((li, j) => <li key={j}>{renderInline(li)}</li>)}
+          </ul>
+        ) : (
+          <p key={i}>{renderInline(b)}</p>
+        )
+      )}
+    </div>
+  );
+}
+
+const pct = (n: number | null | undefined) => `${Math.round((n ?? 0) * 100)}%`;
+const fmtDate = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+const lastResultLabel = (r: PreviousSummary["lastResult"]) =>
+  r === "passed" ? "Aprobado" : r === "expired" ? "Tiempo agotado" : r === "violation" ? "Suspendido" : "No aprobado";
+
+const responseTypeLabel = (t: ExamQuestion["responseType"]) =>
+  t === "multi" ? "Selección múltiple" : t === "truefalse" ? "Verdadero / Falso" : "Opción única";
+
 // ══════════════════════════════════════════════════════════════════════════════
-//  Sub-componente: espectro de audio
+//  Sub-componente: medidor de micrófono
+//  Barras simétricas desde el centro, con el color de acento del tema actual
+//  (lee --cex-accent del CSS) y nítido en pantallas retina.
 // ══════════════════════════════════════════════════════════════════════════════
 function AudioSpectrum({ stream }: { stream: MediaStream }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -121,27 +215,53 @@ function AudioSpectrum({ stream }: { stream: MediaStream }) {
     const ctx2d = canvas.getContext("2d");
     if (!ctx2d) return;
 
-    const audioCtx  = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const source    = audioCtx.createMediaStreamSource(stream);
-    const analyser  = audioCtx.createAnalyser();
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+    ctx2d.scale(dpr, dpr);
+
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const source   = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 64;
+    analyser.smoothingTimeConstant = 0.75;
     source.connect(analyser);
 
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray     = new Uint8Array(bufferLength);
+    const BARS = 24;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const accent = getComputedStyle(canvas).getPropertyValue("--cex-accent").trim() || "#ccff00";
+    const idle   = getComputedStyle(canvas).getPropertyValue("--cex-border").trim() || "rgba(255,255,255,0.1)";
     let rafId: number;
+    let lastActive = false;
 
     const draw = () => {
       rafId = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
-      const w = canvas.width, h = canvas.height;
-      ctx2d.clearRect(0, 0, w, h);
-      const barWidth = w / bufferLength;
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255) * h;
-        ctx2d.fillStyle = "#ccff00";
-        ctx2d.fillRect(i * barWidth, h - barHeight, barWidth - 1, barHeight);
+      analyser.getByteFrequencyData(data);
+      ctx2d.clearRect(0, 0, cssW, cssH);
+
+      const gap = 3;
+      const barW = (cssW - gap * (BARS - 1)) / BARS;
+      const mid = cssH / 2;
+      let sum = 0;
+
+      for (let i = 0; i < BARS; i++) {
+        // Bins de voz (graves/medios) repartidos en espejo desde el centro
+        const bin = Math.abs(i - (BARS - 1) / 2) | 0;
+        const v = data[bin] / 255;
+        sum += v;
+        const h = Math.max(2, v * (cssH - 4));
+        ctx2d.fillStyle = v > 0.04 ? accent : idle;
+        ctx2d.globalAlpha = v > 0.04 ? 0.35 + v * 0.65 : 1;
+        const x = i * (barW + gap);
+        ctx2d.beginPath();
+        if (ctx2d.roundRect) ctx2d.roundRect(x, mid - h / 2, barW, h, Math.min(barW / 2, 2));
+        else ctx2d.rect(x, mid - h / 2, barW, h);
+        ctx2d.fill();
       }
+      ctx2d.globalAlpha = 1;
+
+      const isActive = sum / BARS > 0.06;
+      if (isActive !== lastActive) { lastActive = isActive; setActive(isActive); }
     };
     draw();
 
@@ -153,8 +273,36 @@ function AudioSpectrum({ stream }: { stream: MediaStream }) {
   }, [stream]);
 
   return (
-    <div className="cex-audio-box">
-      <canvas ref={canvasRef} width={160} height={48} />
+    <div className={`cex-mic${active ? " is-active" : ""}`}>
+      <span className="cex-mic-label">MIC</span>
+      <canvas ref={canvasRef} className="cex-mic-canvas" />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Sub-componente: panel de supervisión (cámara + micrófono) — va en la
+//  columna izquierda, así nunca tapa la pregunta ni las opciones.
+// ══════════════════════════════════════════════════════════════════════════════
+function MonitorPanel({ stream, camera, mic }: { stream: MediaStream; camera: boolean; mic: boolean }) {
+  return (
+    <div className="cex-monitor">
+      <div className="cex-monitor-head">
+        <span className="cex-monitor-rec" />
+        <span>SUPERVISIÓN ACTIVA</span>
+      </div>
+      {camera && (
+        <div className="cex-monitor-cam">
+          <video
+            autoPlay muted playsInline
+            ref={(el) => { if (el && el.srcObject !== stream) el.srcObject = stream; }}
+          />
+          <i className="cex-cam-corner tl" /><i className="cex-cam-corner tr" />
+          <i className="cex-cam-corner bl" /><i className="cex-cam-corner br" />
+          <span className="cex-monitor-live">● LIVE</span>
+        </div>
+      )}
+      {mic && <AudioSpectrum stream={stream} />}
     </div>
   );
 }
@@ -217,18 +365,44 @@ function ConfettiBurst({ colors }: { colors: string[] }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Sub-componente: panel de contexto del caso (SJT / Exploratorio)
+//  El HTML viene del banco del servidor (contenido propio, no de usuarios).
+// ══════════════════════════════════════════════════════════════════════════════
+function CaseContextPanel({ info, defaultOpen }: { info: CaseInfo; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => setOpen(defaultOpen), [info.id, defaultOpen]);
+
+  return (
+    <div className={`cex-context cex-context--${info.kind}`}>
+      <button type="button" className="cex-context-header" onClick={() => setOpen(o => !o)}>
+        <span className={`cex-badge cex-badge--${info.kind}`}>
+          {info.kind === "sjt" ? "Escenario SJT" : "Caso exploratorio"}
+        </span>
+        <span className="cex-context-title">{info.name}</span>
+        <span className="cex-context-pos">PREG. {info.position}/{info.size}</span>
+        <span className="cex-context-toggle">{open ? "▲ OCULTAR" : "▼ VER CONTEXTO"}</span>
+      </button>
+      {open && <div className="cex-context-body" dangerouslySetInnerHTML={{ __html: info.contextHtml }} />}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  COMPONENTE PRINCIPAL
 // ══════════════════════════════════════════════════════════════════════════════
 export default function CertificationExam({ certId, title }: { certId: string; title: string }) {
   const { user }  = UseSession();
   const { theme } = UseTheme();
   const isLight   = theme === "light";
+  const API = `${import.meta.env.VITE_API_URL}/api/certification/${certId}`;
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [attempt,  setAttempt]  = useState<AttemptPayload | null>(null);
+  const [view,     setView]     = useState<ExamView | null>(null);
   const [resuming, setResuming] = useState(false);
+  const clockOffsetRef = useRef(0); // serverNow − Date.now(), para que el timer no dependa del reloj local
 
   const [tabCheck,     setTabCheck]     = useState<CheckStatus>("pending");
   const [monitorCheck, setMonitorCheck] = useState<CheckStatus>("pending");
@@ -240,14 +414,18 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const [micGranted,  setMicGranted]  = useState<CheckStatus>("pending");
   const streamRef = useRef<MediaStream | null>(null);
 
-  const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [flagged, setFlagged] = useState<number[]>([]);
   const [remainingMs, setRemainingMs] = useState(0);
   const [timeWarningShown, setTimeWarningShown] = useState(false);
   const [showTimeToast, setShowTimeToast] = useState(false);
   const [fullscreenLost, setFullscreenLost] = useState(false);
+  const [navBusy, setNavBusy] = useState(false);
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
   const submittingRef = useRef(false);
+
+  // Guardados en vuelo: se encadenan para que /next nunca corra antes de que
+  // el servidor tenga la última selección, y solo se aplica la respuesta más nueva.
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const saveSeqRef   = useRef(0);
 
   // ── Violación de integridad (segundo monitor detectado durante el examen) ─
   const [violationCountdown, setViolationCountdown] = useState<number | null>(null);
@@ -255,6 +433,19 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const [suspendedReason, setSuspendedReason] = useState<string | null>(null);
 
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const [previous, setPrevious] = useState<PreviousSummary | null>(null);
+
+  const applyAttempt = (data: AttemptPayload) => {
+    clockOffsetRef.current = new Date(data.serverNow).getTime() - Date.now();
+    setAttempt(data);
+    setView(data.view);
+  };
+
+  // La fase de pantalla sigue a la fase del servidor una vez arrancado el examen.
+  useEffect(() => {
+    if (!view) return;
+    setPhase(p => (p === "exam" || p === "review") ? view.phase : p);
+  }, [view]);
 
   // ═══════════════════════════════════════════════════════════════════════
   //  Carga inicial
@@ -267,23 +458,29 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       return;
     }
 
-    axios.get(`${import.meta.env.VITE_API_URL}/api/certification/${certId}/status`, { withCredentials: true })
+    axios.get(`${API}/status`, { withCredentials: true })
       .then(({ data }) => {
         if (data.inProgress) {
-          setAttempt(data);
-          setAnswers(data.answers ?? {});
-          setFlagged(data.flagged ?? []);
+          applyAttempt(data);
           setResuming(true);
           // Reanudando: se saltea la pantalla de reglas/canje (ya se pagó el
           // voucher), pero SÍ se revalida device_check y permissions — la
           // cámara/micrófono no persisten entre refrescos de página.
           setPhase("device_check");
+        } else if (data.expired && data.result) {
+          // El tiempo se agotó con la pestaña cerrada: el servidor ya lo corrigió.
+          setResult(data.result);
+          setPhase("result");
+        } else if (data.previous?.attempts > 0) {
+          // Ya rindió antes: mostramos su resultado ANTES de que pueda gastar otro voucher.
+          setPrevious(data.previous);
+          setPhase("previous");
         } else {
           setPhase("rules");
         }
       })
       .catch(() => setPhase("rules"));
-  }, [user, certId]);
+  }, [user, certId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ═══════════════════════════════════════════════════════════════════════
   //  Device check inicial (pestaña duplicada + monitor) — corre una vez al
@@ -386,6 +583,18 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     };
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pestaña duplicada DURANTE el examen: si otra pestaña abre el examen y
+  // hace ping, esta responde pong (la otra queda bloqueada en device_check)
+  // y además se registra el intento en la auditoría.
+  useEffect(() => {
+    if (phase !== "exam" && phase !== "review") return;
+    const ch = broadcastRef.current;
+    if (!ch) return;
+    const onMsg = (ev: MessageEvent) => { if (ev.data === "ping") logEvent("duplicate_tab_ping_received"); };
+    ch.addEventListener("message", onMsg);
+    return () => ch.removeEventListener("message", onMsg);
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cuenta regresiva de gracia — si llega a 0, se cancela la certificación
   useEffect(() => {
     if (violationCountdown === null) return;
@@ -441,18 +650,12 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const startExam = async () => {
     setErrorMsg(null);
     try {
-      const { data } = await axios.post<AttemptPayload>(
-        `${import.meta.env.VITE_API_URL}/api/certification/${certId}/start`,
-        {}, { withCredentials: true }
-      );
-      setAttempt(data);
-      setAnswers(data.answers ?? {});
-      setFlagged(data.flagged ?? []);
-      setCurrentQuestionId(data.questions[0]?.id ?? null);
+      const { data } = await axios.post<AttemptPayload>(`${API}/start`, {}, { withCredentials: true });
+      applyAttempt(data);
 
       try { await document.documentElement.requestFullscreen(); } catch { /* no bloqueamos */ }
 
-      setPhase("exam");
+      setPhase(data.view.phase);
     } catch (err: any) {
       const code = err.response?.data?.code;
       if (code === "NO_VOUCHER") {
@@ -464,7 +667,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   };
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Timer principal
+  //  Timer principal (fuente de verdad: expiresAt del servidor)
   // ═══════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!attempt || (phase !== "exam" && phase !== "review")) return;
@@ -474,7 +677,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     const warningAtMs  = totalMs * (attempt.timeWarningPercent / 100);
 
     const tick = () => {
-      const remaining = expiresAtMs - Date.now();
+      const remaining = expiresAtMs - (Date.now() + clockOffsetRef.current);
       setRemainingMs(Math.max(0, remaining));
 
       if (
@@ -490,7 +693,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       }
 
       if (remaining <= 0 && !submittingRef.current) {
-        submittingRef.current = true;
         submitExam();
       }
     };
@@ -513,7 +715,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [phase]);
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reenterFullscreen = async () => {
     try {
@@ -536,41 +738,90 @@ export default function CertificationExam({ certId, title }: { certId: string; t
 
   // ── Helpers de API ──────────────────────────────────────────────────────
   const logEvent = (type: string, meta: Record<string, unknown> = {}) => {
-    axios.post(
-      `${import.meta.env.VITE_API_URL}/api/certification/${certId}/event`,
-      { type, meta }, { withCredentials: true }
-    ).catch(() => {});
+    axios.post(`${API}/event`, { type, meta }, { withCredentials: true }).catch(() => {});
   };
 
-  const saveAnswer = (questionId: number, selected: number) => {
-    setAnswers(prev => ({ ...prev, [String(questionId)]: selected }));
-    axios.patch(
-      `${import.meta.env.VITE_API_URL}/api/certification/${certId}/answer`,
-      { questionId, selected }, { withCredentials: true }
-    ).catch(() => {});
+  // Maneja errores comunes de las rutas de navegación/respuesta.
+  const handleExamError = (err: any) => {
+    const status = err?.response?.status;
+    if (status === 410) { submitExam(); return; }               // se agotó el tiempo
+    if (err?.response?.data?.view) setView(err.response.data.view); // 409: el servidor manda el estado real
   };
 
-  const toggleFlag = (questionId: number) => {
-    const isFlagged = flagged.includes(questionId);
-    const updated = isFlagged ? flagged.filter(id => id !== questionId) : [...flagged, questionId];
-    setFlagged(updated);
-    axios.patch(
-      `${import.meta.env.VITE_API_URL}/api/certification/${certId}/answer`,
-      { questionId, flagged: !isFlagged }, { withCredentials: true }
-    ).catch(() => {});
+  // Envía al servidor la pregunta (actual o marcada en revisión). Optimista en
+  // pantalla; el servidor valida si se puede tocar y devuelve el estado real.
+  const patchQuestion = (questionId: string, body: { selected?: number[]; flagged?: boolean }) => {
+    setView(v => (v && v.question && v.question.id === questionId)
+      ? { ...v, question: { ...v.question, ...(body.selected ? { selected: body.selected } : {}), ...(typeof body.flagged === "boolean" ? { flagged: body.flagged } : {}) } }
+      : v);
+
+    const seq = ++saveSeqRef.current;
+    const p = saveChainRef.current.then(() =>
+      axios.patch<{ view: ExamView }>(`${API}/answer`, { questionId, ...body }, { withCredentials: true })
+        .then(({ data }) => { if (seq === saveSeqRef.current) setView(data.view); })
+        .catch(handleExamError)
+    );
+    saveChainRef.current = p;
+    return p;
+  };
+
+  const selectOption = (q: ExamQuestion, displayIdx: number) => {
+    let next: number[];
+    if (q.responseType === "multi") {
+      next = q.selected.includes(displayIdx)
+        ? q.selected.filter(i => i !== displayIdx)
+        : [...q.selected, displayIdx].sort((a, b) => a - b);
+    } else {
+      next = q.selected[0] === displayIdx ? [] : [displayIdx];
+    }
+    patchQuestion(q.id, { selected: next });
+  };
+
+  const toggleFlag = (q: ExamQuestion) => patchQuestion(q.id, { flagged: !q.flagged });
+
+  const goNext = async () => {
+    if (!view?.question || navBusy) return;
+    setNavBusy(true);
+    try {
+      await saveChainRef.current; // primero que lleguen las respuestas pendientes
+      const { data } = await axios.post<{ view: ExamView }>(`${API}/next`, { questionId: view.question.id }, { withCredentials: true });
+      setView(data.view);
+      window.scrollTo({ top: 0 });
+    } catch (err) {
+      handleExamError(err);
+    } finally {
+      setNavBusy(false);
+    }
+  };
+
+  const goReview = async (index: number) => {
+    if (navBusy) return;
+    setNavBusy(true);
+    try {
+      await saveChainRef.current;
+      const { data } = await axios.post<{ view: ExamView }>(`${API}/review/goto`, { index }, { withCredentials: true });
+      setView(data.view);
+      window.scrollTo({ top: 0 });
+    } catch (err) {
+      handleExamError(err);
+    } finally {
+      setNavBusy(false);
+    }
   };
 
   const submitExam = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setConfirmSubmit(false);
     try {
-      const { data } = await axios.post<SubmitResult>(
-        `${import.meta.env.VITE_API_URL}/api/certification/${certId}/submit`,
-        {}, { withCredentials: true }
-      );
+      await saveChainRef.current.catch(() => {});
+      const { data } = await axios.post<SubmitResult>(`${API}/submit`, {}, { withCredentials: true });
       setResult(data);
       cleanupMedia();
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       setPhase("result");
     } catch {
+      submittingRef.current = false;
       setErrorMsg("Hubo un problema al enviar el examen. Contactá a soporte.");
     }
   };
@@ -581,11 +832,9 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const reportViolationAndFail = async (reason: string) => {
     setViolationCountdown(null);
     violationActiveRef.current = false;
+    submittingRef.current = true;
     try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/certification/${certId}/violation`,
-        { reason }, { withCredentials: true }
-      );
+      await axios.post(`${API}/violation`, { reason }, { withCredentials: true });
     } catch { /* igual mostramos la pantalla de suspendido del lado del cliente */ }
     cleanupMedia();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -625,6 +874,72 @@ export default function CertificationExam({ certId, title }: { certId: string; t
               Este examen no puede rendirse desde un celular ni una tablet. Ingresá desde una
               computadora de escritorio o notebook (Windows, Linux o macOS) para continuar.
             </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Ya rindió esta certificación: resultado vigente + opción de reintentar ──
+  if (phase === "previous" && previous) {
+    const passedBefore = previous.passed;
+    const passing = previous.passingScore;
+    return (
+      <div className={`cex-wrap ${isLight ? "light" : ""}`}>
+        <span className="cex-eyebrow">// CERTIFICACIÓN</span>
+        <h2 className="cex-title">{title}</h2>
+        <div className="cex-card">
+          <h3 className="cex-card-title">Ya rendiste esta certificación</h3>
+          <p style={{ fontSize: "0.82rem", opacity: 0.7, lineHeight: 1.6, margin: "0 0 20px" }}>
+            Tenés {previous.attempts} intento{previous.attempts > 1 ? "s" : ""} registrado{previous.attempts > 1 ? "s" : ""}.
+            {" "}Este es tu resultado vigente:
+          </p>
+
+          <div className={`cex-prev-score cex-prev-score--${passedBefore ? "passed" : "failed"}`}>
+            <div>
+              <span className="cex-prev-label">{passedBefore ? "// MEJOR RESULTADO" : "// MEJOR INTENTO"}</span>
+              <span className="cex-prev-pct">{pct(previous.bestScore)}</span>
+            </div>
+            <span className={`cex-prev-badge cex-prev-badge--${passedBefore ? "passed" : "failed"}`}>
+              {passedBefore ? "✓ APROBADA" : "✕ NO APROBADA"}
+            </span>
+          </div>
+          <div className="cex-prev-bar">
+            <i style={{ width: pct(previous.bestScore) }} />
+            <b style={{ left: pct(passing) }} title={`Mínimo ${pct(passing)}`} />
+          </div>
+
+          <div className="cex-prev-stats">
+            <div><span>// INTENTOS</span><strong>{previous.attempts}</strong></div>
+            <div><span>// ÚLTIMO INTENTO</span><strong>{pct(previous.lastScore)}</strong><em>{lastResultLabel(previous.lastResult)} · {fmtDate(previous.lastAttemptAt)}</em></div>
+            <div><span>// MÍNIMO PARA APROBAR</span><strong>{pct(passing)}</strong></div>
+          </div>
+
+          {passedBefore ? (
+            <div className="cex-alert cex-alert--ok">
+              <span className="cex-alert-icon">★</span>
+              <span className="cex-alert-text">
+                Ya estás certificado/a con un {pct(previous.bestScore)}. Podés volver a rendir para mejorar
+                tu nota: si sacás una calificación inferior <strong>no vas a perder tu certificación ni tu
+                progreso</strong>, y si superás el {pct(previous.bestScore)}, ese nuevo porcentaje pasa a ser tu
+                resultado oficial.
+              </span>
+            </div>
+          ) : (
+            <div className="cex-alert cex-alert--warning">
+              <span className="cex-alert-icon">↻</span>
+              <span className="cex-alert-text">
+                Todavía no alcanzaste el {pct(passing)} necesario. Podés volver a rendir ahora — cada intento
+                consume un voucher y se guarda siempre tu mejor resultado.
+              </span>
+            </div>
+          )}
+
+          <div className="cex-btn-row">
+            <a href="/dashboard?tab=cursos" className="cex-btn">VOLVER</a>
+            <button className="cex-btn cex-btn--accent" onClick={() => setPhase("rules")}>
+              {passedBefore ? "REINTENTAR PARA MEJORAR MI NOTA →" : "REINTENTAR →"}
+            </button>
           </div>
         </div>
       </div>
@@ -821,10 +1136,11 @@ export default function CertificationExam({ certId, title }: { certId: string; t
         <span className="cex-eyebrow">// CERTIFICACIÓN</span>
         <h2 className="cex-title">{title}</h2>
         <div className="cex-card">
-          <h3 className="cex-card-title">Todo listo</h3>
+          <h3 className="cex-card-title">{resuming ? "Retomar examen" : "Todo listo"}</h3>
           <p style={{ fontSize: "0.85rem", opacity: 0.75, lineHeight: 1.6, marginBottom: 24 }}>
-            Al tocar "Empezar examen" se va a consumir tu voucher, la pantalla pasará a modo
-            completo y el temporizador comenzará a correr. No vas a poder pausarlo.
+            {resuming
+              ? "Vas a volver a la pregunta donde te quedaste. La pantalla pasará a modo completo y el temporizador sigue corriendo."
+              : "Al tocar \"Empezar examen\" se va a consumir tu voucher, la pantalla pasará a modo completo y el temporizador de 2 horas comenzará a correr. No vas a poder pausarlo."}
           </p>
           {errorMsg && (
             <div className="cex-alert">
@@ -834,7 +1150,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
           )}
           <div className="cex-btn-row">
             <button className="cex-btn cex-btn--accent" onClick={startExam}>
-              EMPEZAR EXAMEN →
+              {resuming ? "RETOMAR EXAMEN →" : "EMPEZAR EXAMEN →"}
             </button>
           </div>
         </div>
@@ -842,20 +1158,20 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  if ((phase === "exam" || phase === "review") && attempt) {
-    const currentQuestion = attempt.questions.find(q => q.id === currentQuestionId) ?? attempt.questions[0];
+  if ((phase === "exam" || phase === "review") && attempt && view) {
+    const q = view.question;
     const totalMs   = attempt.timeLimitMinutes * 60 * 1000;
     const pctLeft   = totalMs > 0 ? remainingMs / totalMs : 0;
-    const timerClass = pctLeft <= 0.1 ? "cex-timer--danger" : pctLeft <= attempt.timeWarningPercent / 100 ? "cex-timer--warning" : "";
-
-    const answeredCount = Object.keys(answers).length;
-    const letters = ["A", "B", "C", "D", "E"];
+    const timerClass = pctLeft <= 0.05 ? "cex-timer--danger" : pctLeft <= attempt.timeWarningPercent / 100 ? "cex-timer--warning" : "";
+    const inReview = view.phase === "review";
+    const canAdvance = !!q && (q.selected.length > 0 || q.flagged);
+    const reviewIdx = view.review?.index ?? 0;
+    const reviewLen = view.review?.queue.length ?? 0;
 
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
         {violationCountdown !== null && (
           <div className="cex-violation-overlay">
-            {/* <span className="cex-violation-icon">🚫</span> */}
             <p className="cex-violation-text">
               Detectamos un segundo monitor conectado. Desconectalo ahora — si no lo hacés a
               tiempo, la certificación se va a suspender automáticamente.
@@ -878,6 +1194,24 @@ export default function CertificationExam({ certId, title }: { certId: string; t
           </div>
         )}
 
+        {confirmSubmit && (
+          <div className="cex-modal-backdrop">
+            <div className="cex-modal">
+              <h3 className="cex-card-title">Enviar examen</h3>
+              <p className="cex-modal-text">
+                {view.progress.unanswered > 0
+                  ? `Tenés ${view.progress.unanswered} pregunta${view.progress.unanswered > 1 ? "s" : ""} sin responder. `
+                  : ""}
+                Una vez enviado no vas a poder modificar tus respuestas. ¿Confirmás la entrega?
+              </p>
+              <div className="cex-btn-row">
+                <button className="cex-btn" onClick={() => setConfirmSubmit(false)}>CANCELAR</button>
+                <button className="cex-btn cex-btn--accent" onClick={submitExam}>SÍ, ENVIAR EXAMEN</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showTimeToast && (
           <div className="cex-time-toast">
             ⏱ Queda poco tiempo — {formatDuration(remainingMs)} restantes
@@ -886,140 +1220,197 @@ export default function CertificationExam({ certId, title }: { certId: string; t
 
         <div className="cex-exam-header">
           <span className="cex-progress-label">
-            {answeredCount} / {attempt.questions.length} respondidas
+            {inReview
+              ? `Revisión final · ${view.progress.answered} / ${view.total} respondidas`
+              : `Pregunta ${view.currentIndex + 1} de ${view.total} · ${view.progress.answered} respondidas`}
+          </span>
+          <span className={`cex-phase-pill cex-phase-pill--${inReview ? "review" : q?.kind ?? "ind"}`}>
+            {inReview ? "Revisión" : q?.kind === "sjt" ? "Caso SJT" : q?.kind === "exp" ? "Caso exploratorio" : "Individual"}
           </span>
           <span className={`cex-timer ${timerClass}`}>{formatDuration(remainingMs)}</span>
         </div>
 
-        {phase === "exam" && (
-          <div className="cex-exam-layout">
-            <aside className="cex-sidebar">
-              <p className="cex-sidebar-title">// MÓDULOS</p>
-              {attempt.questions.map((q, i) => {
-                const isAnswered = answers[String(q.id)] !== undefined;
-                const isFlagged  = flagged.includes(q.id);
-                const mod = attempt.modules.find(m => m.id === q.moduleId);
+        <div className="cex-exam-layout">
+          {/* Mapa de progreso: solo estado, sin contenido; no permite saltar
+              hacia atrás. En revisión, solo las marcadas son clickeables. */}
+          <aside className="cex-sidebar">
+            {streamRef.current && (needsCamera || needsMic) && (
+              <MonitorPanel stream={streamRef.current} camera={needsCamera} mic={needsMic} />
+            )}
+            <p className="cex-sidebar-title">// PROGRESO</p>
+            <div className="cex-qmap">
+              {view.map.map(m => {
+                const reviewPos = inReview ? (view.review?.queue.findIndex(r => r.number === m.number) ?? -1) : -1;
+                const isActive = inReview ? q?.number === m.number : m.state === "current";
+                const clickable = reviewPos >= 0;
                 return (
-                  <div
-                    key={q.id}
-                    className={`cex-sidebar-item${q.id === currentQuestionId ? " active" : ""}${isAnswered ? " answered" : ""}${isFlagged ? " flagged" : ""}`}
-                    onClick={() => setCurrentQuestionId(q.id)}
+                  <button
+                    key={m.number}
+                    type="button"
+                    disabled={!clickable}
+                    onClick={() => clickable && goReview(reviewPos)}
+                    className={[
+                      "cex-qmap-cell",
+                      `cex-qmap-cell--${m.state}`,
+                      m.answered ? "answered" : "",
+                      m.flagged ? "flagged" : "",
+                      isActive ? "active" : "",
+                      clickable ? "clickable" : "",
+                    ].join(" ")}
+                    title={m.state === "locked" ? "Pregunta todavía no alcanzada" : `Pregunta ${m.number}`}
                   >
-                    <span className="cex-sidebar-dot" />
-                    <span>{mod?.title ?? `Módulo ${i + 1}`}</span>
-                  </div>
+                    {m.number}
+                  </button>
                 );
               })}
-            </aside>
-
-            <div>
-              {currentQuestion && (
-                <div className="cex-question-card">
-                  <span className="cex-question-module">
-                    {attempt.modules.find(m => m.id === currentQuestion.moduleId)?.title}
-                  </span>
-                  <h3 className="cex-question-text">{currentQuestion.question}</h3>
-
-                  <div className="cex-options">
-                    {currentQuestion.options.map((opt, i) => (
-                      <button
-                        key={i}
-                        className={`cex-option${answers[String(currentQuestion.id)] === i ? " selected" : ""}`}
-                        onClick={() => saveAnswer(currentQuestion.id, i)}
-                      >
-                        <span className="cex-option-letter">{letters[i]}</span>
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="cex-question-footer">
-                    <button
-                      className={`cex-flag-btn${flagged.includes(currentQuestion.id) ? " active" : ""}`}
-                      onClick={() => toggleFlag(currentQuestion.id)}
-                    >
-                      {flagged.includes(currentQuestion.id) ? "★ MARCADA PARA REVISAR" : "☆ MARCAR PARA REVISAR"}
-                    </button>
-
-                    <div className="cex-btn-row" style={{ marginTop: 0 }}>
-                      {(() => {
-                        const idx = attempt.questions.findIndex(q => q.id === currentQuestion.id);
-                        const isLast = idx === attempt.questions.length - 1;
-                        return isLast ? (
-                          <button className="cex-btn cex-btn--accent" onClick={() => setPhase("review")}>
-                            IR A REVISIÓN FINAL →
-                          </button>
-                        ) : (
-                          <button
-                            className="cex-btn cex-btn--accent"
-                            onClick={() => setCurrentQuestionId(attempt.questions[idx + 1].id)}
-                          >
-                            SIGUIENTE →
-                          </button>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
-        )}
+            <div className="cex-qmap-legend">
+              <span><i className="cex-legend-dot cex-legend-dot--answered" />Respondida</span>
+              <span><i className="cex-legend-dot cex-legend-dot--flagged" />Marcada</span>
+              <span><i className="cex-legend-dot" />Sin responder</span>
+            </div>
+          </aside>
 
-        {phase === "review" && (
-          <div className="cex-card" style={{ maxWidth: 720 }}>
-            <h3 className="cex-card-title">Revisión final</h3>
-            <p style={{ fontSize: "0.82rem", opacity: 0.7, marginBottom: 20 }}>
-              Revisá las preguntas marcadas o sin responder antes de enviar. Una vez enviado, no
-              vas a poder modificar tus respuestas.
-            </p>
+          <div className="cex-exam-main">
+            {inReview && (
+              <div className="cex-review-banner">
+                {reviewLen > 0
+                  ? <>⚑ REVISIÓN FINAL · {reviewIdx + 1} de {reviewLen} marcadas — podés cambiar tu respuesta antes de enviar</>
+                  : <>✓ LLEGASTE AL FINAL — no marcaste preguntas para revisar</>}
+              </div>
+            )}
 
-            <div className="cex-review-list">
-              {attempt.questions.map((q, i) => {
-                const isAnswered = answers[String(q.id)] !== undefined;
-                const isFlagged  = flagged.includes(q.id);
-                return (
-                  <div key={q.id} className="cex-review-item" onClick={() => { setCurrentQuestionId(q.id); setPhase("exam"); }}>
-                    <span>Pregunta {i + 1} — {attempt.modules.find(m => m.id === q.moduleId)?.title}</span>
+            {inReview && reviewLen > 0 && (
+              <div className="cex-review-list cex-review-list--inline">
+                {view.review!.queue.map((r, i) => (
+                  <div
+                    key={r.questionId}
+                    className={`cex-review-item${i === reviewIdx ? " active" : ""}`}
+                    onClick={() => goReview(i)}
+                  >
+                    <span>Pregunta {r.number}</span>
                     <div className="cex-review-tags">
-                      {isFlagged && <span className="cex-review-tag cex-review-tag--flagged">MARCADA</span>}
-                      {!isAnswered && <span className="cex-review-tag cex-review-tag--unanswered">SIN RESPONDER</span>}
-                      {isAnswered && !isFlagged && <span className="cex-review-tag cex-review-tag--ok">OK</span>}
+                      {r.flagged && <span className="cex-review-tag cex-review-tag--flagged">MARCADA</span>}
+                      {r.answered
+                        ? <span className="cex-review-tag cex-review-tag--ok">RESPONDIDA</span>
+                        : <span className="cex-review-tag cex-review-tag--unanswered">SIN RESPONDER</span>}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {q && q.case && (
+              <>
+                <CaseContextPanel info={q.case} defaultOpen={inReview || q.case.position === 1} />
+                {q.case.transitions.map(t => (
+                  <div
+                    key={t.beforePosition}
+                    className={`cex-transition-wrap${t.isNew && !inReview ? " is-new" : ""}`}
+                    dangerouslySetInnerHTML={{ __html: t.html }}
+                  />
+                ))}
+              </>
+            )}
+
+            {q && (
+              <div className="cex-question-card">
+                <div className="cex-question-head">
+                  <div>
+                    <span className="cex-question-module">
+                      {inReview ? `Revisión · Pregunta ${q.number}` : `Pregunta ${q.number} de ${view.total}`}
+                      {q.module ? ` · ${q.module}` : ""}
+                    </span>
+                    <div className="cex-question-meta">
+                      <span className={`cex-badge cex-badge--${q.kind}`}>
+                        {q.kind === "sjt" ? "SJT" : q.kind === "exp" ? "Exploratorio" : "Individual"}
+                      </span>
+                      {q.difficulty && <span className="cex-badge">{q.difficulty}</span>}
+                      <span className="cex-badge">{responseTypeLabel(q.responseType)}</span>
+                    </div>
+                  </div>
+                  <button
+                    className={`cex-flag-btn${q.flagged ? " active" : ""}`}
+                    onClick={() => toggleFlag(q)}
+                  >
+                    {q.flagged ? "★ MARCADA PARA REVISAR" : "☆ MARCAR PARA REVISAR"}
+                  </button>
+                </div>
+
+                <QuestionText text={q.text} />
+
+                {q.responseType === "multi" && (
+                  <p className="cex-ms-hint">Seleccioná todas las opciones que correspondan</p>
+                )}
+
+                <div className="cex-options">
+                  {q.options.map((opt, i) => (
+                    <button
+                      key={`${q.id}-${i}`}
+                      className={`cex-option${q.responseType === "multi" ? " cex-option--multi" : ""}${q.selected.includes(i) ? " selected" : ""}`}
+                      onClick={() => selectOption(q, i)}
+                    >
+                      <span className="cex-option-letter">
+                        {q.responseType === "multi" ? (q.selected.includes(i) ? "✓" : "") : LETTERS[i]}
+                      </span>
+                      <span className="cex-option-text">{renderInline(opt)}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="cex-question-footer">
+                  <div className="cex-btn-row" style={{ marginTop: 0 }}>
+                    {!inReview && (
+                      <button className="cex-btn cex-btn--accent" disabled={!canAdvance || navBusy} onClick={goNext}>
+                        {view.isLast ? "IR A REVISIÓN FINAL →" : "SIGUIENTE →"}
+                      </button>
+                    )}
+                    {inReview && reviewIdx < reviewLen - 1 && (
+                      <button className="cex-btn" disabled={navBusy} onClick={() => goReview(reviewIdx + 1)}>
+                        SIGUIENTE MARCADA →
+                      </button>
+                    )}
+                    {inReview && (
+                      <button className="cex-btn cex-btn--accent" onClick={() => setConfirmSubmit(true)}>
+                        ENVIAR EXAMEN A VALIDACIÓN
+                      </button>
+                    )}
+                  </div>
+                  <span className="cex-nav-hint">
+                    {inReview
+                      ? "Podés modificar solo las preguntas marcadas."
+                      : canAdvance
+                        ? "No vas a poder volver a esta pregunta salvo que la marques."
+                        : "Respondé o marcá la pregunta para poder avanzar."}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {inReview && !q && (
+              <div className="cex-card" style={{ margin: 0, maxWidth: "none" }}>
+                <h3 className="cex-card-title">Revisión final</h3>
+                <p style={{ fontSize: "0.82rem", opacity: 0.7, marginBottom: 20 }}>
+                  Respondiste {view.progress.answered} de {view.total} preguntas. Una vez enviado, no
+                  vas a poder modificar tus respuestas.
+                </p>
+                <div className="cex-btn-row">
+                  <button className="cex-btn cex-btn--accent" onClick={() => setConfirmSubmit(true)}>
+                    ENVIAR EXAMEN A VALIDACIÓN
+                  </button>
+                </div>
+              </div>
+            )}
 
             {errorMsg && (
-              <div className="cex-alert">
+              <div className="cex-alert" style={{ marginTop: 20 }}>
                 <span className="cex-alert-icon">⚠</span>
                 <span className="cex-alert-text">{errorMsg}</span>
               </div>
             )}
-
-            <div className="cex-btn-row">
-              <button className="cex-btn" onClick={() => setPhase("exam")}>
-                ← VOLVER AL EXAMEN
-              </button>
-              <button className="cex-btn cex-btn--accent" onClick={submitExam}>
-                ENVIAR EXAMEN A VALIDACIÓN
-              </button>
-            </div>
           </div>
-        )}
-
-        <div className="cex-media-dock">
-          {streamRef.current && needsCamera && (
-            <div className="cex-webcam-box">
-              <video
-                autoPlay muted playsInline
-                ref={(el) => { if (el && streamRef.current) el.srcObject = streamRef.current; }}
-              />
-            </div>
-          )}
-          {streamRef.current && needsMic && <AudioSpectrum stream={streamRef.current} />}
         </div>
+
       </div>
     );
   }
@@ -1043,7 +1434,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     );
   }
 
-  // ── Resultado final normal ───────────────────────────────────────────────
+  // ── Resultado final (todo calculado por el servidor) ────────────────────
   if (phase === "result" && result) {
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
@@ -1055,12 +1446,72 @@ export default function CertificationExam({ certId, title }: { certId: string; t
             {result.passed ? "✓" : "✕"}
           </div>
           <h2 className="cex-result-title">
-            {result.expired ? "TIEMPO AGOTADO" : result.passed ? "¡CERTIFICADO!" : "NO APROBADO"}
+            {result.passed
+              ? (result.wasCertified ? (result.isNewBest ? "¡MEJORASTE TU NOTA!" : "APROBADO") : "¡CERTIFICADO!")
+              : result.expired ? "TIEMPO AGOTADO"
+              : result.wasCertified ? "INTENTO REGISTRADO" : "NO APROBADO"}
           </h2>
           <p className="cex-result-score">
-            {result.correct} / {result.total} correctas · {Math.round(result.score * 100)}%
-            {" "}(mínimo {Math.round(result.passingScore * 100)}%)
+            Puntaje {Math.round(result.score * 100)}% (mínimo {Math.round(result.passingScore * 100)}%)
+            <br />
+            {result.correct} / {result.total} respuestas completamente correctas
           </p>
+
+          {/* Primera aprobación: se otorga la skill */}
+          {result.passed && result.certifiedSkill && !result.wasCertified && (
+            <div className="cex-alert cex-alert--ok" style={{ textAlign: "left" }}>
+              <span className="cex-alert-icon">★</span>
+              <span className="cex-alert-text">
+                La skill <strong>{result.certifiedSkill}</strong> quedó certificada por Hidden y ya
+                se muestra en tu perfil y en tus postulaciones.
+              </span>
+            </div>
+          )}
+
+          {/* Reintento que superó el mejor resultado anterior */}
+          {result.isNewBest && result.previousBest !== null && (
+            <div className="cex-alert cex-alert--ok" style={{ textAlign: "left" }}>
+              <span className="cex-alert-icon">↑</span>
+              <span className="cex-alert-text">
+                ¡Nuevo mejor resultado! Pasaste de {pct(result.previousBest)} a {pct(result.bestScore)} y
+                ya quedó registrado como tu resultado oficial.
+              </span>
+            </div>
+          )}
+
+          {/* Reintento por debajo del mejor, ya estaba certificado: no pierde nada */}
+          {result.wasCertified && !result.isNewBest && (
+            <div className="cex-alert cex-alert--ok" style={{ textAlign: "left" }}>
+              <span className="cex-alert-icon">✓</span>
+              <span className="cex-alert-text">
+                Tu certificación sigue vigente con tu mejor resultado de <strong>{pct(result.bestScore)}</strong>.
+                {" "}Este intento quedó registrado pero no reemplaza tu nota.
+              </span>
+            </div>
+          )}
+
+          {/* No aprobado y nunca aprobó: muestra el mejor intento si es otro */}
+          {!result.certified && result.attempts > 1 && result.bestScore > result.score && (
+            <div className="cex-alert cex-alert--warning" style={{ textAlign: "left" }}>
+              <span className="cex-alert-icon">↻</span>
+              <span className="cex-alert-text">
+                Tu mejor intento sigue siendo {pct(result.bestScore)}. Podés volver a rendir con un nuevo voucher.
+              </span>
+            </div>
+          )}
+
+          {result.byModule.length > 0 && (
+            <div className="cex-breakdown">
+              {result.byModule.map(m => (
+                <div key={m.module} className="cex-breakdown-row">
+                  <span className="cex-breakdown-label">{m.module}</span>
+                  <span className="cex-breakdown-bar"><i style={{ width: `${Math.round(m.score * 100)}%` }} /></span>
+                  <span className="cex-breakdown-pct">{Math.round(m.score * 100)}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <a href="/dashboard?tab=cursos" className="cex-btn cex-btn--accent">
             VOLVER AL DASHBOARD
           </a>
