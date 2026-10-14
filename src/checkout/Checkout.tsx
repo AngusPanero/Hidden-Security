@@ -15,39 +15,39 @@ import ProcessOk from "../processMessages/ProcessOk";
 
 const ALL_PLANS = [
     {
-        id: "starter", title: "STARTER", price: 100000, cuotas_sin_interes: 6,
+        id: "starter", title: "STARTER", price: 100000, cuotas_sin_interes: 1,
         label: "01 - TRAINING", period: "3 MESES DISPONIBLES",
         features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"]
     },
     {
-        id: "pro", title: "PRO", price: 200000, cuotas_sin_interes: 6,
+        id: "pro", title: "PRO", price: 200000, cuotas_sin_interes: 1,
         label: "02 - RECOMENDADO", period: "6 MESES DISPONIBLES",
         features: ["1 Voucher de certificación Hidden Security", "Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"]
     },
     {
-        id: "elite", title: "ELITE", price: 300000, cuotas_sin_interes: 6,
+        id: "elite", title: "ELITE", price: 300000, cuotas_sin_interes: 1,
         label: "03 - FULL_STACK", period: "12 MESES DISPONIBLES",
         features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso", "Voucher de certificación Hidden Security", "2do Voucher de certificación en caso de no aprobar el primero"]
     },
     {
-        id: "voucher", title: "CERTIFICACIÓN INDIVIDUAL", price: 150000, cuotas_sin_interes: 6,
+        id: "voucher", title: "CERTIFICACIÓN INDIVIDUAL", price: 150000, cuotas_sin_interes: 1,
         label: "04 - CERTIFICATION", period: "ÚNICO USO",
         features: ["Un Intento de certificación Hidden Security", "Validación de conocimiento obtenido", "Título de certificación Hidden Security"]
     },
     {
-        id: "business", title: "BUSINESS", price: 900000, cuotas_sin_interes: 6,
+        id: "business", title: "BUSINESS", price: 900000, cuotas_sin_interes: 1,
         label: "01 // BUSINESS", period: "6 MESES",
         features: ["Acceso a base de datos de perfiles", "Búsqueda por habilidades, herramientas y certificaciones", "Publicación de ofertas laborales", "Contacto directo con candidatos", "Hasta 10 búsquedas activas"]
     },
     {
-        id: "enterprise", title: "ENTERPRISE", price: 1500000, cuotas_sin_interes: 6,
+        id: "enterprise", title: "ENTERPRISE", price: 1500000, cuotas_sin_interes: 1,
         label: "02 // ENTERPRISE: RECOMENDADO", period: "12 MESES",
         features: ["Todo lo incluído en Business", "Publicaciones ilimitadas", "Búsquedas activas ilimitadas", "Soporte prioritario", "Acceso prioritario a nuevas funcionalidades"]
     },
 ];
 
 const INTERES_RATES: Record<string, number> = {
-    "1": 0, "3": 0.05, "6": 0.10, "12": 0.20
+    "1": 0, "3": 0.15, "6": 0.30, "12": 0.65
 };
 
 const UPGRADE_MAP: Record<string, { targetId: string; targetTitle: string; benefits: string[] } | null> = {
