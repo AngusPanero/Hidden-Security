@@ -6,6 +6,7 @@ import { UseSession } from "../contexts/SessionContext";
 import LiveTypingText from "../ui/LiveTypingText";
 import "./pricing.css";
 import { useNavigate } from "react-router-dom";
+import RegisterMinimal from "../navbar/navbarMinimal/RegisterMinimal";
 
 // --- Tipos y textos del formulario de solicitud (Empresa / Trainee) ------------
 type RequestType = "empresa" | "trainee";
@@ -89,6 +90,9 @@ const Pricing = () => {
     const [requestLoading,   setRequestLoading]   = useState(false);
     const [requestError,     setRequestError]     = useState<string | null>(null);
 
+    // --- Modal de registro (se abre desde "CREAR MI CUENTA") -----------------
+    const [registerOpen, setRegisterOpen] = useState(false);
+
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
@@ -116,6 +120,12 @@ const Pricing = () => {
 
     const closeRequestModal = () => {
         setRequestOpen(false);
+    };
+
+    // Cierra el modal de solicitud y abre el de registro
+    const openRegisterFromRequest = () => {
+        setRequestOpen(false);
+        setRegisterOpen(true);
     };
 
     const handleRequestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,10 +168,10 @@ const Pricing = () => {
     };
 
     const studentPlans: PlanCard[] = [
-        { id: "starter", title: "STARTER", price: "100.000", desc: "Ideal para comenzar tu formación y desarrollar las habilidades necesarias para iniciar una carrera en ciberseguridad.", period: "3 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "01 - TRAINING", cuotas: 3 },
-        { id: "pro", title: "PRO", price: "200.000", desc: "La mejor opción para quienes buscan prepararse y validar sus habilidades.", period: "6 MESES DISPONIBLES", features: ["1 Voucher de certificación Hidden Security", "Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "02 - RECOMENDADO", highlight: true, cuotas: 3 },
-        { id: "elite", title: "ELITE", price: "300.000", desc: "La experiencia más completa para quienes desean aprovechar al máximo el ecosistema de Hidden Security.", period: "12 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso", "Voucher de certificación Hidden Security", "2do Voucher de certificación en caso de no aprobar el primero"], label: "03 - FULL_STACK", cuotas: 3 },
-        { id: "voucher", title: "CERTIFICACIÓN INDIVIDUAL", desc: "Si ya contás con los conocimientos necesarios, podés rendir la certificación sin necesidad de realizar nuestros cursos.", price: "150.000", period: "UNICO USO", features: ["Un Intento de certificación Hidden Security", "Validación de conocimiento obtenido", "Título de certificacion Hidden Security"], label: "04 - CERTIFICATION", cuotas: 3 },
+        { id: "starter", title: "STARTER", price: "100.000", desc: "Ideal para comenzar tu formación y desarrollar las habilidades necesarias para iniciar una carrera en ciberseguridad.", period: "3 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "01 - TRAINING", cuotas: 1 },
+        { id: "pro", title: "PRO", price: "200.000", desc: "La mejor opción para quienes buscan prepararse y validar sus habilidades.", period: "6 MESES DISPONIBLES", features: ["1 Voucher de certificación Hidden Security", "Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso"], label: "02 - RECOMENDADO", highlight: true, cuotas: 1 },
+        { id: "elite", title: "ELITE", price: "300.000", desc: "La experiencia más completa para quienes desean aprovechar al máximo el ecosistema de Hidden Security.", period: "12 MESES DISPONIBLES", features: ["Acceso a todos los cursos", "Acceso a futuros cursos publicados", "Certificado de finalización de curso", "Voucher de certificación Hidden Security", "2do Voucher de certificación en caso de no aprobar el primero"], label: "03 - FULL_STACK", cuotas: 1 },
+        { id: "voucher", title: "CERTIFICACIÓN INDIVIDUAL", desc: "Si ya contás con los conocimientos necesarios, podés rendir la certificación sin necesidad de realizar nuestros cursos.", price: "150.000", period: "UNICO USO", features: ["Un Intento de certificación Hidden Security", "Validación de conocimiento obtenido", "Título de certificacion Hidden Security"], label: "04 - CERTIFICATION", cuotas: 1 },
     ];
 
     const businessPlans: PlanCard[] = [
@@ -173,7 +183,7 @@ const Pricing = () => {
             desc: "Ideal para empresas que buscan incorporar talento especializado en ciberseguridad.",
             features: ["Acceso a base de datos de perfiles", "Búsqueda por habilidades, herramientas y certificaciones", "Publicación de ofertas laborales", "Contacto directo con candidatos", "Hasta 10 busquedas activas"],
             label: "01 // BUSINESS",
-            cuotas: 3,
+            cuotas: 1,
         },
         {
             id: "enterprise",
@@ -184,7 +194,7 @@ const Pricing = () => {
             features: ["Todo lo incluído en Business", "Publicaciones ilimitadas", "Busquedas activas ilimitadas", "Soporte prioritario", "Acceso prioritario a nuevas funcionalidades"],
             label: "02 // ENTERPRISE: RECOMENDADO",
             highlight: true,
-            cuotas: 3,
+            cuotas: 1,
         },
     ];
 
@@ -389,14 +399,22 @@ const Pricing = () => {
                             {requestSubmitted ? (
                                 <div className="pr-success">
                                     <span className="h-label-mono pr-banner-tag">// SOLICITUD_ENVIADA</span>
-                                    <h3>¡Listo! Recibimos tu solicitud.</h3>
+                                    <h3>SOLICITUD RECIBIDA</h3>
+                                    <p>Recibimos tu solicitud correctamente.</p>
                                     <p>
-                                        Nuestro equipo va a revisar la información y se va a poner en contacto
-                                        con vos a la brevedad para continuar con el proceso.
+                                        Mientras revisamos la información, ya podés crear tu cuenta en Hidden Security
+                                        utilizando el mismo correo electrónico que ingresaste en la solicitud.
                                     </p>
-                                    <button className="plan-cta Montserrat-900" onClick={closeRequestModal}>
-                                        CERRAR
+                                    <p>
+                                        Nuestro equipo se pondrá en contacto con vos y, una vez aprobado el acceso,
+                                        actualizaremos tu cuenta con el perfil correspondiente.
+                                    </p>
+                                    <button className="plan-cta Montserrat-900" onClick={openRegisterFromRequest}>
+                                        CREAR MI CUENTA →
                                     </button>
+                                    <p style={{ fontSize: "0.8em", opacity: 0.7, marginTop: "0.75rem" }}>
+                                        Si ya tenés una cuenta, no necesitás crear una nueva.
+                                    </p>
                                 </div>
                             ) : (
                                 <>
@@ -512,6 +530,14 @@ const Pricing = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* -- Modal de registro (abierto desde "CREAR MI CUENTA") -- */}
+            {registerOpen && (
+                <RegisterMinimal
+                    openLogin={() => setRegisterOpen(false)}
+                    closeRegister={() => setRegisterOpen(false)}
+                />
+            )}
         </main>
     );
 };
