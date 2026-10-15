@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment, memo } from "react";
 import type { ReactNode } from "react";
 import axios from "axios";
-import { UseSession } from "../contexts/SessionContext"; // ⚠️ ajustá según dónde quede esta carpeta
-import { UseTheme } from "../contexts/ThemeContext";     // ⚠️ ídem
+import { UseSession } from "../contexts/SessionContext";
+import { UseTheme } from "../contexts/ThemeContext";    
 import "./certificationExam.css";
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -87,6 +87,28 @@ interface PreviousSummary {
   passingScore:  number;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+//  examTabSession.ts — Hidden Security
+//  Identificador de la pestaña donde se rinde el examen.
+// ═══════════════════════════════════════════════════════════════════════════════
+const KEY = "hs-exam-tab";
+
+export function getExamTabId(): string {
+  try {
+    let id = sessionStorage.getItem(KEY);
+    if (!id) {
+      id = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch {
+    // Sin sessionStorage (modo muy restringido): el backend no decide nada sin id
+    return "";
+  }
+}
+
 const EXAM_RULES: string[] = [
   "¿Estás seguro/a que deseás canjear tu voucher para rendir esta certificación? Esta acción consume un ticket de tu cuenta.",
   "Una vez que ingreses, el examen comenzará: no podrá pausarse ni continuarse en otro momento.",
@@ -97,9 +119,98 @@ const EXAM_RULES: string[] = [
   "Se verificará de forma continua que no estés usando un segundo monitor ni tengas otras pestañas de este examen abiertas — la verificación no se hace una sola vez, sino durante todo el examen.",
   "El examen debe rendirse en una computadora de escritorio o notebook (Windows, Linux o macOS) — no está disponible en celulares ni tablets.",
   "Si tu dispositivo cuenta con cámara y/o micrófono, se solicitará permiso para usarlos durante el examen, con el fin de validar que lo estés rindiendo vos y sin ayuda de terceros.",
+  "El examen se rinde en Google Chrome o Microsoft Edge, en pantalla completa, y sin extensiones que modifiquen la página (por ejemplo, asistentes de IA). Si detectamos alguna, vas a tener que desactivarla para poder empezar.",
+  "Cada vez que salgas del examen (minimizar, cambiar de ventana o de pestaña, salir de pantalla completa) se registra una salida. A la 3.ª salida el examen se cancela y perdés el voucher.",
+  "Si cerrás la pestaña o salís de pantalla completa y confirmás los avisos, el examen se da por finalizado y perdés el voucher. Si se corta la luz o se apaga la computadora, vas a poder retomarlo desde donde estabas mientras quede tiempo.",
+  "No se puede copiar, pegar, imprimir ni sacar capturas del contenido del examen. Todos los intentos quedan registrados.",
 ];
 
 const VIOLATION_GRACE_SECONDS = 30;
+
+// ── Integridad del entorno ────────────────────────────────────────────────────
+// Salidas permitidas antes de cancelar (el número real lo manda el backend)
+const DEFAULT_MAX_STRIKES = 3;
+// Eventos que llegan juntos (blur + visibilitychange + fullscreen) cuentan una vez
+const STRIKE_DEBOUNCE_MS  = 3000;
+// Para no contar como salida un parpadeo de foco (diálogos del sistema, etc.)
+const BLUR_GRACE_MS       = 1200;
+// Exigir Keyboard Lock API (Chrome / Edge): sin ella, Escape saca de pantalla
+// completa al instante y no se pueden interceptar Ctrl+W / Ctrl+T.
+const REQUIRE_KEYBOARD_LOCK = true;
+
+// Nodos propios que pueden colgar directo de <body> o <html> (portals, etc.).
+// Si agregás otro portal al body, sumá su selector acá.
+const ALLOWED_ROOT_SELECTORS = ["#root", ".ccx-wrap", ".cex-wrap", "vite-error-overlay"];
+// Recursos externos legítimos que la app carga (SDK de Mercado Pago)
+const ALLOWED_EXTERNAL = /(mercadopago|mercadolibre|mlstatic)\./i;
+const EXT_URL = /^(chrome|moz|safari-web|ms-browser|edge)-extension:\/\//i;
+const NEUTRAL_TAGS = new Set(["HEAD", "BODY", "SCRIPT", "STYLE", "LINK", "META", "NOSCRIPT", "TEMPLATE", "TITLE", "BASE"]);
+
+function extUrlOf(el: Element): string | null {
+  for (const attr of ["src", "href", "data"]) {
+    const v = el.getAttribute(attr);
+    if (v && EXT_URL.test(v)) return v;
+  }
+  return null;
+}
+
+// Devuelve una descripción corta si el nodo NO es de la app (lo inyectó una
+// extensión), o null si es propio. Heurística: no hay API para listar
+// extensiones, así que se detecta lo que meten en la página.
+function describeForeign(el: Element): string | null {
+  const ext = extUrlOf(el);
+  if (ext) return `${el.tagName.toLowerCase()} desde ${ext.slice(0, 60)}`;
+
+  const tag = el.tagName;
+  const src = el.getAttribute("src") || el.getAttribute("href") || "";
+
+  // Elementos personalizados (<algo-algo>): la app no usa ninguno; las
+  // extensiones los usan para montar sus paneles con shadow DOM.
+  if (tag.includes("-") && !ALLOWED_ROOT_SELECTORS.some(sel => el.matches(sel))) {
+    return `<${tag.toLowerCase()}>`;
+  }
+
+  // Cualquier cosa colgada directo de <body>/<html> que no sea nuestra
+  const parent = el.parentElement;
+  if (parent && (parent === document.body || parent === document.documentElement)) {
+    if (NEUTRAL_TAGS.has(tag)) return null;
+    if (ALLOWED_ROOT_SELECTORS.some(sel => el.matches(sel))) return null;
+    if (src && ALLOWED_EXTERNAL.test(src)) return null;
+    return `<${tag.toLowerCase()}${el.id ? `#${el.id}` : ""}>`;
+  }
+
+  // iframes que no son de la app (las extensiones montan sus chats así)
+  if (tag === "IFRAME" && !(src && ALLOWED_EXTERNAL.test(src))) {
+    return `iframe ${src ? src.slice(0, 60) : "(sin origen)"}`;
+  }
+  return null;
+}
+
+function scanForeignNodes(): string[] {
+  const found: string[] = [];
+  document.querySelectorAll("*").forEach(el => {
+    const d = describeForeign(el);
+    if (d) found.push(d);
+  });
+  return Array.from(new Set(found)).slice(0, 8);
+}
+
+const keyboardLockSupported = () => !!(navigator as any).keyboard?.lock;
+
+async function enterLockedFullscreen() {
+  try {
+    if (!document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: "hide" } as any);
+  } catch { /* requiere un click reciente */ }
+  try {
+    // Con el teclado bloqueado, Escape hay que mantenerlo apretado para salir
+    // y Ctrl+W / Ctrl+T / Ctrl+N llegan a la página (Chrome / Edge).
+    if (document.fullscreenElement) await (navigator as any).keyboard?.lock?.();
+  } catch { /* no soportado */ }
+}
+
+function unlockKeyboard() {
+  try { (navigator as any).keyboard?.unlock?.(); } catch { /* nada */ }
+}
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 type Phase = "loading" | "mobile_blocked" | "previous" | "rules" | "device_check" | "permissions" | "ready" | "exam" | "review" | "result";
@@ -162,6 +273,10 @@ function violationReasonLabel(reason: string): string {
   switch (reason) {
     case "second_monitor_connected": return "Se detectó un segundo monitor conectado durante el examen.";
     case "duplicate_tab_detected":   return "Se detectó otra pestaña de este examen abierta.";
+    case "focus_limit_reached":      return "Saliste del examen 3 veces (minimizar, cambiar de ventana o salir de pantalla completa).";
+    case "fullscreen_exit_confirmed": return "Confirmaste la salida de pantalla completa durante el examen.";
+    case "tab_close_confirmed":      return "Confirmaste el cierre de la pestaña durante el examen.";
+    case "tab_closed":               return "Cerraste la pestaña del examen después de confirmar el aviso del navegador.";
     default: return "Se detectó una infracción de integridad durante el examen.";
   }
 }
@@ -388,6 +503,22 @@ function CaseContextPanel({ info, defaultOpen }: { info: CaseInfo; defaultOpen: 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Sub-componente: información adicional de un caso exploratorio
+//  Memoizado: el timer re-renderiza cada segundo y el HTML no debe tocarse.
+//  El resaltado se decide UNA vez al montar (no se repite en re-renders) y es
+//  solo un cambio de fondo: sin opacidad ni desplazamiento, no titila ni salta.
+// ══════════════════════════════════════════════════════════════════════════════
+const TransitionBlock = memo(function TransitionBlock({ html, highlight }: { html: string; highlight: boolean }) {
+  const [flash] = useState(highlight);
+  return (
+    <div
+      className={`cex-transition-wrap${flash ? " is-new" : ""}`}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  COMPONENTE PRINCIPAL
 // ══════════════════════════════════════════════════════════════════════════════
 export default function CertificationExam({ certId, title }: { certId: string; title: string }) {
@@ -417,7 +548,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const [remainingMs, setRemainingMs] = useState(0);
   const [timeWarningShown, setTimeWarningShown] = useState(false);
   const [showTimeToast, setShowTimeToast] = useState(false);
-  const [fullscreenLost, setFullscreenLost] = useState(false);
   const [navBusy, setNavBusy] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const submittingRef = useRef(false);
@@ -432,11 +562,27 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   const violationActiveRef = useRef(false); // evita disparar el countdown más de una vez en simultáneo
   const [suspendedReason, setSuspendedReason] = useState<string | null>(null);
 
+  // ── Integridad: salidas, cierre, extensiones ──────────────────────────────
+  const tabId = getExamTabId();
+  const [browserCheck, setBrowserCheck] = useState<CheckStatus>("pending");
+  const [extCheck,     setExtCheck]     = useState<CheckStatus>("pending");
+  const [foreignNodes, setForeignNodes] = useState<string[]>([]);
+  const [strikes,      setStrikes]      = useState(0);
+  const [maxStrikes,   setMaxStrikes]   = useState(DEFAULT_MAX_STRIKES);
+  const [strikeToast,  setStrikeToast]  = useState<string | null>(null);
+  const [leaveModal,   setLeaveModal]   = useState<{ step: 1 | 2; kind: "fullscreen" | "tab" } | null>(null);
+  const [inFullscreen, setInFullscreen] = useState(true);
+  const [shielded,     setShielded]     = useState(false);
+  const lastStrikeAtRef = useRef(0);
+
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [previous, setPrevious] = useState<PreviousSummary | null>(null);
 
   const applyAttempt = (data: AttemptPayload) => {
     clockOffsetRef.current = new Date(data.serverNow).getTime() - Date.now();
+    const anyData = data as any;
+    if (typeof anyData.focusStrikes === "number")    setStrikes(anyData.focusStrikes);
+    if (typeof anyData.maxFocusStrikes === "number") setMaxStrikes(anyData.maxFocusStrikes);
     setAttempt(data);
     setView(data.view);
   };
@@ -458,9 +604,14 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       return;
     }
 
-    axios.get(`${API}/status`, { withCredentials: true })
+    axios.get(`${API}/status`, { params: { tab: tabId }, withCredentials: true })
       .then(({ data }) => {
-        if (data.inProgress) {
+        if (data.suspended) {
+          // Cerró la pestaña a propósito (o superó las salidas): el servidor ya
+          // lo dio por finalizado.
+          setSuspendedReason(data.reason ?? "unknown");
+          setPhase("result");
+        } else if (data.inProgress) {
           applyAttempt(data);
           setResuming(true);
           // Reanudando: se saltea la pantalla de reglas/canje (ya se pagó el
@@ -498,6 +649,9 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       };
     }
 
+    setBrowserCheck(keyboardLockSupported() ? "ok" : (REQUIRE_KEYBOARD_LOCK ? "fail" : "unknown"));
+    setExtCheck("pending");
+
     const [tabResult, monitorResult] = await Promise.all([
       pingForDuplicateTab(broadcastRef.current),
       checkSecondMonitor(),
@@ -505,13 +659,25 @@ export default function CertificationExam({ certId, title }: { certId: string; t
 
     setTabCheck(tabResult);
     setMonitorCheck(monitorResult);
-  }, [certId, user?.uid]);
+
+    // Las extensiones suelen inyectar sus paneles unos segundos después de
+    // cargar la página: se escanea al final, con un pequeño margen.
+    await new Promise(r => setTimeout(r, 600));
+    const foreign = scanForeignNodes();
+    setForeignNodes(foreign);
+    setExtCheck(foreign.length > 0 ? "fail" : "ok");
+    if (foreign.length > 0) logEvent("foreign_nodes_precheck", { nodes: foreign });
+  }, [certId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (phase === "device_check") runDeviceChecks();
   }, [phase, runDeviceChecks]);
 
-  const deviceChecksPassed = tabCheck === "ok" && (monitorCheck === "ok" || monitorCheck === "unknown");
+  const deviceChecksPassed =
+    tabCheck === "ok" &&
+    (monitorCheck === "ok" || monitorCheck === "unknown") &&
+    (browserCheck === "ok" || browserCheck === "unknown") &&
+    extCheck === "ok";
 
   // ═══════════════════════════════════════════════════════════════════════
   //  Watcher CONTINUO de segundo monitor — corre en todas las fases desde
@@ -649,16 +815,34 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   // ═══════════════════════════════════════════════════════════════════════
   const startExam = async () => {
     setErrorMsg(null);
+
+    // Última revisión de extensiones antes de consumir el voucher
+    const foreign = scanForeignNodes();
+    if (foreign.length > 0) {
+      setForeignNodes(foreign);
+      setExtCheck("fail");
+      logEvent("foreign_nodes_before_start", { nodes: foreign });
+      setPhase("device_check");
+      return;
+    }
+
+    // Pantalla completa ANTES del await: el navegador solo la permite dentro
+    // del click del usuario.
+    await enterLockedFullscreen();
+
     try {
-      const { data } = await axios.post<AttemptPayload>(`${API}/start`, {}, { withCredentials: true });
+      const { data } = await axios.post<AttemptPayload>(`${API}/start`, { tab: tabId }, { withCredentials: true });
       applyAttempt(data);
-
-      try { await document.documentElement.requestFullscreen(); } catch { /* no bloqueamos */ }
-
+      setInFullscreen(!!document.fullscreenElement);
       setPhase(data.view.phase);
     } catch (err: any) {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      unlockKeyboard();
       const code = err.response?.data?.code;
-      if (code === "NO_VOUCHER") {
+      if (code === "ATTEMPT_CLOSED") {
+        setSuspendedReason(err.response?.data?.reason ?? "tab_closed");
+        setPhase("result");
+      } else if (code === "NO_VOUCHER") {
         setErrorMsg("No tenés un voucher disponible para rendir esta certificación.");
       } else {
         setErrorMsg("No se pudo iniciar el examen. Intentá de nuevo.");
@@ -703,38 +887,265 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   }, [attempt, phase, timeWarningShown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  Fullscreen
+  //  Integridad del entorno durante el examen
+  //  - Salidas (minimizar, cambiar de ventana/pestaña, salir de pantalla
+  //    completa): las cuenta el servidor; a la 3.ª cancela el intento.
+  //  - Escape / Ctrl+W: dos avisos propios antes de finalizar.
+  //  - Cerrar la pestaña: aviso del navegador + aviso de cierre al servidor.
+  //  - Copiar, pegar, imprimir, capturas, herramientas de desarrollo.
+  //  - Extensiones que se inyectan en la página a mitad del examen.
   // ═══════════════════════════════════════════════════════════════════════
+  const examActive = phase === "exam" || phase === "review";
+
+  // Registra una salida en el servidor (fuente de verdad del contador)
+  const registerStrike = async (kind: string) => {
+    if (submittingRef.current) return;
+    const now = Date.now();
+    if (now - lastStrikeAtRef.current < STRIKE_DEBOUNCE_MS) return;
+    lastStrikeAtRef.current = now;
+
+    try {
+      const { data } = await axios.post(`${API}/strike`, { kind }, { withCredentials: true });
+      setStrikes(data.strikes);
+      if (typeof data.limit === "number") setMaxStrikes(data.limit);
+
+      if (data.terminated) {
+        // El servidor ya cerró el intento: solo se muestra la pantalla
+        submittingRef.current = true;
+        cleanupMedia();
+        unlockKeyboard();
+        setLeaveModal(null);
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        setSuspendedReason(data.reason ?? "focus_limit_reached");
+        setPhase("result");
+        return;
+      }
+
+      const left = data.limit - data.strikes;
+      setStrikeToast(
+        `Saliste del examen (${data.strikes}/${data.limit}). ` +
+        (left === 1 ? "Una salida más y el examen se cancela." : `Te quedan ${left} salidas.`)
+      );
+      setTimeout(() => setStrikeToast(null), 6000);
+    } catch (err: any) {
+      if (err?.response?.status === 410) submitExam();
+    }
+  };
+
+  // Volver al examen desde los avisos (el click habilita la pantalla completa)
+  const cancelLeave = async () => {
+    setLeaveModal(null);
+    await enterLockedFullscreen();
+    setInFullscreen(!!document.fullscreenElement);
+    setShielded(false);
+    logEvent("leave_cancelled");
+  };
+
+  // ── Pantalla completa: salir siempre cuenta y abre los avisos ────────────
   useEffect(() => {
-    if (phase !== "exam" && phase !== "review") return;
+    if (!examActive) return;
+    setInFullscreen(!!document.fullscreenElement);
 
     const onFsChange = () => {
       const inFs = !!document.fullscreenElement;
-      setFullscreenLost(!inFs);
-      if (!inFs) logEvent("fullscreen_exited");
+      setInFullscreen(inFs);
+      if (inFs || submittingRef.current) return;
+      logEvent("fullscreen_exited");
+      registerStrike("fullscreen_exit");
+      setLeaveModal(m => m ?? { step: 1, kind: "fullscreen" });
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [examActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const reenterFullscreen = async () => {
-    try {
-      await document.documentElement.requestFullscreen();
-      setFullscreenLost(false);
-    } catch { /* puede requerir gesto reciente */ }
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  //  Visibilidad de pestaña — solo auditoría
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Minimizar / cambiar de pestaña o de ventana ──────────────────────────
   useEffect(() => {
-    if (phase !== "exam" && phase !== "review") return;
+    if (!examActive) return;
+    let blurTimer: ReturnType<typeof setTimeout> | null = null;
+
     const onVisibility = () => {
-      logEvent(document.hidden ? "tab_hidden" : "tab_visible");
+      if (document.hidden) {
+        setShielded(true);
+        logEvent("tab_hidden");
+        registerStrike("tab_hidden");
+      } else {
+        logEvent("tab_visible");
+      }
     };
+    const onBlur = () => {
+      setShielded(true); // tapa el contenido en el acto (recortes de pantalla)
+      blurTimer = setTimeout(() => {
+        if (!document.hasFocus()) {
+          logEvent("window_blur");
+          registerStrike("window_blur");
+        }
+      }, BLUR_GRACE_MS);
+    };
+    const onFocus = () => {
+      if (blurTimer) clearTimeout(blurTimer);
+      setShielded(false);
+    };
+
     document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      if (blurTimer) clearTimeout(blurTimer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [examActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Teclado: Escape, cerrar pestaña, recargar, copiar, imprimir, devtools ─
+  useEffect(() => {
+    if (!examActive) return;
+    const loggedOnce = new Set<string>();
+    const logOnce = (type: string, meta: Record<string, unknown> = {}) => {
+      if (loggedOnce.has(type)) return;
+      loggedOnce.add(type);
+      setTimeout(() => loggedOnce.delete(type), 5000);
+      logEvent(type, meta);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const k   = e.key.toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+
+      // Escape (con el teclado bloqueado llega acá en vez de salir)
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setLeaveModal(m => m ?? { step: 1, kind: "fullscreen" });
+        logOnce("escape_pressed");
+        return;
+      }
+      // Cerrar pestaña / ventana
+      if ((mod && k === "w") || (e.ctrlKey && e.key === "F4")) {
+        e.preventDefault();
+        setLeaveModal(m => m ?? { step: 1, kind: "tab" });
+        logOnce("close_shortcut");
+        return;
+      }
+      // Nueva pestaña / ventana, recargar
+      if ((mod && ["t", "n", "r"].includes(k)) || e.key === "F5") {
+        e.preventDefault();
+        logOnce("blocked_shortcut", { key: e.key });
+        return;
+      }
+      // Copiar, cortar, pegar, seleccionar todo, imprimir, guardar, ver código
+      if (mod && ["c", "x", "v", "a", "p", "s", "u"].includes(k)) {
+        e.preventDefault();
+        logOnce("copy_shortcut", { key: k });
+        return;
+      }
+      // Herramientas de desarrollo
+      if (e.key === "F12" || (mod && e.shiftKey && ["i", "j", "c", "k"].includes(k))) {
+        e.preventDefault();
+        logOnce("devtools_shortcut");
+        return;
+      }
+      // Capturas en macOS (Cmd+Shift+3/4/5), cuando el sistema deja pasar la tecla
+      if (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(e.key)) {
+        logOnce("screenshot_shortcut", { key: e.key });
+        registerStrike("screenshot");
+      }
+    };
+
+    // Impr Pant (Windows) solo avisa al soltarse: se registra y se pisa el portapapeles
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "PrintScreen") {
+        navigator.clipboard?.writeText(" ").catch(() => {});
+        logOnce("screenshot_key");
+        registerStrike("screenshot");
+      }
+    };
+
+    const block = (type: string) => (e: Event) => { e.preventDefault(); logOnce(type); };
+    const onCopy    = block("copy_attempt");
+    const onCut     = block("cut_attempt");
+    const onPaste   = block("paste_attempt");
+    const onContext = block("context_menu");
+    const onDrag    = block("drag_attempt");
+    const onSelect  = (e: Event) => e.preventDefault();
+    const onPrint   = () => logOnce("print_attempt");
+
+    // capture: true → se intercepta antes que cualquier otro manejador
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keyup", onKeyUp, true);
+    document.addEventListener("copy", onCopy, true);
+    document.addEventListener("cut", onCut, true);
+    document.addEventListener("paste", onPaste, true);
+    document.addEventListener("contextmenu", onContext, true);
+    document.addEventListener("dragstart", onDrag, true);
+    document.addEventListener("selectstart", onSelect, true);
+    window.addEventListener("beforeprint", onPrint);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keyup", onKeyUp, true);
+      document.removeEventListener("copy", onCopy, true);
+      document.removeEventListener("cut", onCut, true);
+      document.removeEventListener("paste", onPaste, true);
+      document.removeEventListener("contextmenu", onContext, true);
+      document.removeEventListener("dragstart", onDrag, true);
+      document.removeEventListener("selectstart", onSelect, true);
+      window.removeEventListener("beforeprint", onPrint);
+    };
+  }, [examActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Cerrar la pestaña o el navegador (Alt+F4, botón ✕, Cmd+Q…) ──────────
+  // El navegador muestra su propio aviso ("¿Salir del sitio?") con su texto
+  // fijo: ningún sitio puede cambiarlo ni mostrar dos. Si el alumno confirma,
+  // al descargarse la página se avisa al servidor con un beacon (sobrevive al
+  // cierre). Si la computadora se apaga de golpe, el beacon no sale y el
+  // examen queda para retomarlo.
+  useEffect(() => {
+    if (!examActive) return;
+
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (submittingRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onPageHide = () => {
+      if (submittingRef.current) return;
+      try {
+        const body = new Blob([JSON.stringify({ tab: tabId })], { type: "text/plain" });
+        navigator.sendBeacon(`${API}/leave`, body);
+      } catch { /* sin beacon: queda como corte (se puede retomar) */ }
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [examActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Extensiones que se inyectan a mitad del examen ───────────────────────
+  useEffect(() => {
+    if (!examActive) return;
+
+    const observer = new MutationObserver(mutations => {
+      const found: string[] = [];
+      for (const m of mutations) {
+        m.addedNodes.forEach(node => {
+          if (!(node instanceof Element)) return;
+          const desc = describeForeign(node);
+          if (desc) {
+            found.push(desc);
+            node.remove(); // se saca de la página en el acto
+          }
+        });
+      }
+      if (found.length > 0) {
+        logEvent("foreign_node_removed", { nodes: Array.from(new Set(found)).slice(0, 8) });
+        registerStrike("extension_injected");
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [examActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Helpers de API ──────────────────────────────────────────────────────
   const logEvent = (type: string, meta: Record<string, unknown> = {}) => {
@@ -818,9 +1229,21 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       const { data } = await axios.post<SubmitResult>(`${API}/submit`, {}, { withCredentials: true });
       setResult(data);
       cleanupMedia();
+      unlockKeyboard();
+      setLeaveModal(null);
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       setPhase("result");
-    } catch {
+    } catch (err: any) {
+      // El intento se había cerrado por una infracción: se muestra esa pantalla
+      if (err?.response?.data?.code === "ATTEMPT_CLOSED") {
+        cleanupMedia();
+        unlockKeyboard();
+        setLeaveModal(null);
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        setSuspendedReason(err.response.data.reason ?? "unknown");
+        setPhase("result");
+        return;
+      }
       submittingRef.current = false;
       setErrorMsg("Hubo un problema al enviar el examen. Contactá a soporte.");
     }
@@ -837,6 +1260,8 @@ export default function CertificationExam({ certId, title }: { certId: string; t
       await axios.post(`${API}/violation`, { reason }, { withCredentials: true });
     } catch { /* igual mostramos la pantalla de suspendido del lado del cliente */ }
     cleanupMedia();
+    unlockKeyboard();
+    setLeaveModal(null);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     setSuspendedReason(reason);
     setPhase("result");
@@ -847,7 +1272,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     streamRef.current = null;
   };
 
-  useEffect(() => () => { cleanupMedia(); broadcastRef.current?.close(); }, []);
+  useEffect(() => () => { cleanupMedia(); unlockKeyboard(); broadcastRef.current?.close(); }, []);
 
   // ═══════════════════════════════════════════════════════════════════════
   //  Render
@@ -978,7 +1403,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
   }
 
   if (phase === "device_check") {
-    const bothPending = tabCheck === "pending" || monitorCheck === "pending";
+    const bothPending = tabCheck === "pending" || monitorCheck === "pending" || extCheck === "pending";
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
         <span className="cex-eyebrow">// CERTIFICACIÓN</span>
@@ -1017,7 +1442,48 @@ export default function CertificationExam({ certId, title }: { certId: string; t
                 )}
               </span>
             </div>
+            <div className="cex-check-item">
+              <span className={`cex-check-status cex-check-status--${
+                browserCheck === "pending" ? "pending" : browserCheck === "ok" ? "ok" : browserCheck === "unknown" ? "unknown" : "fail"
+              }`}>
+                {browserCheck === "pending" ? "…" : browserCheck === "ok" ? "✓" : browserCheck === "unknown" ? "?" : "✕"}
+              </span>
+              <span>Navegador compatible (Google Chrome o Microsoft Edge)</span>
+            </div>
+            <div className="cex-check-item">
+              <span className={`cex-check-status cex-check-status--${
+                extCheck === "pending" ? "pending" : extCheck === "ok" ? "ok" : "fail"
+              }`}>
+                {extCheck === "pending" ? "…" : extCheck === "ok" ? "✓" : "✕"}
+              </span>
+              <span>Sin extensiones que modifiquen la página (asistentes de IA, etc.)</span>
+            </div>
           </div>
+
+          {browserCheck === "fail" && (
+            <div className="cex-alert">
+              <span className="cex-alert-icon">⚠</span>
+              <span className="cex-alert-text">
+                Este navegador no permite el modo de examen protegido. Abrí la certificación desde
+                Google Chrome o Microsoft Edge actualizados.
+              </span>
+            </div>
+          )}
+          {extCheck === "fail" && (
+            <div className="cex-alert">
+              <span className="cex-alert-icon">⚠</span>
+              <span className="cex-alert-text">
+                Detectamos extensiones que modifican esta página. Desactivalas desde
+                chrome://extensions (o abrí el examen en una ventana de incógnito), después
+                <strong> recargá la página</strong> y tocá "Volver a verificar".
+                {foreignNodes.length > 0 && (
+                  <span className="cex-foreign-list">
+                    {foreignNodes.map(n => <code key={n}>{n}</code>)}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
 
           {tabCheck === "fail" && (
             <div className="cex-alert">
@@ -1168,8 +1634,77 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     const reviewIdx = view.review?.index ?? 0;
     const reviewLen = view.review?.queue.length ?? 0;
 
+    const leaveTitle = leaveModal?.kind === "tab" ? "cerrar la pestaña" : "salir de pantalla completa";
+    const strikesLeft = Math.max(0, maxStrikes - strikes);
+
     return (
-      <div className={`cex-wrap ${isLight ? "light" : ""}`}>
+      <div className={`cex-wrap cex-protected ${isLight ? "light" : ""}${shielded ? " cex-shielded" : ""}`}>
+        {/* Marca de agua: identifica cualquier foto o captura del examen */}
+        <div className="cex-watermark" aria-hidden="true">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <span key={i}>{user?.email ?? "hidden-security"} · {attempt.attemptId.slice(-6)}</span>
+          ))}
+        </div>
+
+        {/* Pantalla tapada mientras la ventana no tiene el foco */}
+        {shielded && !leaveModal && (
+          <div className="cex-shield" onClick={() => setShielded(false)}>
+            <p>El examen está oculto mientras no estés en esta ventana.</p>
+            <span>Hacé click acá para volver.</span>
+          </div>
+        )}
+
+        {/* Aviso de salida registrada */}
+        {strikeToast && (
+          <div className="cex-strike-toast" role="alert">{strikeToast}</div>
+        )}
+
+        {/* Cerrar / salir de pantalla completa: dos confirmaciones */}
+        {leaveModal && (
+          <div className="cex-modal-backdrop cex-modal-backdrop--leave">
+            <div className={`cex-modal cex-modal--leave${leaveModal.step === 2 ? " cex-modal--danger" : ""}`}>
+              {leaveModal.step === 1 ? (
+                <>
+                  <span className="cex-eyebrow">// AVISO 1 DE 2</span>
+                  <h3 className="cex-card-title">¿Estás seguro que querés {leaveTitle}?</h3>
+                  <p className="cex-modal-text">El examen sigue corriendo mientras decidís.</p>
+                  <div className="cex-btn-row">
+                    <button className="cex-btn cex-btn--accent" onClick={cancelLeave}>CANCELAR</button>
+                    <button className="cex-btn cex-btn--danger" onClick={() => setLeaveModal({ ...leaveModal, step: 2 })}>
+                      {leaveModal.kind === "tab" ? "CERRAR" : "SALIR"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="cex-eyebrow cex-eyebrow--danger">// AVISO 2 DE 2</span>
+                  <h3 className="cex-card-title">Si confirmás, el examen se da por finalizado</h3>
+                  <p className="cex-modal-text">
+                    {leaveModal.kind === "tab"
+                      ? "Si cerrás la pestaña, el examen se da por finalizado y no vas a poder retomarlo. "
+                      : "Si salís del modo pantalla completa, el examen se da por finalizado y no vas a poder continuarlo. "}
+                    <strong>Se pierde el voucher de certificación que usaste.</strong>
+                  </p>
+                  <div className="cex-strike-meter">
+                    <span>Salidas de la pestaña o pantalla completa registradas </span>
+                    <strong>{strikes} / {maxStrikes}</strong>
+                    <em>{strikesLeft > 0 ? `A la ${maxStrikes}.ª salida el examen se cancela solo.` : "Límite alcanzado."}</em>
+                  </div>
+                  <div className="cex-btn-row">
+                    <button className="cex-btn cex-btn--accent" onClick={cancelLeave}>VOLVER AL EXAMEN</button>
+                    <button
+                      className="cex-btn cex-btn--danger"
+                      onClick={() => reportViolationAndFail(leaveModal.kind === "tab" ? "tab_close_confirmed" : "fullscreen_exit_confirmed")}
+                    >
+                      FINALIZAR Y PERDER EL VOUCHER
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {violationCountdown !== null && (
           <div className="cex-violation-overlay">
             <p className="cex-violation-text">
@@ -1181,14 +1716,13 @@ export default function CertificationExam({ certId, title }: { certId: string; t
           </div>
         )}
 
-        {fullscreenLost && (
+        {!inFullscreen && !leaveModal && (
           <div className="cex-fullscreen-lost">
             <span className="cex-fullscreen-lost-icon">⛶</span>
             <p className="cex-fullscreen-lost-text">
-              Saliste del modo pantalla completa. El examen sigue corriendo — volvé a pantalla
-              completa para continuar viéndolo con normalidad. Este evento queda registrado.
+              El examen solo puede verse en pantalla completa. El tiempo sigue corriendo.
             </p>
-            <button className="cex-btn cex-btn--accent" onClick={reenterFullscreen}>
+            <button className="cex-btn cex-btn--accent" onClick={cancelLeave}>
               VOLVER A PANTALLA COMPLETA
             </button>
           </div>
@@ -1226,6 +1760,9 @@ export default function CertificationExam({ certId, title }: { certId: string; t
           </span>
           <span className={`cex-phase-pill cex-phase-pill--${inReview ? "review" : q?.kind ?? "ind"}`}>
             {inReview ? "Revisión" : q?.kind === "sjt" ? "Caso SJT" : q?.kind === "exp" ? "Caso exploratorio" : "Individual"}
+          </span>
+          <span className={`cex-strike-chip${strikes > 0 ? " has-strikes" : ""}`} title="Salidas del examen registradas">
+            SALIDAS {strikes}/{maxStrikes}
           </span>
           <span className={`cex-timer ${timerClass}`}>{formatDuration(remainingMs)}</span>
         </div>
@@ -1304,10 +1841,10 @@ export default function CertificationExam({ certId, title }: { certId: string; t
               <>
                 <CaseContextPanel info={q.case} defaultOpen={inReview || q.case.position === 1} />
                 {q.case.transitions.map(t => (
-                  <div
-                    key={t.beforePosition}
-                    className={`cex-transition-wrap${t.isNew && !inReview ? " is-new" : ""}`}
-                    dangerouslySetInnerHTML={{ __html: t.html }}
+                  <TransitionBlock
+                    key={`${q.case!.id}-${t.beforePosition}`}
+                    html={t.html}
+                    highlight={t.isNew && !inReview}
                   />
                 ))}
               </>
@@ -1420,7 +1957,6 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     return (
       <div className={`cex-wrap ${isLight ? "light" : ""}`}>
         <div className="cex-suspended">
-          <div className="cex-suspended-badge">🚫</div>
           <h2 className="cex-result-title">CERTIFICACIÓN SUSPENDIDA</h2>
           <p className="cex-result-score">{violationReasonLabel(suspendedReason)}</p>
           <p style={{ fontSize: "0.8rem", opacity: 0.6, marginBottom: 28 }}>

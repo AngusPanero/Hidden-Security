@@ -12,8 +12,12 @@ a{
   text-decoration: none;
 }
 
-input{
-  font-size: 16px;
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -48,4 +52,22 @@ input{
 * {
   scrollbar-width: thin;
   scrollbar-color: #ccff00 #000;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill,
+input:autofill {
+  transition:
+    background-color 600000s 0s,
+    color            600000s 0s;
+  -webkit-text-fill-color: inherit;
+  caret-color: inherit;
+}
+
+input:-webkit-autofill::first-line {
+  font-family: 'Montserrat', sans-serif;
 }

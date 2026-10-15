@@ -152,6 +152,28 @@ function countVouchers(user: any): number {
   return purchases.filter((p) => p === "voucher").length;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+//  examTabSession.ts — Hidden Security
+//  Identificador de la pestaña donde se rinde el examen.
+// ═══════════════════════════════════════════════════════════════════════════════
+const KEY = "hs-exam-tab";
+
+export function getExamTabId(): string {
+  try {
+    let id = sessionStorage.getItem(KEY);
+    if (!id) {
+      id = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch {
+    // Sin sessionStorage (modo muy restringido): el backend no decide nada sin id
+    return "";
+  }
+}
+
 export default function CertificationCatalog() {
   const { theme } = UseTheme();
   const { user }  = UseSession();
@@ -189,7 +211,8 @@ export default function CertificationCatalog() {
         try {
           const { data } = await axios.get(
             `${import.meta.env.VITE_API_URL}/api/certification/${c.id}/status`,
-            { withCredentials: true }
+            // Mismo id de pestaña que el examen: así una recarga no se toma como cierre
+            { params: { tab: getExamTabId() }, withCredentials: true }
           );
           return [c.id, data?.inProgress && data?.expiresAt ? { expiresAt: data.expiresAt } : null] as const;
         } catch {

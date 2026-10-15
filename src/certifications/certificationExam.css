@@ -32,7 +32,7 @@
 }
 
 .cex-eyebrow {
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      0.65rem;
   font-weight:    800;
   letter-spacing: 3px;
@@ -108,7 +108,7 @@
   height:         22px;
   border:         1px solid var(--cex-accent);
   color:          var(--cex-accent);
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      0.65rem;
   font-weight:    800;
   display:        flex;
@@ -200,7 +200,7 @@
 }
 
 .cex-timer {
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      1.4rem;
   font-weight:    800;
   letter-spacing: 2px;
@@ -210,7 +210,7 @@
 @keyframes cex-blink { 50% { opacity: 0.4; } }
 
 .cex-progress-label {
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      0.65rem;
   font-weight:    700;
   letter-spacing: 1px;
@@ -229,7 +229,7 @@
   top: 90px;
 }
 .cex-sidebar-title {
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 2px;
@@ -265,7 +265,7 @@
   padding: 32px;
 }
 .cex-question-module {
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 2px;
@@ -304,7 +304,7 @@
   width: 24px; height: 24px; flex-shrink: 0;
   border: 1px solid currentColor;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size: 0.68rem; font-weight: 900;
 }
 
@@ -323,7 +323,7 @@
   background:     transparent;
   border:         1px solid var(--cex-border);
   color:          var(--cex-muted);
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      0.65rem;
   font-weight:    800;
   letter-spacing: 1px;
@@ -349,7 +349,7 @@
 .cex-review-item:hover { border-color: var(--cex-accent); }
 .cex-review-tags { display: flex; gap: 6px; }
 .cex-review-tag {
-  font-family:    'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size:      0.6rem;
   font-weight:    800;
   letter-spacing: 1px;
@@ -437,7 +437,7 @@
 .cex-violation-icon { font-size: 3rem; }
 .cex-violation-text { max-width: 460px; font-size: 0.9rem; opacity: 0.85; line-height: 1.6; }
 .cex-violation-countdown {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size: 3rem;
   font-weight: 900;
   color: var(--cex-danger);
@@ -462,7 +462,7 @@
 
 /* ── Pill de fase en el header ─────────────────────────────────── */
 .cex-phase-pill {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size: 0.62rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
   padding: 5px 12px; border: 1px solid var(--cex-border);
 }
@@ -474,7 +474,7 @@
 /* ── Badges ────────────────────────────────────────────────────── */
 .cex-badge {
   display: inline-block;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace;
   font-size: 0.58rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
   padding: 3px 8px; border: 1px solid var(--cex-border); color: var(--cex-muted);
 }
@@ -487,7 +487,7 @@
 .cex-qmap-cell {
   aspect-ratio: 1; min-width: 0;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 800;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 800;
   border: 1px solid var(--cex-border); background: transparent; color: var(--cex-muted);
   cursor: default; padding: 0;
 }
@@ -520,7 +520,7 @@
 }
 .cex-context-title { font-size: 0.85rem; font-weight: 800; flex: 1; min-width: 160px; }
 .cex-context-pos, .cex-context-toggle {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 800; letter-spacing: 1px; color: var(--cex-muted);
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 800; letter-spacing: 1px; color: var(--cex-muted);
 }
 .cex-context-toggle { color: var(--cex-accent); }
 .cex-context-body {
@@ -529,17 +529,17 @@
 }
 .cex-context-body p { margin: 0 0 10px; }
 .cex-ctx-heading {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; letter-spacing: 2px;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; letter-spacing: 2px;
   color: var(--cex-accent); text-transform: uppercase; margin: 18px 0 8px;
 }
 .cex-ctx-hr { border: none; border-top: 1px solid var(--cex-border); margin: 16px 0; }
 .cex-code-block {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; line-height: 1.6;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.72rem; line-height: 1.6;
   background: rgba(127,127,127,0.08); border: 1px solid var(--cex-border);
   padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 0 0 12px;
 }
 .cex-inline-code {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.85em;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.85em;
   background: rgba(127,127,127,0.12); padding: 1px 5px; word-break: break-word;
 }
 .cex-context-body table { border-collapse: collapse; width: 100%; margin: 0 0 12px; font-size: 0.75rem; }
@@ -555,7 +555,7 @@
 .cex-transition p { margin: 0 0 8px; }
 .cex-transition p:last-child { margin-bottom: 0; }
 .cex-transition-label {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; letter-spacing: 2px;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; letter-spacing: 2px;
   color: var(--cex-exp); text-transform: uppercase; margin-bottom: 8px;
 }
 .cex-transition-wrap.is-new .cex-transition { animation: cex-transition-in 0.35s ease both; box-shadow: 0 0 0 1px var(--cex-exp); }
@@ -573,7 +573,7 @@
 .cex-question-list { margin: 0 0 12px; padding-left: 20px; font-weight: 700; }
 .cex-question-list li { margin-bottom: 4px; }
 .cex-ms-hint {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; letter-spacing: 1px;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 800; letter-spacing: 1px;
   text-transform: uppercase; color: var(--cex-warning); margin: -12px 0 14px;
 }
 .cex-option-letter { flex-shrink: 0; }
@@ -583,7 +583,7 @@
 
 /* ── Revisión ─────────────────────────────────────────────────── */
 .cex-review-banner {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; letter-spacing: 1px;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; letter-spacing: 1px;
   padding: 12px 16px; margin-bottom: 16px;
   border: 1px solid var(--cex-warning); color: var(--cex-warning); background: rgba(250,204,21,0.06);
 }
@@ -604,7 +604,7 @@
 .cex-breakdown-label { opacity: 0.8; }
 .cex-breakdown-bar { height: 6px; background: var(--cex-border); position: relative; }
 .cex-breakdown-bar i { position: absolute; inset: 0 auto 0 0; background: var(--cex-accent); }
-.cex-breakdown-pct { font-family: 'JetBrains Mono', monospace; text-align: right; }
+.cex-breakdown-pct { font-family: 'Montserrat', 'JetBrains Mono', monospace; text-align: right; }
 
 @media (max-width: 900px) {
   .cex-qmap { grid-template-columns: repeat(16, 1fr); }
@@ -621,14 +621,14 @@
 .cex-prev-score--passed { border-left-color: var(--cex-success); background: rgba(34,197,94,0.05); }
 .cex-prev-score--failed { border-left-color: var(--cex-danger);  background: rgba(244,63,94,0.05); }
 .cex-prev-label {
-  display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 800;
+  display: block; font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 800;
   letter-spacing: 2px; color: var(--cex-muted); margin-bottom: 4px;
 }
 .cex-prev-pct { font-size: 2.8rem; font-weight: 900; letter-spacing: -2px; line-height: 1; }
 .cex-prev-score--passed .cex-prev-pct { color: var(--cex-success); }
 .cex-prev-score--failed .cex-prev-pct { color: var(--cex-danger); }
 .cex-prev-badge {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; letter-spacing: 1.5px;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; letter-spacing: 1.5px;
   padding: 6px 12px; border: 1px solid;
 }
 .cex-prev-badge--passed { color: var(--cex-success); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
@@ -644,7 +644,7 @@
   background: var(--cex-border); border: 1px solid var(--cex-border); margin-bottom: 24px;
 }
 .cex-prev-stats > div { background: var(--cex-bg); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
-.cex-prev-stats span { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 800; letter-spacing: 1.5px; color: var(--cex-muted); }
+.cex-prev-stats span { font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 800; letter-spacing: 1.5px; color: var(--cex-muted); }
 .cex-prev-stats strong { font-size: 1.2rem; font-weight: 900; }
 .cex-prev-stats em { font-style: normal; font-size: 0.65rem; font-weight: 600; color: var(--cex-muted); }
 a.cex-btn { text-decoration: none; display: inline-block; }
@@ -664,7 +664,7 @@ a.cex-btn { text-decoration: none; display: inline-block; }
 }
 .cex-monitor-head {
   display: flex; align-items: center; gap: 8px;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 800; letter-spacing: 2px; color: var(--cex-muted);
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 800; letter-spacing: 2px; color: var(--cex-muted);
 }
 .cex-monitor-rec {
   width: 7px; height: 7px; border-radius: 50%; background: var(--cex-danger);
@@ -690,13 +690,13 @@ a.cex-btn { text-decoration: none; display: inline-block; }
 .cex-cam-corner.br { bottom: 6px; right: 6px; border-left: 0; border-top: 0; }
 .cex-monitor-live {
   position: absolute; left: 10px; bottom: 8px; z-index: 1;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; font-weight: 800; letter-spacing: 1.5px;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.5rem; font-weight: 800; letter-spacing: 1.5px;
   color: #fff; background: rgba(0,0,0,0.55); padding: 2px 6px;
 }
 
 .cex-mic { display: flex; align-items: center; gap: 10px; height: 28px; }
 .cex-mic-label {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; font-weight: 800; letter-spacing: 1.5px;
+  font-family: 'Montserrat', 'JetBrains Mono', monospace; font-size: 0.5rem; font-weight: 800; letter-spacing: 1.5px;
   color: var(--cex-muted); padding: 3px 5px; border: 1px solid var(--cex-border); transition: all 0.2s;
 }
 .cex-mic.is-active .cex-mic-label { color: var(--cex-accent); border-color: var(--cex-accent); }
@@ -739,4 +739,112 @@ a.cex-btn { text-decoration: none; display: inline-block; }
   .cex-monitor { flex-direction: row; align-items: center; }
   .cex-monitor-cam { width: 160px; flex-shrink: 0; }
   .cex-mic { flex: 1; }
+}
+/* ══════════════════════════════════════════════════════════════
+   Integridad del examen — salidas, avisos de cierre, protección
+   de contenido, marca de agua y extensiones
+══════════════════════════════════════════════════════════════ */
+
+/* Sin selección ni arrastre de texto en todo el examen */
+.cex-protected,
+.cex-protected * {
+  -webkit-user-select: none;
+  user-select:         none;
+  -webkit-touch-callout: none;
+}
+.cex-protected img,
+.cex-protected video { -webkit-user-drag: none; pointer-events: none; }
+
+/* Imprimir (Ctrl+P o menú del navegador) sale en blanco */
+@media print {
+  body:has(.cex-protected) * { visibility: hidden !important; }
+}
+
+/* Contenido tapado mientras la ventana no tiene el foco */
+.cex-shielded .cex-exam-layout,
+.cex-shielded .cex-exam-header { filter: blur(22px); }
+
+.cex-shield {
+  position: fixed; inset: 0; z-index: 950;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(0,0,0,0.6); text-align: center; padding: 20px; cursor: pointer;
+}
+.cex-shield p    { margin: 0; font-size: 0.95rem; font-weight: 800; }
+.cex-shield span { font-size: 0.75rem; opacity: 0.6; }
+
+/* Marca de agua con el email del alumno: deja rastro en fotos/capturas */
+.cex-watermark {
+  position: fixed; inset: -20%; z-index: 5; pointer-events: none;
+  display: flex; flex-wrap: wrap; gap: 90px 120px; align-content: center; justify-content: center;
+  transform: rotate(-24deg);
+  opacity: 0.045;
+  font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; letter-spacing: 1px;
+  color: var(--cex-text); white-space: nowrap;
+}
+.cex-wrap.light .cex-watermark { opacity: 0.06; }
+.cex-exam-header, .cex-exam-layout { position: relative; z-index: 6; }
+
+/* Contador de salidas en la barra superior */
+.cex-strike-chip {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 1.5px;
+  padding: 5px 10px; border: 1px solid var(--cex-border); color: var(--cex-muted);
+}
+.cex-strike-chip.has-strikes { color: var(--cex-warning); border-color: var(--cex-warning); }
+
+/* Aviso de salida registrada */
+.cex-strike-toast {
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 960; max-width: min(560px, calc(100vw - 32px));
+  padding: 14px 22px; background: var(--cex-bg);
+  border: 1px solid var(--cex-danger); border-left-width: 4px; color: var(--cex-text);
+  font-size: 0.84rem; font-weight: 800; line-height: 1.5;
+  animation: cex-toast-in 0.3s ease;
+}
+
+/* Avisos de cierre / salida de pantalla completa */
+.cex-modal-backdrop--leave { z-index: 990; background: rgba(0,0,0,0.92); }
+.cex-modal--leave { max-width: 520px; }
+.cex-modal--danger { border-color: var(--cex-danger); }
+.cex-eyebrow--danger { color: var(--cex-danger); }
+.cex-modal-text strong { color: var(--cex-danger); font-weight: 900; }
+
+.cex-strike-meter {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline;
+  padding: 12px 14px; margin: 0 0 20px;
+  border: 1px solid rgba(244,63,94,0.35); background: rgba(244,63,94,0.06);
+}
+.cex-strike-meter span   { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; opacity: 0.75; }
+.cex-strike-meter strong { font-size: 1.4rem; font-weight: 900; color: var(--cex-danger); }
+.cex-strike-meter em     { grid-column: 1 / -1; font-style: normal; font-size: 0.72rem; opacity: 0.7; }
+
+/* Lista de extensiones detectadas en la verificación */
+.cex-foreign-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.cex-foreign-list code {
+  font-family: 'Montserrat', sans-serif; font-size: 0.68rem; font-weight: 700;
+  padding: 2px 8px; border: 1px solid rgba(244,63,94,0.35); background: rgba(244,63,94,0.06);
+}
+
+@media (max-width: 900px) {
+  .cex-strike-chip { order: 3; }
+}
+
+/* ── Información adicional: resaltado sin titileo ni salto ─────────────────
+   Reemplaza la animación anterior (opacidad + desplazamiento): ahora solo se
+   ilumina el fondo una vez y se apaga suave. Va al final para pisar la regla
+   original de .cex-transition-wrap.is-new con la misma especificidad. */
+.cex-transition-wrap.is-new .cex-transition {
+  animation:  cex-transition-flash 1.6s ease-out 1 both;
+  box-shadow: none;
+}
+@keyframes cex-transition-flash {
+  from { background: rgba(192,132,252,0.20); }
+  to   { background: rgba(192,132,252,0.05); }
+}
+.cex-wrap.light .cex-transition-wrap.is-new .cex-transition {
+  animation-name: cex-transition-flash-light;
+}
+@keyframes cex-transition-flash-light {
+  from { background: rgba(126,34,206,0.14); }
+  to   { background: rgba(126,34,206,0.04); }
 }
