@@ -1,9 +1,11 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { UseSession } from "../contexts/SessionContext";
 import "./enterpriseDashboard.css";
 import "./postuladosPlanBlocked.css";
+import "./postuladosPlanBlocked.css";
+import { HS_SKILLS } from "../skills/Skills"; 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Applicant {
@@ -46,181 +48,415 @@ const esc = (v: unknown): string =>
 const safeImgSrc = (u: unknown): string =>
   typeof u === "string" && /^(https?:\/\/|data:image\/)/i.test(u) ? esc(u) : "";
 
-// Skills del CV: formato nuevo { roles, habilidades, herramientas } o array viejo
-function flattenCvSkills(raw: any): string[] {
-  if (Array.isArray(raw)) return raw;
-  if (!raw || typeof raw !== "object") return [];
-  return [...(raw.roles ?? []), ...(raw.habilidades ?? []), ...(raw.herramientas ?? [])];
+// ─── Catálogo de skills (mismo árbol que el CV Builder) ───────────────────────
+type SkillCategory = "roles" | "habilidades" | "herramientas";
+
+const CATEGORY_ORDER: SkillCategory[] = ["roles", "habilidades", "herramientas"];
+
+const CATEGORY_LABELS: Record<SkillCategory, string> = {
+  roles:        "Áreas y roles",
+  habilidades:  "Habilidades",
+  herramientas: "Herramientas",
+};
+
+const CATEGORY_CATALOGS: Record<SkillCategory, Record<string, readonly string[]>> = {
+  roles:        HS_SKILLS.AREAS_Y_ROLES,
+  habilidades:  HS_SKILLS.HABILIDADES,
+  herramientas: HS_SKILLS.HERRAMIENTAS,
+};
+
+// Skills del CV: formato nuevo { roles, habilidades, herramientas } o array
+// viejo (lo que no se reconoce cae en herramientas, igual que en el CV Builder)
+function normalizeCvSkills(raw: any): Record<SkillCategory, string[]> {
+  if (Array.isArray(raw)) return { roles: [], habilidades: [], herramientas: raw };
+  return {
+    roles:        Array.isArray(raw?.roles)        ? raw.roles        : [],
+    habilidades:  Array.isArray(raw?.habilidades)  ? raw.habilidades  : [],
+    herramientas: Array.isArray(raw?.herramientas) ? raw.herramientas : [],
+  };
+}
+
+// Ubica una skill en el catálogo: rama y subgrupo (lo que no está, "Otros")
+const BRANCH_INDEX = CATEGORY_ORDER.map(branch => {
+  const groupMap: Record<string, string> = {};
+  for (const [group, items] of Object.entries(CATEGORY_CATALOGS[branch])) {
+    for (const item of items) groupMap[item] = group;
+  }
+  return { branch, groupMap, groupOrder: Object.keys(CATEGORY_CATALOGS[branch]) };
+});
+
+function locateSkill(skill: string): { branch: SkillCategory | "otros"; branchIdx: number; group: string; groupIdx: number } {
+  for (let i = 0; i < BRANCH_INDEX.length; i++) {
+    const b = BRANCH_INDEX[i];
+    const group = b.groupMap[skill];
+    if (group) return { branch: b.branch, branchIdx: i, group, groupIdx: b.groupOrder.indexOf(group) };
+  }
+  return { branch: "otros", branchIdx: 99, group: "Otros", groupIdx: 0 };
+}
+
+function sortByCatalog(skills: string[]): string[] {
+  return [...skills].sort((a, b) => {
+    const la = locateSkill(a), lb = locateSkill(b);
+    if (la.branchIdx !== lb.branchIdx) return la.branchIdx - lb.branchIdx;
+    if (la.groupIdx  !== lb.groupIdx)  return la.groupIdx  - lb.groupIdx;
+    return a.localeCompare(b);
+  });
+}
+
+// Bloques contiguos rama/subgrupo para mostrar cada título una sola vez
+function segmentByGroup(skills: string[]) {
+  const segments: { branchLabel: string; group: string; skills: string[] }[] = [];
+  skills.forEach(skill => {
+    const loc = locateSkill(skill);
+    const branchLabel = loc.branch === "otros" ? "Otros" : CATEGORY_LABELS[loc.branch];
+    const last = segments[segments.length - 1];
+    if (last && last.branchLabel === branchLabel && last.group === loc.group) last.skills.push(skill);
+    else segments.push({ branchLabel, group: loc.group, skills: [skill] });
+  });
+  return segments;
 }
 
 // ─── Validaciones de Hidden ───────────────────────────────────────────────────
 // Las agrega el backend al CV (no viven en el documento CV):
 // - skillsCertifiedByHidden: examen controlado
-// - modernSocSkills: curso completado
+// - modernSocSkills (y futuros cursos): skills validadas al completar un curso
 const strArr = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
 
+// Un registro por curso. Cuando se suba otro curso, se agrega su entrada
+// con el campo que trae el backend.
+const HIDDEN_COURSES: { id: string; title: string; getSkills: (cv: any) => string[] }[] = [
+  { id: "modern-soc", title: "Modern SOC Operations", getSkills: cv => strArr(cv?.modernSocSkills) },
+];
+
 function getValidations(cv: any) {
   const certified = strArr(cv?.skillsCertifiedByHidden);
-  const course    = strArr(cv?.modernSocSkills);
-  return { certified, course, isCertified: certified.length > 0 };
+  const courses   = HIDDEN_COURSES
+    .map(c => ({ id: c.id, title: c.title, skills: c.getSkills(cv) }))
+    .filter(c => c.skills.length > 0);
+  const courseSkills = new Set(courses.flatMap(c => c.skills));
+  return { certified, courses, courseSkills };
 }
 
-// Chips del modal: declarada / certificada por examen / validada por curso
-const CHIP_BASE: CSSProperties = {
-  fontFamily: "'JetBrains Mono',monospace", fontSize: "0.62rem", fontWeight: 800,
-  letterSpacing: "1px", padding: "3px 10px", textTransform: "uppercase",
-};
-const CHIP_VARIANTS: Record<"plain" | "cert" | "course", CSSProperties> = {
-  plain:  { border: "1px solid rgba(204,255,0,0.3)", color: "rgba(204,255,0,0.8)" },
-  cert:   { border: "1px solid #facc15", color: "#facc15", background: "rgba(250,204,21,0.08)" },
-  course: { border: "1px solid rgba(56,189,248,0.5)", color: "#38bdf8", background: "rgba(56,189,248,0.08)" },
-};
+const DECLARED_PAGE_SIZE = 20;
+const COURSE_PAGE_SIZE   = 24;
+
+// ─── Chip de skill dentro del modal ───────────────────────────────────────────
 function CvChip({ label, kind }: { label: string; kind: "plain" | "cert" | "course" }) {
-  return <span style={{ ...CHIP_BASE, ...CHIP_VARIANTS[kind] }}>{kind === "cert" ? "✓ " : ""}{label}</span>;
+  return <span className={`hs-cvx-chip hs-cvx-chip--${kind}`}>{kind === "cert" ? "✓ " : ""}{label}</span>;
 }
 
-// Arma el HTML imprimible del CV
+// ─── Curso validado: botón con el nombre → árbol de skills paginado ──────────
+function ValidatedCourse({ title, skills }: { title: string; skills: string[] }) {
+  const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(0);
+
+  const sorted     = sortByCatalog(skills);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / COURSE_PAGE_SIZE));
+  const segments   = segmentByGroup(sorted.slice(page * COURSE_PAGE_SIZE, (page + 1) * COURSE_PAGE_SIZE));
+
+  const branchCounts = CATEGORY_ORDER
+    .map(cat => ({ cat, n: skills.filter(s => locateSkill(s).branch === cat).length }))
+    .filter(x => x.n > 0);
+
+  let lastBranch = "";
+
+  return (
+    <div className={`hs-cvx-course${open ? " open" : ""}`}>
+      <button type="button" className="hs-cvx-course-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="hs-cvx-arrow hs-cvx-arrow--course" aria-hidden="true">▸</span>
+        <span className="hs-cvx-course-info">
+          <span className="hs-cvx-course-kicker">CURSO COMPLETADO EN HIDDEN SECURITY</span>
+          <span className="hs-cvx-course-title">{title}</span>
+          <span className="hs-cvx-course-meta">
+            {skills.length} skills validadas
+            {branchCounts.length > 0 && " · " + branchCounts.map(b => `${b.n} ${CATEGORY_LABELS[b.cat].toLowerCase()}`).join(" · ")}
+          </span>
+        </span>
+        <span className="hs-cvx-action hs-cvx-action--course">{open ? "OCULTAR" : "VER SKILLS"}</span>
+      </button>
+
+      {open && (
+        <div className="hs-cvx-course-body">
+          <p className="hs-cvx-note">Skills que el postulante demostró al completar el curso y aprobar sus evaluaciones.</p>
+
+          {segments.map((seg, i) => {
+            const showBranch = seg.branchLabel !== lastBranch;
+            lastBranch = seg.branchLabel;
+            return (
+              <div key={`${seg.branchLabel}-${seg.group}-${i}`} className="hs-cvx-seg">
+                {showBranch && <span className="hs-cvx-branch">{seg.branchLabel}</span>}
+                <span className="hs-cvx-subgroup">{seg.group}</span>
+                <div className="hs-cvx-chips">
+                  {seg.skills.map(s => <CvChip key={s} label={s} kind="course" />)}
+                </div>
+              </div>
+            );
+          })}
+
+          {totalPages > 1 && (
+            <div className="hs-cvx-pager">
+              <button type="button" className="hs-action-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← ANTERIOR</button>
+              <span className="hs-cvx-pager-info">Página {page + 1} / {totalPages}</span>
+              <button type="button" className="hs-action-btn" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>SIGUIENTE →</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Rama de skills autodeclaradas (acordeón) ─────────────────────────────────
+function DeclaredBranch({
+  category, items, certified, courseSkills,
+}: {
+  category: SkillCategory;
+  items: string[];
+  certified: string[];
+  courseSkills: Set<string>;
+}) {
+  const [open,    setOpen]    = useState(false);
+  const [visible, setVisible] = useState(DECLARED_PAGE_SIZE);
+
+  const sorted    = sortByCatalog(items);
+  const remaining = sorted.length - visible;
+  const segments  = segmentByGroup(sorted.slice(0, visible));
+
+  return (
+    <div className={`hs-cvx-branchbox${open ? " open" : ""}`}>
+      <button type="button" className="hs-cvx-branchbox-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="hs-cvx-arrow" aria-hidden="true">▸</span>
+        <span className="hs-cvx-branchbox-title">{CATEGORY_LABELS[category]}</span>
+        <span className="hs-cvx-branchbox-count">{items.length} skills</span>
+        <span className="hs-cvx-action">{open ? "OCULTAR" : "VER"}</span>
+      </button>
+
+      {open && (
+        <div className="hs-cvx-branchbox-body">
+          {segments.map((seg, i) => (
+            <div key={`${seg.group}-${i}`} className="hs-cvx-seg">
+              <span className="hs-cvx-subgroup">{seg.group}</span>
+              <div className="hs-cvx-chips">
+                {seg.skills.map(s => (
+                  <CvChip
+                    key={s}
+                    label={s}
+                    kind={certified.includes(s) ? "cert" : courseSkills.has(s) ? "course" : "plain"}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          {remaining > 0 && (
+            <button type="button" className="hs-action-btn hs-cvx-more" onClick={() => setVisible(v => v + DECLARED_PAGE_SIZE)}>
+              Ver {Math.min(DECLARED_PAGE_SIZE, remaining)} más ({remaining} restantes)
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PDF del CV ───────────────────────────────────────────────────────────────
+// Formato corto: primero lo validado por Hidden (resumido), después el CV y al
+// final las skills autodeclaradas como texto compacto. Solo Montserrat.
 function buildCvHtml(cv: any, name: string): string {
   const p        = cv.personalInfo ?? {};
   const filename = `CV_${name.replace(/\s+/g, "_")}`;
+  const { certified, courses } = getValidations(cv);
+  const declaredByCat = normalizeCvSkills(cv.skills);
 
-  const section = (title: string, content: string) => !content.trim() ? "" : `
-      <div style="page-break-inside:avoid;margin-bottom:28px;">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;page-break-after:avoid;">
-          <span style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:900;letter-spacing:5px;text-transform:uppercase;color:#111;white-space:nowrap;">${title}</span>
-          <div style="flex:1;height:2px;background:#000;"></div>
-        </div>${content}
-      </div>`;
+  const dates = (start: string, end: string, current: boolean) =>
+    esc(`${start ?? ""}${start ? " — " : ""}${current ? "Actualidad" : (end ?? "")}`);
 
-  const entry = (inner: string) => `<div style="page-break-inside:avoid;margin-bottom:18px;">${inner}</div>`;
+  const section = (title: string, content: string, note = "") => !content.trim() ? "" : `
+    <section class="sec">
+      <div class="sec-head"><h2>${title}</h2><span class="rule"></span></div>
+      ${note ? `<p class="sec-note">${note}</p>` : ""}
+      ${content}
+    </section>`;
 
-  // Skills: declaradas (✓ si además están certificadas por examen),
-  // certificadas no declaradas y validadas por curso
-  const { certified, course, isCertified } = getValidations(cv);
-  const declared = flattenCvSkills(cv.skills);
-
-  const TAG_STYLES = {
-    plain:  "border:1.5px solid #111;background:transparent;color:#111;",
-    cert:   "border:1.5px solid #999;background:#111;color:#fff;",
-    course: "border:1.5px solid #0284c7;background:#e0f2fe;color:#075985;",
+  const courseAreas = (skills: string[]) => {
+    const counts = new Map<string, number>();
+    skills.forEach(s => {
+      const g = locateSkill(s).group;
+      counts.set(g, (counts.get(g) ?? 0) + 1);
+    });
+    const list = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    const top  = list.slice(0, 6).map(([g, n]) => `${esc(g)} (${n})`).join(" · ");
+    return list.length > 6 ? `${top} · +${list.length - 6} áreas más` : top;
   };
-  const tag = (s: string, kind: keyof typeof TAG_STYLES) =>
-    `<span style="display:inline-block;${TAG_STYLES[kind]}font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${kind === "cert" ? "✓ " : ""}${esc(s)}</span>`;
 
-  const skillTags          = declared.map(s => tag(s, certified.includes(s) ? "cert" : "plain")).join("");
-  const certifiedExtraTags = certified.filter(s => !declared.includes(s)).map(s => tag(s, "cert")).join("");
-  const courseTags         = course.map(s => tag(s, "course")).join("");
-
-  const badgeBase = "display:inline-block;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;padding:6px 14px;margin:8px 6px 0 0;";
-  const badgesHTML =
-    (isCertified ? `<div style="${badgeBase}background:#000;color:#fff;">✓ CERTIFICADO — HIDDEN SECURITY</div>` : "") +
-    (course.length > 0 ? `<div style="${badgeBase}background:#e0f2fe;color:#075985;border:1.5px solid #0284c7;">CURSO SOC COMPLETADO</div>` : "");
-
-  const experienceHTML = (cv.experience ?? []).map((e: any) => entry(`
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
-        <div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${esc(e.position)}</div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#555;margin-top:2px;">${esc(e.company)}${e.location ? ` · ${esc(e.location)}` : ""}</div>
-        </div>
-        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#888;letter-spacing:1px;white-space:nowrap;padding-top:3px;">
-          ${esc(e.startDate)}${e.startDate ? " — " : ""}${e.current ? "Actualidad" : esc(e.endDate)}
-        </div>
+  const validatedHTML = (certified.length || courses.length) ? `
+    <div class="validated">
+      <div class="validated-head">
+        <span class="validated-title">VALIDADO POR HIDDEN SECURITY</span>
+        <span class="validated-sub">Comprobado por la plataforma, no declarado por el postulante</span>
       </div>
-      ${e.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:6px 0 0;white-space:pre-line;">${esc(e.description)}</p>` : ""}`
-  )).join("");
-
-  const educationHTML = (cv.education ?? []).map((e: any) => entry(`
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
-        <div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${esc(e.degree)}${e.field ? ` — ${esc(e.field)}` : ""}</div>
-          <div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#555;margin-top:2px;">${esc(e.institution)}</div>
-        </div>
-        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#888;letter-spacing:1px;white-space:nowrap;padding-top:3px;">
-          ${esc(e.startDate)}${e.startDate ? " — " : ""}${e.current ? "Actualidad" : esc(e.endDate)}
-        </div>
-      </div>
-      ${e.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:6px 0 0;white-space:pre-line;">${esc(e.description)}</p>` : ""}`
-  )).join("");
-
-  const certsHTML = (cv.certifications ?? []).map((c: any) => entry(`
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-        <div>
-          <span style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:900;color:#000;">${esc(c.name)}</span>
-          <span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;margin-left:8px;">· ${esc(c.issuer)}</span>
-          ${c.credentialId ? `<div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:#999;margin-top:3px;">ID: ${esc(c.credentialId)}</div>` : ""}
-        </div>
-        <span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#999;letter-spacing:1px;white-space:nowrap;">${esc(c.date)}</span>
-      </div>`
-  )).join("");
-
-  const langsHTML = `<div style="display:flex;flex-wrap:wrap;gap:28px;">${(cv.languages ?? []).map((l: any) => `
-      <div style="page-break-inside:avoid;">
-        <div style="font-family:'Montserrat',sans-serif;font-size:14px;font-weight:900;text-transform:uppercase;color:#000;">${esc(l.language)}</div>
-        <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#777;text-transform:uppercase;margin-top:2px;">${esc(l.level)}</div>
-      </div>`).join("")}</div>`;
-
-  const projectsHTML = (cv.projects ?? []).map((proj: any) => entry(`
-      <div style="border-left:3px solid #000;padding-left:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
-          <span style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${esc(proj.name)}</span>
-          <div style="display:flex;gap:10px;">
-            ${proj.url     ? `<span style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:800;letter-spacing:2px;color:#555;text-transform:uppercase;">↗ DEMO</span>` : ""}
-            ${proj.repoUrl ? `<span style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:800;letter-spacing:2px;color:#888;text-transform:uppercase;">↗ REPO</span>` : ""}
+      ${certified.map(c => `
+        <div class="vrow">
+          <span class="vtag vtag--cert">✓ CERTIFICACIÓN</span>
+          <div><strong>${esc(c)}</strong><span class="vdesc">Examen controlado y cronometrado</span></div>
+        </div>`).join("")}
+      ${courses.map(c => `
+        <div class="vrow">
+          <span class="vtag vtag--course">CURSO</span>
+          <div>
+            <strong>${esc(c.title)}</strong><span class="vdesc">${c.skills.length} skills validadas por evaluaciones</span>
+            <div class="vareas">${courseAreas(c.skills)}</div>
           </div>
-        </div>
-        ${proj.description ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#333;line-height:1.8;margin:0 0 8px;white-space:pre-line;">${esc(proj.description)}</p>` : ""}
-        ${(proj.technologies ?? []).length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${proj.technologies.map((t: string) => `<span style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border:1px solid #bbb;color:#444;padding:3px 8px;">${esc(t)}</span>`).join("")}</div>` : ""}
-      </div>`
-  )).join("");
+        </div>`).join("")}
+    </div>` : "";
+
+  const experienceHTML = (cv.experience ?? []).map((e: any) => `
+    <div class="entry">
+      <div class="entry-head">
+        <div><strong>${esc(e.position)}</strong><span class="entry-sub"> · ${esc(e.company)}${e.location ? `, ${esc(e.location)}` : ""}</span></div>
+        <span class="entry-date">${dates(e.startDate, e.endDate, e.current)}</span>
+      </div>
+      ${e.description ? `<p class="entry-text">${esc(e.description)}</p>` : ""}
+    </div>`).join("");
+
+  const educationHTML = (cv.education ?? []).map((e: any) => `
+    <div class="entry">
+      <div class="entry-head">
+        <div><strong>${esc(e.degree)}${e.field ? ` — ${esc(e.field)}` : ""}</strong><span class="entry-sub"> · ${esc(e.institution)}</span></div>
+        <span class="entry-date">${dates(e.startDate, e.endDate, e.current)}</span>
+      </div>
+    </div>`).join("");
+
+  const MAX_PER_BRANCH = 30;
+  const declaredHTML = CATEGORY_ORDER.map(cat => {
+    const items = sortByCatalog(declaredByCat[cat]);
+    if (items.length === 0) return "";
+    const shown = items.slice(0, MAX_PER_BRANCH).map(esc).join(", ");
+    const extra = items.length > MAX_PER_BRANCH ? ` <span class="more">+${items.length - MAX_PER_BRANCH} más</span>` : "";
+    return `
+      <div class="drow">
+        <span class="dlabel">${CATEGORY_LABELS[cat]} <b>${items.length}</b></span>
+        <p class="dtext">${shown}${extra}</p>
+      </div>`;
+  }).join("");
+
+  const certsHTML = (cv.certifications ?? []).map((c: any) => `
+    <div class="entry entry--tight">
+      <div class="entry-head">
+        <div><strong>${esc(c.name)}</strong><span class="entry-sub"> · ${esc(c.issuer)}</span>
+          ${c.credentialId ? `<span class="entry-sub"> · ID ${esc(c.credentialId)}</span>` : ""}</div>
+        <span class="entry-date">${esc(c.date)}</span>
+      </div>
+    </div>`).join("");
+
+  const projectsHTML = (cv.projects ?? []).map((proj: any) => `
+    <div class="entry entry--tight">
+      <div class="entry-head">
+        <div><strong>${esc(proj.name)}</strong>
+          ${(proj.technologies ?? []).length ? `<span class="entry-sub"> · ${proj.technologies.map(esc).join(", ")}</span>` : ""}</div>
+        <span class="entry-date">${[proj.url && "DEMO", proj.repoUrl && "REPO"].filter(Boolean).join(" · ")}</span>
+      </div>
+      ${proj.description ? `<p class="entry-text">${esc(proj.description)}</p>` : ""}
+    </div>`).join("");
 
   const wp = cv.workPreferences ?? {};
-  const dispHTML = `
-      <div style="page-break-inside:avoid;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-        <span style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;color:#000;">${esc(cv.availability)}</span>
-        ${wp.modality?.length > 0 ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;">${wp.modality.map(esc).join(" · ")}</span>` : ""}
-        ${wp.salaryMin || wp.salaryMax ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:#555;">${esc(wp.currency ?? "USD")} ${wp.salaryMin?.toLocaleString("es-AR") ?? ""}${wp.salaryMin && wp.salaryMax ? " — " : ""}${wp.salaryMax?.toLocaleString("es-AR") ?? ""}</span>` : ""}
-      </div>`;
+  const salary = (wp.salaryMin || wp.salaryMax)
+    ? `${esc(wp.currency ?? "USD")} ${wp.salaryMin?.toLocaleString("es-AR") ?? ""}${wp.salaryMin && wp.salaryMax ? " — " : ""}${wp.salaryMax?.toLocaleString("es-AR") ?? ""}`
+    : "";
+  const facts = [
+    (cv.languages ?? []).length ? `<div class="fact"><span class="fact-label">IDIOMAS</span><span>${cv.languages.map((l: any) => `${esc(l.language)} <i>(${esc(l.level)})</i>`).join(" · ")}</span></div>` : "",
+    cv.availability ? `<div class="fact"><span class="fact-label">DISPONIBILIDAD</span><span>${esc(cv.availability)}</span></div>` : "",
+    wp.modality?.length ? `<div class="fact"><span class="fact-label">MODALIDAD</span><span>${wp.modality.map(esc).join(" · ")}</span></div>` : "",
+    wp.contractType?.length ? `<div class="fact"><span class="fact-label">CONTRATACIÓN</span><span>${wp.contractType.map(esc).join(" · ")}</span></div>` : "",
+    salary ? `<div class="fact"><span class="fact-label">PRETENSIÓN</span><span>${salary}</span></div>` : "",
+  ].join("");
 
-  const photo = safeImgSrc(p.photo);
+  const contacts = [p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio]
+    .filter(Boolean).map(esc).join("<i>|</i>");
+  const photo     = safeImgSrc(p.photo);
+  const generated = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>${esc(filename)}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-      <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#fff;color:#000;font-family:'Montserrat',sans-serif;}@page{size:A4;margin:18mm 16mm;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.no-print{display:none!important;}}</style>
-    </head><body><div style="max-width:794px;margin:0 auto;padding:0 0 48px;">
-      <div style="page-break-inside:avoid;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:20px;border-bottom:3px solid #000;margin-bottom:28px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:200px;padding:30px;">
-          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:#888;margin-bottom:8px;">CURRICULUM VITAE</div>
-          <h1 style="font-family:'Montserrat',sans-serif;font-size:42px;font-weight:900;letter-spacing:-2.5px;text-transform:uppercase;line-height:0.92;color:#000;margin-bottom:10px;">${esc(p.firstName)}<br/>${esc(p.lastName)}</h1>
-          ${p.headline ? `<p style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;color:#555;line-height:1.5;margin-top:8px;max-width:380px;">${esc(p.headline)}</p>` : ""}
-          ${badgesHTML}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-top:30px;">
-          ${photo ? `<img src="${photo}" alt="Foto" style="width:90px;height:90px;object-fit:cover;border:2px solid #000;border-radius:2px;display:block;" />` : ""}
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-            ${p.email    ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${esc(p.email)}</span>` : ""}
-            ${p.phone    ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${esc(p.phone)}</span>` : ""}
-            ${p.location ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#333;">${esc(p.location)}</span>` : ""}
-            ${p.linkedin ? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#000;text-transform:uppercase;">${esc(p.linkedin)}</span>` : ""}
-            ${p.github   ? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#555;text-transform:uppercase;">${esc(p.github)}</span>` : ""}
-            ${p.portfolio? `<span style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;color:#555;text-transform:uppercase;">${esc(p.portfolio)}</span>` : ""}
-          </div>
-        </div>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{background:#fff;color:#111;font-family:'Montserrat',Arial,sans-serif;font-size:11px;line-height:1.55;}
+      @page{size:A4;margin:14mm 14mm 16mm;}
+      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.no-print{display:none!important;}}
+      .page{max-width:780px;margin:0 auto;padding:28px 24px 60px;}
+
+      header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #000;margin-bottom:16px;}
+      h1{font-size:28px;font-weight:900;letter-spacing:-1px;text-transform:uppercase;line-height:1;}
+      .headline{font-size:12px;font-weight:700;color:#444;margin-top:6px;}
+      .contacts{font-size:9.5px;font-weight:600;color:#555;margin-top:8px;line-height:1.7;}
+      .contacts i{margin:0 7px;color:#bbb;font-style:normal;}
+      .photo{width:74px;height:74px;object-fit:cover;border:2px solid #000;flex-shrink:0;}
+
+      .validated{border:2px solid #000;padding:12px 14px;margin-bottom:18px;page-break-inside:avoid;}
+      .validated-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+      .validated-title{font-size:10px;font-weight:900;letter-spacing:2px;}
+      .validated-sub{font-size:8.5px;font-weight:600;color:#777;}
+      .vrow{display:flex;gap:12px;align-items:flex-start;padding:7px 0;border-top:1px solid #e5e5e5;}
+      .vtag{font-size:8px;font-weight:900;letter-spacing:1px;padding:3px 7px;white-space:nowrap;min-width:96px;text-align:center;}
+      .vtag--cert{background:#000;color:#fff;}
+      .vtag--course{border:1.5px solid #000;color:#000;}
+      .vrow strong{font-size:12px;font-weight:900;text-transform:uppercase;}
+      .vdesc{font-size:9.5px;font-weight:600;color:#666;margin-left:8px;}
+      .vareas{font-size:9px;font-weight:600;color:#555;margin-top:3px;}
+
+      .sec{margin-bottom:16px;}
+      .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;page-break-after:avoid;}
+      .sec-head h2{font-size:9.5px;font-weight:900;letter-spacing:2.5px;white-space:nowrap;}
+      .rule{flex:1;height:1.5px;background:#000;}
+      .sec-note{font-size:8.5px;font-weight:600;color:#888;margin:-3px 0 8px;}
+
+      .summary{font-size:11px;font-weight:500;color:#222;white-space:pre-line;}
+      .entry{margin-bottom:10px;page-break-inside:avoid;}
+      .entry--tight{margin-bottom:6px;}
+      .entry-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;}
+      .entry-head strong{font-size:11.5px;font-weight:900;text-transform:uppercase;}
+      .entry-sub{font-size:10px;font-weight:600;color:#555;}
+      .entry-date{font-size:8.5px;font-weight:700;color:#777;white-space:nowrap;letter-spacing:0.5px;}
+      .entry-text{font-size:10px;font-weight:500;color:#333;margin-top:3px;white-space:pre-line;}
+
+      .drow{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:6px 0;border-top:1px solid #eee;page-break-inside:avoid;}
+      .drow:first-of-type{border-top:none;}
+      .dlabel{font-size:8.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase;}
+      .dlabel b{color:#888;margin-left:4px;}
+      .dtext{font-size:10px;font-weight:600;color:#333;}
+      .more{color:#888;font-weight:700;}
+
+      .facts{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;page-break-inside:avoid;}
+      .fact{display:flex;flex-direction:column;gap:1px;font-size:10.5px;font-weight:700;}
+      .fact i{font-style:normal;color:#777;font-weight:600;}
+      .fact-label{font-size:8px;font-weight:900;letter-spacing:1.5px;color:#888;}
+
+      footer{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;font-size:8px;font-weight:700;color:#999;letter-spacing:1px;}
+    </style>
+  </head><body><div class="page">
+    <header>
+      <div>
+        <h1>${esc(p.firstName)} ${esc(p.lastName)}</h1>
+        ${p.headline ? `<p class="headline">${esc(p.headline)}</p>` : ""}
+        ${contacts ? `<p class="contacts">${contacts}</p>` : ""}
       </div>
-      ${p.summary ? section("PERFIL PROFESIONAL", `<p style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;color:#222;line-height:1.85;border-left:3px solid #000;padding-left:16px;white-space:pre-line;">${esc(p.summary)}</p>`) : ""}
-      ${experienceHTML ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
-      ${educationHTML  ? section("EDUCACIÓN",           educationHTML)  : ""}
-      ${skillTags      ? section("SKILLS TÉCNICAS",    `<div style="display:flex;flex-wrap:wrap;gap:4px;">${skillTags}</div>`) : ""}
-      ${certifiedExtraTags ? section("✓ CERTIFICADAS POR EXAMEN HIDDEN SECURITY", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${certifiedExtraTags}</div>`) : ""}
-      ${courseTags     ? section("VALIDADAS EN CURSO — HIDDEN SECURITY", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${courseTags}</div>`) : ""}
-      ${projectsHTML   ? section("PROYECTOS",           projectsHTML)   : ""}
-      ${certsHTML      ? section("CERTIFICACIONES",     certsHTML)      : ""}
-      ${(cv.languages ?? []).length > 0 ? section("IDIOMAS", langsHTML) : ""}
-      ${cv.availability ? section("DISPONIBILIDAD", dispHTML) : ""}
-    </div>
-    <div class="no-print" style="position:fixed;bottom:24px;right:24px;">
-      <button onclick="window.print()" style="background:#000;border:none;color:#fff;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:14px 28px;cursor:pointer;">↓ GUARDAR PDF</button>
-    </div></body></html>`;
+      ${photo ? `<img class="photo" src="${photo}" alt=""/>` : ""}
+    </header>
+
+    ${validatedHTML}
+    ${p.summary ? section("PERFIL", `<p class="summary">${esc(p.summary)}</p>`) : ""}
+    ${section("EXPERIENCIA", experienceHTML)}
+    ${section("EDUCACIÓN", educationHTML)}
+    ${section("SKILLS AUTODECLARADAS", declaredHTML, "Cargadas por el postulante en su CV. No verificadas por Hidden Security.")}
+    ${section("OTRAS CERTIFICACIONES (DECLARADAS)", certsHTML)}
+    ${section("PROYECTOS", projectsHTML)}
+    ${facts ? section("IDIOMAS Y PREFERENCIAS", `<div class="facts">${facts}</div>`) : ""}
+
+    <footer>CV GENERADO DESDE HIDDEN SECURITY · ${generated}</footer>
+  </div>
+  <div class="no-print" style="position:fixed;bottom:24px;right:24px;">
+    <button onclick="window.print()" style="background:#000;border:none;color:#fff;font-family:'Montserrat',Arial,sans-serif;font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:14px 28px;cursor:pointer;">↓ GUARDAR PDF</button>
+  </div></body></html>`;
 }
 
 // Mensaje simple dentro de la ventana del PDF (cargando / error)
@@ -429,7 +665,7 @@ export default function PostuladosTab() {
         <div className="hs-postulados-applicant-info">
           <span className="hs-postulados-applicant-uid">{name}</span>
           {showVacancy && (
-            <span style={{ fontSize: "0.62rem", opacity: 0.45, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1 }}>
+            <span style={{ fontSize: "0.62rem", opacity: 0.45, letterSpacing: 1 }}>
               {applicant.vacancyTitle}
             </span>
           )}
@@ -551,7 +787,7 @@ export default function PostuladosTab() {
           </button>
         )}
         {hasFilters && (
-          <span style={{ fontSize: "0.65rem", opacity: 0.5, fontFamily: "'JetBrains Mono',monospace" }}>
+          <span style={{ fontSize: "0.65rem", opacity: 0.5 }}>
             {filteredFlat.length} resultado{filteredFlat.length !== 1 ? "s" : ""}
           </span>
         )}
@@ -638,21 +874,30 @@ export default function PostuladosTab() {
               ) : !cvData ? (
                 <p style={{ opacity: 0.4, fontSize: "0.8rem" }}>Este postulante no tiene CV completo.</p>
               ) : (() => {
-                const p = cvData.personalInfo ?? {};
-                const v = getValidations(cvData);
-                const declared       = flattenCvSkills(cvData.skills);
-                const certifiedExtra = v.certified.filter(s => !declared.includes(s));
+                const p   = cvData.personalInfo ?? {};
+                const v   = getValidations(cvData);
+                const dec = normalizeCvSkills(cvData.skills);
+                const declaredBranches = CATEGORY_ORDER
+                  .map(cat => ({ cat, items: dec[cat] }))
+                  .filter(b => b.items.length > 0);
+                const hasValidated = v.certified.length > 0 || v.courses.length > 0;
+                const hasValidatedInDeclared = declaredBranches.some(b =>
+                  b.items.some(s => v.certified.includes(s) || v.courseSkills.has(s))
+                );
+                const photo = safeImgSrc(p.photo);
+
                 return (
                   <div className="hs-cv-view">
+                    {/* Encabezado */}
                     <div className="hs-cv-header">
-                      {p.photo && <img src={p.photo} alt={p.firstName} className="hs-cv-photo" />}
+                      {photo && <img src={p.photo} alt={p.firstName} className="hs-cv-photo" />}
                       <div className="hs-cv-header-info">
                         <h2 className="hs-cv-name">{p.firstName} {p.lastName}</h2>
                         {p.headline && <p className="hs-cv-headline">{p.headline}</p>}
-                        {(v.isCertified || v.course.length > 0) && (
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-                            {v.isCertified && <CvChip label="Certificado Hidden Security" kind="cert" />}
-                            {v.course.length > 0 && <CvChip label="Curso SOC completado" kind="course" />}
+                        {hasValidated && (
+                          <div className="hs-cvx-badges">
+                            {v.certified.length > 0 && <span className="hs-cvx-chip hs-cvx-chip--cert">✓ CERTIFICADO</span>}
+                            {v.courses.length > 0 && <span className="hs-cvx-chip hs-cvx-chip--course">CURSOS COMPLETADOS</span>}
                           </div>
                         )}
                         <div className="hs-cv-contacts">
@@ -664,7 +909,83 @@ export default function PostuladosTab() {
                         </div>
                       </div>
                     </div>
-                    {p.summary && <div className="hs-cv-section"><span className="hs-cv-section-title">// RESUMEN</span><p className="hs-cv-text">{p.summary}</p></div>}
+
+                    {p.summary && (
+                      <div className="hs-cv-section">
+                        <span className="hs-cv-section-title">// PERFIL</span>
+                        <p className="hs-cv-text">{p.summary}</p>
+                      </div>
+                    )}
+
+                    {/* ── VALIDADO POR HIDDEN SECURITY ── */}
+                    <div className="hs-cvx-validated">
+                      <div className="hs-cvx-block-head">
+                        <span className="hs-cvx-block-title">VALIDADO POR HIDDEN SECURITY</span>
+                        <span className="hs-cvx-block-sub">Comprobado por nosotros, no declarado por el postulante</span>
+                      </div>
+
+                      {!hasValidated ? (
+                        <p className="hs-cvx-empty">
+                          Este postulante todavía no tiene certificaciones ni cursos completados en Hidden Security.
+                        </p>
+                      ) : (
+                        <>
+                          {v.certified.length > 0 && (
+                            <div className="hs-cvx-group">
+                              <span className="hs-cvx-label hs-cvx-label--cert">Certificaciones · examen controlado y cronometrado</span>
+                              <div className="hs-cvx-certs">
+                                {v.certified.map(c => (
+                                  <div key={c} className="hs-cvx-cert">
+                                    <span className="hs-cvx-cert-mark" aria-hidden="true">✓</span>
+                                    <span className="hs-cvx-cert-text">
+                                      <strong>{c}</strong>
+                                      <span>Certificación Hidden Security</span>
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {v.courses.length > 0 && (
+                            <div className="hs-cvx-group">
+                              <span className="hs-cvx-label hs-cvx-label--course">Cursos completados · skills validadas por evaluaciones</span>
+                              {v.courses.map(c => <ValidatedCourse key={c.id} title={c.title} skills={c.skills} />)}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* ── AUTODECLARADO EN EL CV ── */}
+                    <div className="hs-cvx-declared">
+                      <div className="hs-cvx-block-head">
+                        <span className="hs-cvx-block-title hs-cvx-block-title--plain">SKILLS AUTODECLARADAS EN SU CV</span>
+                        <span className="hs-cvx-block-sub">
+                          Las cargó el postulante. Hidden Security no las verificó. Tocá cada categoría para ver el detalle.
+                        </span>
+                      </div>
+
+                      {declaredBranches.length === 0 ? (
+                        <p className="hs-cvx-empty">El postulante no declaró skills en su CV.</p>
+                      ) : (
+                        <>
+                          {declaredBranches.map(b => (
+                            <DeclaredBranch
+                              key={b.cat}
+                              category={b.cat}
+                              items={b.items}
+                              certified={v.certified}
+                              courseSkills={v.courseSkills}
+                            />
+                          ))}
+                          {hasValidatedInDeclared && (
+                            <p className="hs-cvx-note">Las que aparecen en dorado o celeste también están validadas por Hidden Security.</p>
+                          )}
+                        </>
+                      )}
+                    </div>
+
                     {(cvData.experience ?? []).length > 0 && (
                       <div className="hs-cv-section">
                         <span className="hs-cv-section-title">// EXPERIENCIA</span>
@@ -679,6 +1000,7 @@ export default function PostuladosTab() {
                         ))}
                       </div>
                     )}
+
                     {(cvData.education ?? []).length > 0 && (
                       <div className="hs-cv-section">
                         <span className="hs-cv-section-title">// EDUCACIÓN</span>
@@ -692,35 +1014,26 @@ export default function PostuladosTab() {
                         ))}
                       </div>
                     )}
-                    {declared.length > 0 && (
+
+                    {(cvData.certifications ?? []).length > 0 && (
                       <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// SKILLS</span>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                          {declared.map((s: string) => (
-                            <CvChip key={s} label={s} kind={v.certified.includes(s) ? "cert" : "plain"} />
-                          ))}
-                        </div>
+                        <span className="hs-cv-section-title">// OTRAS CERTIFICACIONES (DECLARADAS)</span>
+                        {cvData.certifications.map((c: any, i: number) => (
+                          <div key={i} className="hs-cv-entry">
+                            <div className="hs-cv-entry-header">
+                              <div>
+                                <strong>{c.name}</strong> <span style={{ opacity: 0.6 }}>· {c.issuer}</span>
+                                {/^https?:\/\//i.test(c.url ?? "") && (
+                                  <> · <a className="hs-cvx-link" href={c.url} target="_blank" rel="noreferrer">Ver certificación</a></>
+                                )}
+                              </div>
+                              <span style={{ fontSize: "0.72rem", opacity: 0.4 }}>{c.date}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
-                    {certifiedExtra.length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// ✓ CERTIFICADAS POR EXAMEN</span>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                          {certifiedExtra.map(s => <CvChip key={s} label={s} kind="cert" />)}
-                        </div>
-                      </div>
-                    )}
-                    {v.course.length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// VALIDADAS EN CURSO HIDDEN SECURITY</span>
-                        <p className="hs-cv-text" style={{ opacity: 0.6, fontSize: "0.72rem" }}>
-                          Obtenidas al completar el curso SOC — Modern Operations y aprobar sus evaluaciones.
-                        </p>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                          {v.course.map(s => <CvChip key={s} label={s} kind="course" />)}
-                        </div>
-                      </div>
-                    )}
+
                     {(cvData.projects ?? []).length > 0 && (
                       <div className="hs-cv-section">
                         <span className="hs-cv-section-title">// PROYECTOS</span>
@@ -729,8 +1042,8 @@ export default function PostuladosTab() {
                             <div className="hs-cv-entry-header">
                               <strong>{proj.name}</strong>
                               <div style={{ display: "flex", gap: 8 }}>
-                                {proj.url     && <a href={proj.url}     target="_blank" rel="noreferrer" className="cvp-link" style={{ color: "var(--h-accent)", fontSize: "0.7rem" }}>Demo</a>}
-                                {proj.repoUrl && <a href={proj.repoUrl} target="_blank" rel="noreferrer" className="cvp-link" style={{ color: "var(--h-accent)", fontSize: "0.7rem" }}>Repo</a>}
+                                {/^https?:\/\//i.test(proj.url ?? "")     && <a href={proj.url}     target="_blank" rel="noreferrer" className="hs-cvx-link">Demo</a>}
+                                {/^https?:\/\//i.test(proj.repoUrl ?? "") && <a href={proj.repoUrl} target="_blank" rel="noreferrer" className="hs-cvx-link">Repo</a>}
                               </div>
                             </div>
                             {proj.description && <p className="hs-cv-text">{proj.description}</p>}
@@ -738,20 +1051,7 @@ export default function PostuladosTab() {
                         ))}
                       </div>
                     )}
-                    {(cvData.certifications ?? []).length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// CERTIFICACIONES</span>
-                        {cvData.certifications.map((c: any, i: number) => (
-                          <div key={i} className="hs-cv-entry">
-                            <div className="hs-cv-entry-header">
-                              <strong>{c.name}</strong>
-                              <span className="udb-entry-sub">{c.issuer}</span> <a style={{ color: "white" }} href={c.url} target="_blank" rel="noreferrer">Ver certificación</a>
-                              <span style={{ fontSize: "0.72rem", opacity: 0.4 }}>{c.issuer} · {c.date}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+
                     {(cvData.languages ?? []).length > 0 && (
                       <div className="hs-cv-section">
                         <span className="hs-cv-section-title">// IDIOMAS</span>
@@ -765,6 +1065,7 @@ export default function PostuladosTab() {
                         </div>
                       </div>
                     )}
+
                     {cvData.availability && (
                       <div className="hs-cv-section">
                         <span className="hs-cv-section-title">// DISPONIBILIDAD</span>

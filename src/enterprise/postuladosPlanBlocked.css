@@ -1,98 +1,281 @@
 /* ══════════════════════════════════════════════════════════════
-   postuladosPlanBlocked.css — HIDDEN SECURITY
-   Bloque "sin plan activo" del tab Postulados, con link a /pricing.
-   Misma estética que .udb-blocked (UsersDatabase) y .hs-plan-blocked
-   (VacancyManager), usando las variables --h-* de .hs-admin.
+   postuladosCv.css — HIDDEN SECURITY
+   Modal "VER CV" del tab Postulados: bloque "Validado por Hidden"
+   arriba y skills autodeclaradas en acordeones abajo.
+   Misma lógica visual que UsersDatabase, con las variables --h-*
+   de .hs-admin. Tipografía: solo Montserrat.
 ══════════════════════════════════════════════════════════════ */
 
-.hs-pp-blocked {
+.hs-admin {
+  --h-gold:   #facc15;
+  --h-course: #38bdf8;
+}
+.hs-admin.light {
+  --h-gold:   #b45309;
+  --h-course: #0284c7;
+}
+
+/* ── Chips ───────────────────────────────────────────────────── */
+.hs-cvx-chip {
+  display:        inline-flex;
+  align-items:    center;
+  font-family:    'Montserrat', sans-serif !important;
+  font-size:      0.64rem;
+  font-weight:    800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding:        4px 10px;
+  border:         1px solid var(--h-border);
+  color:          var(--h-muted);
+}
+.hs-cvx-chip--cert   { border-color: var(--h-gold);   color: var(--h-gold);   background: rgba(250,204,21,0.08); }
+.hs-cvx-chip--course { border-color: rgba(56,189,248,0.5); color: var(--h-course); background: rgba(56,189,248,0.08); }
+
+.hs-cvx-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.hs-cvx-chips  { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ── Bloques Validado / Autodeclarado ────────────────────────── */
+.hs-cvx-validated,
+.hs-cvx-declared {
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+  padding:        16px;
+  margin-bottom:  20px;
+}
+.hs-cvx-validated {
+  border:     1px solid var(--h-border);
+  border-top: 3px solid var(--h-accent);
+  background: var(--h-surface);
+}
+.hs-cvx-declared { border: 1px dashed var(--h-border); gap: 10px; }
+
+.hs-cvx-block-head { display: flex; flex-direction: column; gap: 4px; }
+.hs-cvx-block-title {
+  font-family:    'Montserrat', sans-serif !important;
+  font-size:      0.74rem;
+  font-weight:    900;
+  letter-spacing: 2px;
+  color:          var(--h-accent);
+}
+.hs-cvx-block-title--plain { color: var(--h-text); opacity: 0.85; }
+.hs-cvx-block-sub {
+  font-size:   0.72rem;
+  font-weight: 500;
+  color:       var(--h-muted);
+  line-height: 1.5;
+}
+
+.hs-cvx-empty { margin: 0; font-size: 0.76rem; color: var(--h-muted); }
+.hs-cvx-note  { margin: 0; font-size: 0.72rem; color: var(--h-muted); line-height: 1.5; }
+
+.hs-cvx-group { display: flex; flex-direction: column; gap: 10px; }
+.hs-cvx-label {
+  font-family:    'Montserrat', sans-serif !important;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.hs-cvx-label--cert   { color: var(--h-gold); }
+.hs-cvx-label--course { color: var(--h-course); }
+
+/* ── Tarjetas de certificación ───────────────────────────────── */
+.hs-cvx-certs { display: flex; flex-wrap: wrap; gap: 10px; }
+.hs-cvx-cert {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     12px 16px;
+  border:      1px solid rgba(250,204,21,0.4);
+  background:  rgba(250,204,21,0.07);
+  min-width:   220px;
+}
+.hs-cvx-cert-mark {
+  width:           30px;
+  height:          30px;
   display:         flex;
-  flex-direction:  column;
   align-items:     center;
   justify-content: center;
-  text-align:      center;
-  gap:             14px;
-  padding:         56px 24px;
-  margin-bottom:   32px;
-  border:          1px solid var(--h-border);
-  background:      var(--h-surface);
-}
-
-/* Marca de bloqueo: cuadrado con línea diagonal, sin emojis */
-.hs-pp-blocked-mark {
-  width:         44px;
-  height:        44px;
-  border:        2px solid var(--h-border);
-  position:      relative;
-  margin-bottom: 6px;
-  flex-shrink:   0;
-}
-.hs-pp-blocked-mark::before {
-  content:    "";
-  position:   absolute;
-  top:        50%;
-  left:       -6px;
-  right:      -6px;
-  height:     2px;
-  background: #f43f5e;
-  transform:  rotate(-38deg);
-}
-
-.hs-pp-blocked-title {
-  font-family:    'Montserrat', sans-serif;
-  font-size:      clamp(1.2rem, 2.6vw, 1.9rem);
-  font-weight:    900;
-  letter-spacing: -1px;
-  text-transform: uppercase;
-  line-height:    1.1;
-  margin:         0;
-  color:          var(--h-text);
-}
-
-.hs-pp-blocked-accent { color: var(--h-accent); }
-
-.hs-pp-blocked-text {
-  font-size:   0.8rem;
-  font-weight: 500;
-  line-height: 1.6;
-  opacity:     0.6;
-  max-width:   520px;
-  margin:      0 auto;
-}
-
-.hs-pp-blocked-cta {
-  margin-top:      10px;
-  display:         inline-block;
-  background:      var(--h-accent);
-  border:          1px solid var(--h-accent);
+  background:      var(--h-gold);
   color:           #000;
-  font-family:     'Montserrat', sans-serif;
-  font-size:       0.72rem;
   font-weight:     900;
-  letter-spacing:  1.5px;
-  text-transform:  uppercase;
-  text-decoration: none;
-  padding:         12px 24px;
-  transition:      background 0.2s, border-color 0.2s;
+  flex-shrink:     0;
 }
-.hs-pp-blocked-cta:hover {
-  background:   #d4ff1a;
-  border-color: #d4ff1a;
+.hs-cvx-cert-text { display: flex; flex-direction: column; gap: 2px; }
+.hs-cvx-cert-text strong {
+  font-size:      0.86rem;
+  font-weight:    900;
+  color:          var(--h-gold);
+  text-transform: uppercase;
 }
-.hs-pp-blocked-cta:focus-visible {
-  outline:        2px solid var(--h-accent);
-  outline-offset: 3px;
-}
-
-/* ── LIGHT MODE ──────────────────────────────────────────────── */
-.hs-admin.light .hs-pp-blocked-cta { color: #fff; }
-.hs-admin.light .hs-pp-blocked-cta:hover {
-  background:   #e04a00;
-  border-color: #e04a00;
+.hs-cvx-cert-text span {
+  font-size:      0.58rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  color:          var(--h-muted);
+  text-transform: uppercase;
 }
 
-/* ── MOBILE ──────────────────────────────────────────────────── */
+/* ── Flecha + botón de acción (cursos y ramas) ───────────────── */
+.hs-cvx-arrow {
+  width:           26px;
+  height:          26px;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+  font-size:       0.75rem;
+  border:          1px solid var(--h-border);
+  color:           var(--h-text);
+  transition:      transform 0.2s;
+}
+.hs-cvx-arrow--course { border-color: var(--h-course); color: var(--h-course); }
+.hs-cvx-course.open .hs-cvx-arrow,
+.hs-cvx-branchbox.open .hs-cvx-arrow { transform: rotate(90deg); }
+
+.hs-cvx-action {
+  font-family:    'Montserrat', sans-serif !important;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  padding:        6px 10px;
+  border:         1px solid var(--h-border);
+  color:          var(--h-text);
+  flex-shrink:    0;
+  white-space:    nowrap;
+}
+.hs-cvx-action--course { border-color: rgba(56,189,248,0.45); color: var(--h-course); }
+
+/* ── Curso validado ──────────────────────────────────────────── */
+.hs-cvx-course {
+  border:     1px solid rgba(56,189,248,0.35);
+  background: rgba(56,189,248,0.05);
+}
+.hs-cvx-course.open { border-color: var(--h-course); }
+
+.hs-cvx-course-head {
+  width:       100%;
+  display:     flex;
+  align-items: center;
+  gap:         14px;
+  padding:     14px 16px;
+  background:  transparent;
+  border:      none;
+  cursor:      pointer;
+  text-align:  left;
+  color:       var(--h-text);
+  font-family: 'Montserrat', sans-serif !important;
+  transition:  background 0.15s;
+}
+.hs-cvx-course-head:hover { background: rgba(56,189,248,0.07); }
+
+.hs-cvx-course-info  { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.hs-cvx-course-kicker {
+  font-size:      0.55rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  color:          var(--h-course);
+}
+.hs-cvx-course-title {
+  font-size:      0.92rem;
+  font-weight:    900;
+  text-transform: uppercase;
+}
+.hs-cvx-course-meta { font-size: 0.68rem; font-weight: 600; color: var(--h-muted); }
+
+.hs-cvx-course-body {
+  border-top:     1px solid rgba(56,189,248,0.25);
+  padding:        14px 16px 16px;
+  display:        flex;
+  flex-direction: column;
+  gap:            12px;
+}
+
+.hs-cvx-seg { display: flex; flex-direction: column; gap: 6px; }
+.hs-cvx-branch {
+  font-size:      0.64rem;
+  font-weight:    900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color:          var(--h-course);
+  padding-top:    6px;
+  border-top:     1px dashed rgba(56,189,248,0.25);
+}
+.hs-cvx-seg:first-of-type .hs-cvx-branch { border-top: none; padding-top: 0; }
+.hs-cvx-subgroup {
+  font-size:      0.58rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  opacity:        0.45;
+}
+
+.hs-cvx-pager {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             14px;
+  margin-top:      4px;
+}
+.hs-cvx-pager-info { font-size: 0.66rem; font-weight: 700; opacity: 0.5; }
+
+/* ── Rama autodeclarada ──────────────────────────────────────── */
+.hs-cvx-branchbox { border: 1px solid var(--h-border); transition: border-color 0.2s; }
+.hs-cvx-branchbox:hover,
+.hs-cvx-branchbox.open { border-color: var(--h-muted); }
+
+.hs-cvx-branchbox-head {
+  width:       100%;
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     12px 14px;
+  background:  transparent;
+  border:      none;
+  cursor:      pointer;
+  text-align:  left;
+  color:       var(--h-text);
+  font-family: 'Montserrat', sans-serif !important;
+  transition:  background 0.15s;
+}
+.hs-cvx-branchbox-head:hover { background: var(--h-surface); }
+.hs-cvx-branchbox-head:hover .hs-cvx-action { border-color: var(--h-text); }
+
+.hs-cvx-branchbox-title {
+  flex:           1;
+  font-size:      0.84rem;
+  font-weight:    800;
+  text-transform: uppercase;
+}
+.hs-cvx-branchbox-count { font-size: 0.66rem; font-weight: 700; color: var(--h-muted); }
+
+.hs-cvx-branchbox-body {
+  border-top:     1px solid var(--h-border);
+  padding:        14px;
+  display:        flex;
+  flex-direction: column;
+  gap:            12px;
+}
+.hs-cvx-more { align-self: flex-start; }
+
+.hs-cvx-link { color: var(--h-accent); font-size: 0.72rem; font-weight: 700; }
+
+/* ── Light ───────────────────────────────────────────────────── */
+.hs-admin.light .hs-cvx-course      { background: rgba(2,132,199,0.04); border-color: rgba(2,132,199,0.3); }
+.hs-admin.light .hs-cvx-course.open { border-color: var(--h-course); }
+.hs-admin.light .hs-cvx-course-head:hover { background: rgba(2,132,199,0.06); }
+.hs-admin.light .hs-cvx-action--course { border-color: rgba(2,132,199,0.4); }
+.hs-admin.light .hs-cvx-chip--course { border-color: rgba(2,132,199,0.4); background: rgba(2,132,199,0.06); }
+.hs-admin.light .hs-cvx-chip--cert   { background: rgba(180,83,9,0.06); }
+.hs-admin.light .hs-cvx-cert         { background: rgba(180,83,9,0.06); border-color: rgba(180,83,9,0.35); }
+.hs-admin.light .hs-cvx-cert-mark    { color: #fff; }
+
+/* ── Mobile ──────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .hs-pp-blocked     { padding: 40px 18px; }
-  .hs-pp-blocked-cta { width: 100%; box-sizing: border-box; text-align: center; }
+  .hs-cvx-validated, .hs-cvx-declared { padding: 12px; }
+  .hs-cvx-course-head   { flex-wrap: wrap; padding: 12px; }
+  .hs-cvx-action--course { width: 100%; text-align: center; }
+  .hs-cvx-branchbox-head { padding: 10px 12px; gap: 10px; }
+  .hs-cvx-cert          { min-width: 0; width: 100%; }
 }

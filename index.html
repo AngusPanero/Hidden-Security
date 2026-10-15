@@ -1,22 +1,78 @@
 <!doctype html>
-<html lang="es-Ar">
+<html lang="es-AR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logos/logo-hidden-final.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ===== SEO básico ===== -->
     <title>Hidden Security | Empleabilidad en Ciberseguridad</title>
     <meta name="description" content="Plataforma de empleabilidad especializada en ciberseguridad. Conectamos profesionales con empresas a través de habilidades, formación y certificaciones." />
     <meta name="keywords" content="ciberseguridad, defensa digital, seguridad informática, auditoría técnica, protección de datos" />
-    <link rel="canonical" href="https://www.hidden-security.org" />
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="Hidden Security" />
+    <link rel="canonical" href="https://www.hidden-security.org/" />
 
+    <!-- ===== Íconos ===== -->
+    <link rel="icon" type="image/png" href="/logos/logo-hidden-final.png" />
+    <link rel="apple-touch-icon" href="/logos/logo-hidden-final.png" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- ===== Open Graph (WhatsApp, LinkedIn, Facebook) ===== -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.hidden-security.org" />
+    <meta property="og:site_name" content="Hidden Security" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:url" content="https://www.hidden-security.org/" />
     <meta property="og:title" content="Hidden Security | Empleabilidad en Ciberseguridad" />
     <meta property="og:description" content="Transformamos la vulnerabilidad en fortaleza. Soluciones de seguridad digital de alto impacto." />
     <meta property="og:image" content="https://www.hidden-security.org/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Hidden Security | Empleabilidad en Ciberseguridad" />
+
+    <!-- ===== Twitter / X ===== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Hidden Security | Empleabilidad en Ciberseguridad" />
+    <meta name="twitter:description" content="Transformamos la vulnerabilidad en fortaleza. Soluciones de seguridad digital de alto impacto." />
+    <meta name="twitter:image" content="https://www.hidden-security.org/og-image.jpg" />
+
+    <!-- ===== Datos estructurados (Google) ===== -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.hidden-security.org/#organization",
+            "name": "Hidden Security",
+            "url": "https://www.hidden-security.org/",
+            "logo": "https://www.hidden-security.org/logos/logo-hidden-final.png",
+            "description": "Plataforma de empleabilidad especializada en ciberseguridad. Conectamos profesionales con empresas a través de habilidades, formación y certificaciones.",
+            "areaServed": "AR",
+            "sameAs": [
+              "https://www.linkedin.com/company/hidden-security-r/",
+              "https://www.youtube.com/channel/UCgVE0HFSuzGECPuiRV-tUwg",
+              "https://www.tiktok.com/@hiddensecurity_ar",
+              "https://www.instagram.com/hiddensecurity_ar/"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.hidden-security.org/#website",
+            "name": "Hidden Security",
+            "url": "https://www.hidden-security.org/",
+            "inLanguage": "es-AR",
+            "publisher": { "@id": "https://www.hidden-security.org/#organization" }
+          }
+        ]
+      }
+    </script>
+
+    <!-- ===== Mercado Pago (defer: no bloquea el render y carga antes que main.tsx) ===== -->
+    <link rel="preconnect" href="https://sdk.mercadopago.com" />
+    <script src="https://sdk.mercadopago.com/js/v2" defer></script>
   </head>
   <body>
+    <noscript>Hidden Security necesita JavaScript habilitado para funcionar.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

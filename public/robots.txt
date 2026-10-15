@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Páginas privadas o de proceso: no deben aparecer en Google
+Disallow: /checkout
+Disallow: /loader
+Disallow: /error
+Disallow: /ok
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /partner
+Disallow: /enterprise
+
+Sitemap: https://www.hidden-security.org/sitemap.xml

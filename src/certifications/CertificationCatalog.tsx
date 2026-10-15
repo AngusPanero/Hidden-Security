@@ -123,6 +123,21 @@ function matchesFilter(filter: Filter, s: CertSummary | null | undefined): boole
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
+// Intento en curso de una certificación (GET /api/certification/:certId/status)
+interface InProgressInfo {
+  expiresAt: string;
+}
+
+// ms → "1:23:05" / "05:09"
+function formatRemaining(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
 // Mismos colores de nivel que en CourseCatalog, para consistencia visual
 const LEVEL_COLORS: Record<string, string> = {
   Inicial:    "#22c55e",
@@ -154,12 +169,76 @@ export default function CertificationCatalog() {
   const [summaries, setSummaries] = useState<Record<string, CertSummary | null>>({});
   const [filter,    setFilter]    = useState<Filter>("all");
 
-  useEffect(() => {
-    if (!user) return;
+  // Intentos en curso por certificación (los decide el backend, no el voucher)
+  const [inProgress, setInProgress] = useState<Record<string, InProgressInfo | null>>({});
+  const [now,        setNow]        = useState(() => Date.now());
+
+  const fetchSummaries = () => {
     axios.get(`${import.meta.env.VITE_API_URL}/api/certification/summary`, { withCredentials: true })
       .then(({ data }) => setSummaries(data.data ?? {}))
       .catch(() => setSummaries({}));
-  }, [user]);
+  };
+
+  // Pregunta al backend, por cada certificación disponible, si hay un intento abierto.
+  // El /status ya cierra los intentos vencidos, así que lo que vuelve como
+  // inProgress: true es un examen que todavía se puede retomar.
+  const fetchInProgress = async () => {
+    const available = CATALOG.filter(c => c.status === "available");
+    const results = await Promise.all(
+      available.map(async (c) => {
+        try {
+          const { data } = await axios.get(
+            `${import.meta.env.VITE_API_URL}/api/certification/${c.id}/status`,
+            { withCredentials: true }
+          );
+          return [c.id, data?.inProgress && data?.expiresAt ? { expiresAt: data.expiresAt } : null] as const;
+        } catch {
+          return [c.id, null] as const;
+        }
+      })
+    );
+    setInProgress(Object.fromEntries(results));
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchSummaries();
+    fetchInProgress();
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reloj: solo corre si hay algún examen en curso
+  const hasAnyInProgress = Object.values(inProgress).some(Boolean);
+  useEffect(() => {
+    if (!hasAnyInProgress) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [hasAnyInProgress]);
+
+  // Tiempo restante de una certificación en curso (null si no hay intento abierto)
+  const remainingFor = (certId: string): number | null => {
+    const info = inProgress[certId];
+    if (!info) return null;
+    return new Date(info.expiresAt).getTime() - now;
+  };
+
+  // Cuando un intento llega a 0, se vuelve a consultar: el backend lo cierra
+  // y el resultado pasa a verse en la card.
+  const anyExpired = CATALOG.some(c => {
+    const r = remainingFor(c.id);
+    return r !== null && r <= 0;
+  });
+  useEffect(() => {
+    if (!anyExpired) return;
+    const t = setTimeout(() => { fetchInProgress(); fetchSummaries(); }, 1500);
+    return () => clearTimeout(t);
+  }, [anyExpired]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Puede entrar si tiene voucher o si ya tiene un examen abierto de esa certificación
+  const isInProgress = (certId: string) => {
+    const r = remainingFor(certId);
+    return r !== null && r > 0;
+  };
+  const canEnter = (cert: CatalogEntry) => hasVoucher || isInProgress(cert.id);
 
   const counts: Record<Filter, number> = {
     all:    CATALOG.length,
@@ -169,10 +248,10 @@ export default function CertificationCatalog() {
   };
   const visible = CATALOG.filter(c => matchesFilter(filter, summaries[c.id]));
 
-  // Click en una card: sin voucher no se abre la certificación
+  // Click en una card: sin voucher y sin examen en curso no se abre la certificación
   const handleCardClick = (cert: CatalogEntry) => {
     if (cert.status === "soon") return;
-    if (!hasVoucher) {
+    if (!canEnter(cert)) {
       setNoVoucherCert(cert);
       return;
     }
@@ -180,9 +259,9 @@ export default function CertificationCatalog() {
   };
 
   // ── Examen real montado (vía portal) ────────────────────────────────
-  // Doble chequeo: si por algún motivo se perdió el voucher (ej. se usó en
-  // otra pestaña y se refrescaron las claims), no se monta el examen.
-  if (activeCert && showExam && activeCert.component && hasVoucher) {
+  // Doble chequeo: sin voucher y sin examen en curso no se monta el examen.
+  // Una vez montado no se desmonta aunque el voucher se consuma al iniciar.
+  if (activeCert && showExam && activeCert.component) {
     const ActiveComponent = activeCert.component;
     return createPortal(
       <div className={`ccx-wrap ccx-fullscreen-overlay ${isLight ? "light" : ""}`}>
@@ -193,8 +272,10 @@ export default function CertificationCatalog() {
   }
 
   // ── Pantalla intro de la certificación elegida (vía portal) ─────────
-  if (activeCert && hasVoucher) {
+  if (activeCert && canEnter(activeCert)) {
     const { intro } = activeCert;
+    const activeRemaining = remainingFor(activeCert.id);
+    const resuming        = activeRemaining !== null && activeRemaining > 0;
     return createPortal(
       <div className={`ccx-wrap ccx-fullscreen-overlay ${isLight ? "light" : ""}`}>
         <div className="ccx-intro-page">
@@ -231,8 +312,21 @@ export default function CertificationCatalog() {
             </div>
           )}
 
+          {resuming && (
+            <div className="ccx-progress ccx-progress--intro" role="status">
+              <div className="ccx-progress-head">
+                <span className="ccx-progress-label"><i className="ccx-live-dot" /> EXAMEN EN CURSO</span>
+                <span className="ccx-progress-time">{formatRemaining(activeRemaining!)}</span>
+              </div>
+              <p className="ccx-progress-text">
+                Ya empezaste este examen y el tiempo sigue corriendo. Al retomarlo seguís desde la
+                misma pregunta, con tus respuestas guardadas. No se consume otro voucher.
+              </p>
+            </div>
+          )}
+
           <button className="ccx-btn ccx-btn--accent ccx-btn--lg" onClick={() => setShowExam(true)}>
-            COMENZAR CERTIFICACIÓN →
+            {resuming ? "RETOMAR EXAMEN →" : "COMENZAR CERTIFICACIÓN →"}
           </button>
         </div>
       </div>,
@@ -282,11 +376,13 @@ export default function CertificationCatalog() {
           const levelColor = LEVEL_COLORS[cert.level] ?? "#ccff00";
           const summary    = summaries[cert.id];
           const taken      = !!summary && summary.attempts > 0;
+          const remaining  = remainingFor(cert.id);
+          const running    = remaining !== null && remaining > 0;
 
           return (
             <div
               key={cert.id}
-              className={`ccx-card${isSoon ? " ccx-card--soon" : ""}`}
+              className={`ccx-card${isSoon ? " ccx-card--soon" : ""}${running ? " ccx-card--running" : ""}`}
               onClick={() => handleCardClick(cert)}
             >
               {/* Badges */}
@@ -300,6 +396,10 @@ export default function CertificationCatalog() {
                 {isSoon ? (
                   <span className="ccx-badge ccx-badge--soon">
                     PRÓXIMAMENTE {cert.comingSoon}
+                  </span>
+                ) : running ? (
+                  <span className="ccx-badge ccx-badge--running">
+                    <i className="ccx-live-dot" /> EN CURSO
                   </span>
                 ) : taken ? (
                   <span className={`ccx-badge ccx-badge--${summary!.passed ? "passed" : "failed"}`}>
@@ -321,8 +421,21 @@ export default function CertificationCatalog() {
               {/* Descripción */}
               <p className="ccx-card-description">{cert.description}</p>
 
+              {/* Examen en curso: tiempo restante en vivo */}
+              {running && (
+                <div className="ccx-progress" role="status">
+                  <div className="ccx-progress-head">
+                    <span className="ccx-progress-label">// TIEMPO RESTANTE</span>
+                    <span className="ccx-progress-time">{formatRemaining(remaining!)}</span>
+                  </div>
+                  <span className="ccx-progress-meta">
+                    Examen iniciado · el tiempo sigue corriendo
+                  </span>
+                </div>
+              )}
+
               {/* Resultado obtenido (mejor intento) */}
-              {taken && (
+              {taken && !running && (
                 <div className={`ccx-result ccx-result--${summary!.passed ? "passed" : "failed"}`}>
                   <div className="ccx-result-head">
                     <span className="ccx-result-label">// {summary!.passed ? "TU RESULTADO" : "MEJOR INTENTO"}</span>
@@ -350,7 +463,9 @@ export default function CertificationCatalog() {
                 <span className="ccx-card-meta">{cert.duration}</span>
                 {!isSoon ? (
                   <span className="ccx-card-cta">
-                    {!taken ? "VER DETALLES →" : summary!.passed ? "MEJORAR NOTA →" : "REINTENTAR →"}
+                    {running ? "CONTINUAR EXAMEN →"
+                      : !taken ? "VER DETALLES →"
+                      : summary!.passed ? "MEJORAR NOTA →" : "REINTENTAR →"}
                   </span>
                 ) : (
                   <span className="ccx-card-cta ccx-card-cta--soon">EN DESARROLLO</span>

@@ -496,3 +496,168 @@ select.code-input {
 .tag-policy.tag-active   { color: #22c55e; }
 .tag-policy.tag-expired  { color: #ef4444; }
 .tag-policy.tag-disabled { color: #f59e0b; }
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL DE FIRMA
+   ══════════════════════════════════════════════════════════════ */
+.sign-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: signFade 0.2s ease forwards;
+}
+
+.sign-modal {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    background: var(--h-surface);
+    border: 1px solid var(--h-border);
+    border-top: 3px solid var(--h-accent);
+    padding: 28px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+    animation: slideIn 0.3s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+.sign-close {
+    all: unset;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    cursor: pointer;
+    color: var(--h-text-muted);
+    display: flex;
+    padding: 4px;
+    transition: color 0.2s;
+}
+.sign-close:hover:not(:disabled) { color: var(--h-text); }
+.sign-close:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.sign-eyebrow {
+    font-family: 'Montserrat', 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    color: var(--h-accent);
+}
+
+.sign-title {
+    margin: 0 0 6px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    color: var(--h-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sign-title svg { color: var(--h-accent); }
+
+.sign-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    margin-bottom: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--h-border);
+    border-left: 3px solid var(--h-accent);
+}
+.sign-summary.danger { border-left-color: #ef4444; }
+
+.sign-summary > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.75rem;
+}
+.sign-summary span {
+    font-family: 'Montserrat', 'JetBrains Mono', monospace;
+    color: var(--h-text-muted);
+    letter-spacing: 1px;
+    flex-shrink: 0;
+}
+.sign-summary strong {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    color: var(--h-text);
+    text-align: right;
+    word-break: break-word;
+}
+
+.sign-pin-input {
+    font-family: 'Montserrat', 'JetBrains Mono', monospace !important;
+    font-size: 1.6rem !important;
+    letter-spacing: 14px;
+    text-align: center;
+    padding: 12px !important;
+}
+.sign-pin-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sign-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #ef4444;
+}
+
+.sign-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.sign-btn {
+    flex: 1;
+    padding: 14px 10px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--h-border);
+    color: var(--h-text-muted);
+    transition: all 0.25s;
+}
+.sign-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.sign-btn.ghost:hover:not(:disabled) { color: var(--h-text); border-color: var(--h-text-muted); }
+
+.sign-btn.primary { border: 2px solid var(--h-accent); color: var(--h-accent); }
+.sign-btn.primary:hover:not(:disabled) { background: var(--h-accent); color: #000; }
+
+.sign-btn.danger { border: 2px solid #ef4444; color: #ef4444; }
+.sign-btn.danger:hover:not(:disabled) { background: #ef4444; color: #fff; }
+
+/* Light */
+.admin-inventory-wrapper.light .sign-overlay  { background: rgba(15, 23, 42, 0.45); }
+.admin-inventory-wrapper.light .sign-modal    { background: #fff; border-color: #e2e8f0; border-top-color: #ff5500; }
+.admin-inventory-wrapper.light .sign-summary  { background: #f8fafc; border-color: #e2e8f0; border-left-color: #ff5500; }
+.admin-inventory-wrapper.light .sign-summary.danger { border-left-color: #ef4444; }
+.admin-inventory-wrapper.light .sign-btn.primary:hover:not(:disabled) { color: #fff; }
+
+@media (max-width: 480px) {
+    .sign-modal   { padding: 24px 16px 16px; clip-path: none; }
+    .sign-actions { flex-direction: column-reverse; }
+}
+
+@keyframes signFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}

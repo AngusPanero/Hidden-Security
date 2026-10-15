@@ -491,7 +491,7 @@
   border:      1px solid var(--h-border);
   color:       var(--h-text);
   font-family: 'Montserrat', sans-serif;
-  font-size:   0.75rem;
+  font-size:   1rem;
   font-weight: 600;
   padding:     8px 12px;
   outline:     none;
@@ -557,12 +557,12 @@
 }
 
 .hs-postulados-cv-modal {
-  margin-top: 80px;
+  margin-top: 90px;
   background:     #000;
   border:         1px solid var(--h-accent);
   width:          100%;
-  max-width:      840px;
-  max-height:     85vh;
+  max-width:      940px !important;
+  max-height:     75vh !important;
   display:        flex;
   flex-direction: column;
   overflow:       hidden;
@@ -1141,7 +1141,7 @@
 
 .hs-postulados-applicant-date {
     font-family:    'Montserrat', monospace;
-    font-size:      0.58rem;
+    font-size:      0.78rem;
     font-weight:    600;
     opacity:        0.35;
     letter-spacing: 0.5px;
@@ -1196,7 +1196,7 @@
   border:      1px solid var(--h-border);
   color:       var(--h-text);
   font-family: 'Montserrat', sans-serif;
-  font-size:   0.75rem;
+  font-size:   1rem;
   font-weight: 600;
   padding:     8px 12px;
   outline:     none;
