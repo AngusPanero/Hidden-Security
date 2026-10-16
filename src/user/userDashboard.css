@@ -523,7 +523,7 @@
   justify-content: center;
   background:     #f43f5e;
   color:          #fff;
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.55rem;
   font-weight:    800;
   min-width:      18px;
@@ -589,7 +589,7 @@
   background:      rgba(204, 255, 0, 0.08);
   border:          1px solid rgba(204, 255, 0, 0.2);
   color:           #ccff00;
-  font-family:     'JetBrains Mono', monospace;
+  font-family:     "Montserrat", 'JetBrains Mono', monospace;
   font-size:       0.7rem;
   font-weight:     800;
   display:         flex;
@@ -641,7 +641,7 @@
 }
 
 .dm-notif-status-label {
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 1px;
@@ -650,7 +650,7 @@
 
 /* Fecha */
 .dm-notif-date {
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.6rem;
   font-weight:    700;
   letter-spacing: 1px;
@@ -675,7 +675,7 @@
   display:        flex;
   align-items:    center;
   gap:            6px;
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 2px;
@@ -756,7 +756,7 @@
   justify-content: center;
   background:     #f43f5e;
   color:          #fff;
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.55rem;
   font-weight:    800;
   min-width:      18px;
@@ -822,7 +822,7 @@
   background:      rgba(204, 255, 0, 0.08);
   border:          1px solid rgba(204, 255, 0, 0.2);
   color:           #ccff00;
-  font-family:     'JetBrains Mono', monospace;
+  font-family:     "Montserrat", 'JetBrains Mono', monospace;
   font-size:       0.7rem;
   font-weight:     800;
   display:         flex;
@@ -874,7 +874,7 @@
 }
 
 .dm-notif-status-label {
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 1px;
@@ -883,7 +883,7 @@
 
 /* Fecha */
 .dm-notif-date {
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.6rem;
   font-weight:    700;
   letter-spacing: 1px;
@@ -917,7 +917,7 @@
   display:        flex;
   align-items:    center;
   gap:            6px;
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 2px;
@@ -998,7 +998,7 @@
   justify-content: center;
   background:     #f43f5e;
   color:          #fff;
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.55rem;
   font-weight:    800;
   min-width:      18px;
@@ -1064,7 +1064,7 @@
   background:      rgba(204, 255, 0, 0.08);
   border:          1px solid rgba(204, 255, 0, 0.2);
   color:           #ccff00;
-  font-family:     'JetBrains Mono', monospace;
+  font-family:     "Montserrat", 'JetBrains Mono', monospace;
   font-size:       0.7rem;
   font-weight:     800;
   display:         flex;
@@ -1116,7 +1116,7 @@
 }
 
 .dm-notif-status-label {
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.62rem;
   font-weight:    800;
   letter-spacing: 1px;
@@ -1125,7 +1125,7 @@
 
 /* Fecha */
 .dm-notif-date {
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    "Montserrat", 'JetBrains Mono', monospace;
   font-size:      0.6rem;
   font-weight:    700;
   letter-spacing: 1px;
@@ -1523,7 +1523,7 @@
 .dm-hist-test {
     margin-left:    8px;
     padding:        1px 6px;
-    font-family:    'JetBrains Mono', monospace;
+    font-family:    "Montserrat", 'JetBrains Mono', monospace;
     font-size:      0.55rem;
     font-weight:    800;
     letter-spacing: 1px;
@@ -1623,7 +1623,7 @@
     margin-top:      6px;
     padding-top:     10px;
     border-top:      1px dashed var(--dm-border);
-    font-family:     'JetBrains Mono', monospace;
+    font-family:     "Montserrat", 'JetBrains Mono', monospace;
     font-size:       0.62rem;
     font-weight:     700;
     letter-spacing:  1px;

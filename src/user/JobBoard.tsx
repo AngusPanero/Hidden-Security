@@ -3,7 +3,7 @@ import axios from "axios";
 import { UseSession } from "../contexts/SessionContext";
 import "./jobBoard.css";
 
-const REQUIRE_CERTIFICATION = false; // Cambiar a true si se requiere certificación para postularse
+const REQUIRE_COURSE = false; // Cambiar a true si se requiere curso para postularse
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SalaryRange {
@@ -55,9 +55,12 @@ const APP_STATUS: Record<string, { label: string; color: string; bg: string }> =
 // ─── JobBoard ─────────────────────────────────────────────────────────────────
 export default function JobBoard() {
   const { user } = UseSession();
-  const isCertified = user?.userCertificated === true;
+  // Cursos completados — viene de la claim completedCourses (ej. ["modernSoc", ...])
+  // Alcanza con haber completado CUALQUIER curso, no uno en particular.
+  const completedCourses: string[] = Array.isArray(user?.completedCourses) ? user.completedCourses : [];
+  const hasCompletedCourse = completedCourses.length > 0;
   // Puede usar el flujo de postulación (el CV se valida aparte)
-  const canApply = !REQUIRE_CERTIFICATION || isCertified;
+  const canApply = !REQUIRE_COURSE || hasCompletedCourse;
 
   const [vacancies,    setVacancies]    = useState<Vacancy[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -231,13 +234,13 @@ export default function JobBoard() {
   return (
     <div className="jb-wrap">
 
-      {/* Banner certificación — solo si la certificación es requisito para postularse */}
-      {REQUIRE_CERTIFICATION && !isCertified && (
+      {/* Banner curso — solo si el curso es requisito para postularse */}
+      {REQUIRE_COURSE && !hasCompletedCourse && (
         <div className="jb-cert-banner">
           <span className="jb-cert-icon">🔒</span>
           <div>
-            <p className="jb-cert-title">Completá tu certificación para postularte</p>
-            <p className="jb-cert-sub">Podés ver todas las ofertas, pero necesitás el certificado Hidden Security para aplicar.</p>
+            <p className="jb-cert-title">Completá tu curso para postularte</p>
+            <p className="jb-cert-sub">Podés ver todas las ofertas, pero necesitás haber completado un curso en Hidden Security para aplicar.</p>
           </div>
         </div>
       )}
@@ -400,7 +403,7 @@ export default function JobBoard() {
                   ) : canApply ? (
                     <span className="jb-cta">VER Y POSTULARSE →</span>
                   ) : (
-                    <span className="jb-cta jb-cta--locked">🔒 CERTIFICACIÓN REQUERIDA</span>
+                    <span className="jb-cta jb-cta--locked">CURSO COMPLETADO REQUERIDO</span>
                   )}
                 </div>
 
@@ -502,7 +505,7 @@ export default function JobBoard() {
                 ) : (
                   <div className="jb-locked-msg">
                     <span className="jb-locked-icon">🔒</span>
-                    <p>Necesitás completar tu certificación Hidden Security para postularte a esta posición.</p>
+                    <p>Necesitás completar un curso en Hidden Security para postularte a esta posición.</p>
                   </div>
                 )}
               </div>
@@ -519,8 +522,8 @@ export default function JobBoard() {
           <div>
             <p className="jb-cert-title" style={{ color: "#f97316" }}>CV requerido para postularse</p>
             <p className="jb-cert-sub">
-              {REQUIRE_CERTIFICATION
-                ? <>Tenés la certificación pero aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</>
+              {REQUIRE_COURSE
+                ? <>Tenés el curso completado! pero aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</>
                 : <>Aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</>}
             </p>
           </div>

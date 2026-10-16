@@ -10,7 +10,7 @@ import CourseCatalog    from "../courses/CourseCatalog";
 import CertificationCatalog from "../certifications/CertificationCatalog";
 import { useNavigate } from "react-router-dom";
 import HeroCredentialBadge from "./HeroCredentialBadge";
-const REQUIRE_CERTIFICATION = false; // Cambiar a true si se requiere certificación para postularse
+const REQUIRE_COURSE = false; // Cambiar a true si se requiere haber completado al menos un curso para postularse
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserNotification {
@@ -261,10 +261,6 @@ const UserDashboard = () => {
     const { theme } = UseTheme();
     const navigate = useNavigate();
 
-    // Puede postularse y, por lo tanto, recibir notificaciones de sus postulaciones.
-    // Mismo criterio que JobBoard y que applyGuard en el backend.
-    const canUseJobs = !!user && (!REQUIRE_CERTIFICATION || user.userCertificated === true);
-
     const [expandedId,    setExpandedId]    = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"compras" | "cuenta" | "bolsa" | "notif" | "cv" | "cursos" | "certificaciones">(() => {
         const stored = localStorage.getItem("hs_user_tab");
@@ -280,9 +276,20 @@ const UserDashboard = () => {
     // El user de la sesión puede venir de una cookie con claims viejas
     // (p. ej. un voucher ya usado), por eso la membresía se calcula con estas.
     const [freshClaims, setFreshClaims] = useState<{
-        purchases:      string[];
-        purchaseExpiry: Record<string, string>;
+        purchases:        string[];
+        purchaseExpiry:   Record<string, string>;
+        completedCourses: string[];
     } | null>(null);
+
+    // Cursos completados — claim completedCourses (ej. ["modernSoc", ...]).
+    // Usa la copia fresca de Firebase si ya llegó; si no, la de la sesión.
+    const completedCourses: string[] = freshClaims
+        ? freshClaims.completedCourses
+        : (Array.isArray(user?.completedCourses) ? user.completedCourses : []);
+
+    // Puede postularse y, por lo tanto, recibir notificaciones de sus postulaciones.
+    // Mismo criterio que JobBoard y que applyGuard en el backend.
+    const canUseJobs = !!user && (!REQUIRE_COURSE || completedCourses.length > 0);
 
     const sseRef       = useRef<EventSource | null>(null);
     const audioCtxRef  = useRef<AudioContext | null>(null);
@@ -300,8 +307,9 @@ const UserDashboard = () => {
             .then(({ data }) => {
                 if (!data?.ok) return;
                 setFreshClaims({
-                    purchases:      data.purchases ?? [],
-                    purchaseExpiry: data.purchaseExpiry ?? {},
+                    purchases:        data.purchases ?? [],
+                    purchaseExpiry:   data.purchaseExpiry ?? {},
+                    completedCourses: Array.isArray(data.completedCourses) ? data.completedCourses : [],
                 });
                 if (data.sessionRefreshed) refreshUser?.().catch(() => {});
             })
@@ -525,7 +533,7 @@ const UserDashboard = () => {
                     </div>
                 </div>
                 <div className="dm-hero-right">
-                        <HeroCredentialBadge user={user} theme={theme} />
+                        <HeroCredentialBadge user={{ ...user, completedCourses }} theme={theme} />
                     
                     {canUseJobs && (
                         <span className="dm-live-badge">
@@ -871,9 +879,9 @@ const UserDashboard = () => {
                             <span className="dm-account-card-value">{user.rol?.toUpperCase() || "ESTUDIANTE"}</span>
                         </div>
                         <div className="dm-account-card">
-                            <span className="dm-account-card-label">CERTIFICACIÓN</span>
-                            <span className="dm-account-card-value" style={{ color: user.userCertificated ? "#22c55e" : "inherit" }}>
-                                {user.userCertificated ? "✓ CERTIFICADO" : "PENDIENTE"}
+                            <span className="dm-account-card-label">CURSOS COMPLETADOS</span>
+                            <span className="dm-account-card-value" style={{ color: completedCourses.length > 0 ? "#22c55e" : "inherit" }}>
+                                {completedCourses.length > 0 ? `✓ ${completedCourses.length}` : "PENDIENTE"}
                             </span>
                         </div>
                     </div>

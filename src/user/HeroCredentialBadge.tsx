@@ -9,26 +9,29 @@ export interface CompletedCourse {
   completedAt?: string | null;
 }
 
-
+// Claves = valores de la claim completedCourses (completionClaimId de cada
+// curso en config/courses.js del backend). Al sumar un curso, agregá su título.
 const COURSE_TITLES: Record<string, string> = {
-  "soc1": "Modern SOC Operations",
+  "modernSoc": "Modern SOC Operations",
 };
 
+// "modernSoc" → "Modern Soc" (fallback si falta el título en COURSE_TITLES)
 const prettifyId = (id: string) =>
-  id.replace(/[-_]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  id
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase());
 
-// Usa el endpoint que ya existe: GET /api/course/progress-summary
-// → { data: [{ courseId, isCompleted, completedAt, ... }] }
-async function fetchCompletedCourses(): Promise<CompletedCourse[]> {
-  const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/course/progress-summary`, { withCredentials: true });
-  const list: any[] = Array.isArray(data?.data) ? data.data : [];
-  return list
-    .filter(p => p.isCompleted === true)
-    .map(p => ({
-      id:          String(p.courseId),
-      title:       p.title ?? COURSE_TITLES[p.courseId] ?? prettifyId(String(p.courseId)),
-      completedAt: p.completedAt ?? null,
-    }));
+// Cursos completados = claim completedCourses (ej. ["modernSoc"]).
+// El user que llega por props ya trae las claims frescas desde
+// /api/refresh-claims (UserDashboard las mezcla antes de pasarlo).
+function getCompletedCourses(user: any): CompletedCourse[] {
+  const ids: string[] = Array.isArray(user?.completedCourses) ? user.completedCourses : [];
+  return [...new Set(ids.filter(id => typeof id === "string"))].map(id => ({
+    id,
+    title:       COURSE_TITLES[id] ?? prettifyId(id),
+    completedAt: null, // la claim no guarda fecha
+  }));
 }
 
 export interface Certification {
@@ -75,14 +78,14 @@ interface Props {
 type ModalKind = "cert" | "course" | null;
 
 export default function HeroCredentialBadge({ user, theme }: Props) {
-  const [courses, setCourses] = useState<CompletedCourse[]>([]);
   const [examCerts, setExamCerts] = useState<Certification[]>([]);
   const [freshSkills, setFreshSkills] = useState<string[] | null>(null); // null = todavía no llegó
   const [modal, setModal] = useState<ModalKind>(null);
 
+  const courses = getCompletedCourses(user);
+
   useEffect(() => {
     if (!user?.uid) return;
-    fetchCompletedCourses().then(setCourses).catch(() => setCourses([]));
     fetchCertifiedSkills().then(setFreshSkills).catch(() => setFreshSkills(null));
     fetchPassedCertifications().then(setExamCerts).catch(() => setExamCerts([]));
   }, [user?.uid]);
