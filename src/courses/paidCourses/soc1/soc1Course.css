@@ -482,17 +482,30 @@
   gap:            12px;
 }
 
-.sc-pdf-frame-container {
-  width:  100%;
-  border: 1px solid var(--sc-border);
+/* Barra debajo del PDF: paginación centrada + botón de pantalla completa */
+.sc-pdf-toolbar {
+  display:               grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items:           center;
+  gap:                   12px;
 }
+.sc-pdf-toolbar .sc-pdf-pagination { grid-column: 2; }
+.sc-pdf-toolbar .sc-pdf-fs-btn     { grid-column: 3; justify-self: end; }
 
-.sc-pdf-iframe {
-  width:   100%;
-  height:  600px;
-  border:  none;
-  display: block;
+.sc-pdf-fs-btn {
+  background:     transparent;
+  border:         1px solid var(--sc-accent);
+  color:          var(--sc-accent);
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  padding:        6px 14px;
+  cursor:         pointer;
+  transition:     all 0.2s;
+  white-space:    nowrap;
 }
+.sc-pdf-fs-btn:hover { background: var(--sc-accent); color: #000; }
 
 .sc-pdf-pagination {
   display:         flex;
@@ -817,7 +830,13 @@
   .sc-intro-grid { grid-template-columns: 1fr; }
   .sc-intro-title { font-size: 1.8rem; }
 
-  .sc-pdf-iframe { height: 400px; }
+  /* PDF: la barra se apila y el botón de pantalla completa ocupa todo el ancho */
+  .sc-pdf-toolbar { grid-template-columns: 1fr; }
+  .sc-pdf-toolbar .sc-pdf-pagination,
+  .sc-pdf-toolbar .sc-pdf-fs-btn { grid-column: 1; justify-self: stretch; }
+  .sc-pdf-fs-btn { padding: 10px 14px; }
+  .sc-pdf-pagination { gap: 10px; }
+  .sc-pdf-page-btn { padding: 8px 10px; }
 
   .sc-completion-dates { flex-direction: column; gap: 8px; }
   .sc-completion-date-sep { transform: rotate(90deg); }
@@ -842,30 +861,192 @@
 }
 
 /* ── PDF viewer (react-pdf) ──────────────────────────────────── */
+/* El bloque mide exactamente lo que mide la página renderizada.
+   La altura mínima existe SOLO mientras carga (para que no colapse el
+   spinner); antes estaba fija en 400px y en mobile quedaba un hueco blanco
+   debajo del PDF, porque una slide a 350px de ancho mide ~200px de alto. */
 .sc-pdf-canvas-container {
-  width:      100%;
-  background: #fff;
-  border:     1px solid var(--sc-border);
-  min-height: 400px;
-  display:    flex;
+  width:          100%;
+  background:     #fff;
+  border:         1px solid var(--sc-border);
+  display:        flex;
   flex-direction: column;
-  align-items: center;
-  position:   relative;
-  overflow:   hidden;
-  /* Bloquear click derecho y selección */
-  user-select:   none;
-  -webkit-user-select: none;
+  align-items:    center;
+  position:       relative;
+  overflow:       hidden;
+  line-height:    0; /* evita el espacio fantasma debajo del canvas inline */
 }
+.sc-pdf-canvas-container.is-loading { min-height: 400px; }
+.sc-pdf-canvas-container.is-fs-open { background: var(--sc-surface); line-height: normal; }
 
-/* Forzar que el canvas ocupe el 100% del contenedor */
+.sc-pdf-canvas-container .react-pdf__Document,
 .sc-pdf-canvas-container .react-pdf__Page {
-  width: 100% !important;
+  width:      100% !important;
+  min-height: 0 !important;
 }
 .sc-pdf-canvas-container .react-pdf__Page canvas {
-  width:  100% !important;
-  height: auto !important;
-  display: block;
-  pointer-events: none; /* no se puede hacer click derecho → guardar */
+  width:          100% !important;
+  height:         auto !important;
+  display:        block;
+  pointer-events: none; /* sin click derecho → "guardar imagen" */
+}
+
+.sc-pdf-fs-placeholder {
+  padding:     48px 20px;
+  font-size:   0.78rem;
+  font-weight: 600;
+  opacity:     0.55;
+  text-align:  center;
+}
+
+/* ── Protección de contenido ─────────────────────────────────── */
+.sc-protected,
+.sc-protected * {
+  user-select:           none;
+  -webkit-user-select:   none;
+  -webkit-touch-callout: none; /* iOS: sin menú "guardar / copiar" al mantener presionado */
+}
+.sc-protected canvas,
+.sc-protected img {
+  -webkit-user-drag: none;
+  user-drag:         none;
+}
+
+/* ── PDF en pantalla completa ────────────────────────────────── */
+.sc-pdf-fs {
+  position:       fixed;
+  inset:          0;
+  z-index:        9999;
+  display:        flex;
+  flex-direction: column;
+  width:          100vw;
+  height:         100vh;
+  height:         100dvh;
+  background:     var(--sc-bg);
+  color:          var(--sc-text);
+  padding:        env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  animation:      sc-fs-in 0.18s ease;
+}
+
+@keyframes sc-fs-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sc-pdf-fs-top {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             16px;
+  padding:         12px 20px;
+  border-bottom:   1px solid var(--sc-border);
+  flex-shrink:     0;
+}
+
+.sc-pdf-fs-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.78rem;
+  font-weight:    900;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  overflow:       hidden;
+  text-overflow:  ellipsis;
+  white-space:    nowrap;
+}
+
+.sc-pdf-fs-close {
+  background:     transparent;
+  border:         1px solid var(--sc-border);
+  color:          var(--sc-text);
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  padding:        8px 14px;
+  cursor:         pointer;
+  flex-shrink:    0;
+  transition:     all 0.2s;
+}
+.sc-pdf-fs-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+
+/* El escenario ocupa todo el espacio libre; la página se encaja dentro
+   (el JS calcula el ancho para que entre completa sin scroll) */
+.sc-pdf-fs-stage {
+  flex:            1;
+  min-height:      0;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         16px;
+  overflow:        hidden;
+  touch-action:    pan-y pinch-zoom;
+}
+.sc-pdf-fs-stage .react-pdf__Page {
+  background: #fff;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+}
+.sc-pdf-fs-stage .react-pdf__Page canvas {
+  display:        block;
+  pointer-events: none;
+}
+
+.sc-pdf-pagination--fs {
+  padding:     12px 20px 6px;
+  border-top:  1px solid var(--sc-border);
+  flex-shrink: 0;
+}
+.sc-pdf-pagination--fs .sc-pdf-page-btn { padding: 10px 18px; }
+
+.sc-pdf-fs-hint {
+  margin:      0;
+  padding:     0 20px 10px;
+  text-align:  center;
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.58rem;
+  font-weight: 600;
+  opacity:     0.4;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .sc-pdf-canvas-container.is-loading { min-height: 220px; }
+  .sc-pdf-fs-top   { padding: 10px 14px; }
+  .sc-pdf-fs-stage { padding: 8px; }
+  .sc-pdf-fs-close-label { display: none; }
+  .sc-pdf-fs-hint  { display: none; } /* en mobile se navega con los botones o deslizando */
+}
+
+/* ── Sin impresión del material ──────────────────────────────── */
+@media print {
+  .sc-pdf-wrap,
+  .sc-pdf-fs,
+  .sc-quiz-wrap { display: none !important; }
+}
+
+/* ── Quiz: afirmación V/F, consigna y error de envío ─────────── */
+.sc-quiz-statement {
+  margin:      0;
+  padding:     10px 14px;
+  border-left: 3px solid var(--sc-accent);
+  background:  var(--sc-surface);
+  font-size:   0.8rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.sc-quiz-q-prompt {
+  margin:      0;
+  font-size:   0.76rem;
+  font-weight: 600;
+  opacity:     0.6;
+  line-height: 1.5;
+}
+
+.sc-quiz-error {
+  margin:      0;
+  font-size:   0.76rem;
+  font-weight: 700;
+  color:       var(--sc-danger);
 }
 
 .sc-pdf-loading {

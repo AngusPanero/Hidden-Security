@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -6,35 +7,6 @@ import "react-pdf/dist/Page/TextLayer.css";
 import "./soc1Course.css";
 import { UseSession } from "../../../contexts/SessionContext";
 import { UseTheme } from "../../../contexts/ThemeContext";
-import socIntro from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/socIntro.pdf"
-import soc1 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc1.pdf"
-import soc2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc2.pdf"
-import soc3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc3.pdf"
-import soc4 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc4.pdf"
-import soc5 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc5.pdf"
-import soc6 from "../../../../public/pdf/modernSocCurso/pdf/Modulo1/soc6.pdf"
-/* import videoPrueba from "./video-curso.mp4";  */
-
-// Módulo 2
-import socIntroM2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/socIntro.pdf"
-import soc1M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc1.pdf"
-import soc2M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc2.pdf"
-import soc3M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc3.pdf"
-import soc4M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc4.pdf"
-import soc5M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc5.pdf"
-import soc6M2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/soc6.pdf"
-import socFinalM2 from "../../../../public/pdf/modernSocCurso/pdf/Modulo2/socFinal.pdf"
-
-// Módulo 3
-import socIntroM3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/socIntro.pdf"
-import soc1M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc1.pdf"
-import soc2M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc2.pdf"
-import soc3M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc3.pdf"
-import soc4M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc4.pdf"
-import soc5M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc5.pdf"
-import soc6M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc6.pdf"
-import soc9M3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/soc9.pdf"
-import socFinalM3 from "../../../../public/pdf/modernSocCurso/pdf/Modulo3/socFinal.pdf"
 
 // Worker de PDF.js — apunta al archivo en node_modules
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -43,359 +15,68 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  ESTRUCTURA DEL CURSO — editá aquí para organizar el contenido definitivo
+//  ESTRUCTURA DEL CURSO
+//  Los PDFs viven en /public/pdf/ModuloX/ → se sirven en /pdf/ModuloX/…
+//  (lo que está en /public no se importa: se referencia por URL).
 //  Tipos de step: "intro" | "video" | "pdf" | "quiz"
 // ══════════════════════════════════════════════════════════════════════════════
 const COURSE_ID = "soc1";
+const API_URL   = import.meta.env.VITE_API_URL;
+const PDF_BASE = `${import.meta.env.BASE_URL}pdf/modernSocCurso/pdf`;
 
-interface QuizQuestion {
-  question: string;
-  options:  string[];
-  answer:   number; // índice de la opción correcta (0-based)
-}
+// Cantidad de PDFs "socN" de cada módulo (sin contar socIntro ni socFinal).
+// ⚠️ Tiene que coincidir con SOC1_MODULE_SIZES del backend (config/courses.js):
+//    steps del módulo = socIntro + contents + socFinal + quiz = contents + 3
+const MODULES_CONFIG: { contents: number }[] = [
+  { contents: 6  }, // Módulo 1 →  9 steps
+  { contents: 8  }, // Módulo 2 → 11 steps
+  { contents: 9  }, // Módulo 3 → 12 steps
+  { contents: 11 }, // Módulo 4 → 14 steps
+  { contents: 8  }, // Módulo 5 → 11 steps
+  { contents: 7  }, // Módulo 6 → 10 steps
+  { contents: 7  }, // Módulo 7 → 10 steps
+  { contents: 7  }, // Módulo 8 → 10 steps
+];
 
 interface CourseStep {
-  type:        "intro" | "video" | "pdf" | "quiz";
-  title:       string;
-  description?: string;
-  // video
-  src?:        string;  // ruta relativa ej: "/videos/soc1/modulo1.mp4"
-  // pdf
-  pdfSrc?:     string;  // ruta relativa ej: "/pdfs/soc1/modulo1.pdf"
-  pages?:      number;  // total de páginas del PDF
-  // quiz
-  questions?:  QuizQuestion[];
+  type:          "intro" | "video" | "pdf" | "quiz";
+  title:         string;
+  description?:  string;
+  src?:          string; // video
+  pdfSrc?:       string; // pdf
+  moduleNumber?: number; // quiz — las preguntas las sirve el backend
 }
 
-// ── Quiz Módulo 1 — usado también como placeholder de los módulos 4 a 8
-// hasta tener su contenido real ─────────────────────────────────────────────
-const MODULO_1_QUIZ_QUESTIONS: QuizQuestion[] = [
-  {
-    question: "¿Qué describe mejor los tres objetivos operativos de un SOC y su relación?",
-    options: [
-      "Prevenir, auditar y reportar — el SOC actúa antes de que ocurra cualquier amenaza",
-      "Monitorear, detectar y responder — se activan en secuencia: sin monitoreo no hay detección, y sin detección no hay respuesta",
-      "Monitorear, bloquear y eliminar — el SOC toma acción directa sobre cada amenaza identificada",
-      "Detectar, escalar y resolver — el equipo de L1 resuelve todos los incidentes internamente",
-    ],
-    answer: 1,
-  },
-  {
-    question: "Un SOC interno se diferencia de un MSSP principalmente en que:",
-    options: [
-      "El SOC interno solo atiende horario laboral, mientras que el MSSP opera 24/7",
-      "El MSSP es más seguro porque tiene más analistas y mejores herramientas siempre",
-      "El SOC interno ofrece mayor control y alineación con las políticas de la organización, pero implica costos operativos más altos y necesidad de retención de talento",
-      "El SOC interno no puede manejar incidentes críticos, por eso siempre se combina con un MSSP",
-    ],
-    answer: 2,
-  },
-  {
-    question: "Un analista SOC recibe una alerta de múltiples intentos de login fallidos desde una IP extranjera. ¿Cuál es la secuencia correcta de primeros pasos ante esta alerta?",
-    options: [
-      "Bloquear la IP inmediatamente y notificar al usuario afectado",
-      "Escalar a L2 directamente porque es una IP extranjera",
-      "Revisar el contexto de la alerta: usuario afectado, cantidad de intentos, horario, si hubo login exitoso posterior y reputación de la IP antes de tomar cualquier acción",
-      "Cerrar la alerta si no hubo login exitoso, ya que el bloqueo fue efectivo",
-    ],
-    answer: 2,
-  },
-  {
-    question: "¿Qué afirmación describe correctamente la relación entre log, evento, alerta e incidente?",
-    options: [
-      "Son sinónimos con distintos niveles de urgencia",
-      "Un log es el dato crudo, el evento le agrega contexto, la alerta se genera cuando coincide con una regla de detección, y el incidente es una alerta confirmada como real que requiere acción",
-      "La alerta es lo que genera el analista, el incidente es lo que genera el SIEM",
-      "El log y el evento son lo mismo; la diferencia real está entre alerta e incidente",
-    ],
-    answer: 1,
-  },
-  {
-    question: "¿Por qué es importante documentar el análisis incluso cuando la alerta resulta ser un falso positivo?",
-    options: [
-      "Verdadero — no ocurrió ningún incidente real, por lo que documentarlo no tiene valor operativo",
-      "Falso — documentar falsos positivos permite auditar el proceso de análisis, evitar trabajo repetido en turnos siguientes, identificar patrones de ruido para refinar las reglas del SIEM y demostrar que se actuó con criterio técnico",
-    ],
-    answer: 1,
-  },
-  {
-    question: "¿Cuál de las siguientes opciones representa un escalamiento de calidad?",
-    options: [
-      "\"Hay actividad sospechosa en la red, revisar urgente.\"",
-      "\"Se detectó una alerta de PowerShell. Severidad alta. Sin más datos por ahora.\"",
-      "Activo afectado, usuario involucrado, evidencia observada con timestamps, actividad previa y posterior revisada, limitaciones de visibilidad y acción recomendada",
-      "Una captura de pantalla del panel del SIEM con la alerta visible",
-    ],
-    answer: 2,
-  },
-  {
-    question: "¿Por qué decimos que 'ver no significa tener permiso para divulgar'?",
-    options: [
-      "Verdadero — si el analista considera que la información puede ser útil para otro equipo, está habilitado a compartirla",
-      "Falso — el acceso técnico no equivale a autorización para divulgar; la información de un caso solo debe circular entre quienes tienen un rol activo en ese caso, por canales corporativos aprobados. Compartir datos de un incidente fuera del canal correcto — aunque sea con buena intención — viola los protocolos de confidencialidad y puede comprometer la investigación o generar responsabilidad legal",
-    ],
-    answer: 1,
-  },
-  {
-    question: "¿Cuál de las siguientes listas representa rutas de crecimiento reales desde el SOC?",
-    options: [
-      "Pentesting, soporte técnico de mesa de ayuda, administración de redes",
-      "Incident Response / CSIRT, Threat Intelligence, Ingeniería de Seguridad (SIEM/SOAR), Forense Digital, Cloud Security, GRC",
-      "Desarrollo de software seguro, marketing de ciberseguridad, gestión de proyectos de TI",
-      "Solo se puede crecer dentro del SOC ascendiendo de L1 a L2 y luego a L3",
-    ],
-    answer: 1,
-  },
-];
+function buildModuleSteps(moduleNumber: number, contents: number): CourseStep[] {
+  const pdf = (file: string) => `${PDF_BASE}/Modulo${moduleNumber}/${file}.pdf`;
 
-// ── Quiz Módulo 2 ────────────────────────────────────────────────────────────
-const MODULO_2_QUIZ_QUESTIONS: QuizQuestion[] = [
-  {
-    question: "Un usuario de marketing clona un repositorio de código productivo a las 2:00 AM desde un dispositivo personal. ¿Cuál es el conjunto de información más relevante para clasificar esta alerta?",
-    options: [
-      "Confirmar si el usuario tiene acceso autorizado al repositorio y si el dispositivo personal está registrado en el MDM corporativo",
-      "Verificar el volumen clonado, el lenguaje del repositorio y si hay otros usuarios del área de marketing con el mismo comportamiento esa noche",
-      "Revisar el rol del usuario vs. el tipo de repositorio, el horario y dispositivo, si hubo actividad posterior al clon (push, descarga, reenvío), y si existe algún contexto operativo que lo justifique",
-      "Consultar con el equipo de desarrollo si el repositorio fue modificado después del clon, ya que el riesgo real está en la integridad del código, no en la descarga",
-    ],
-    answer: 2,
-  },
-  {
-    question: "¿Qué diferencia existe entre que una acción fue 'bloqueada' y que la situación fue 'resuelta'? ¿Cuál afirmación describe mejor la diferencia?",
-    options: [
-      "Son equivalentes en la práctica: si el control bloqueó la acción, el riesgo dejó de existir y el caso puede cerrarse",
-      "'Bloqueada' significa que el control actuó sobre ese evento específico, pero no necesariamente resuelve el origen, el alcance ni la posible actividad relacionada",
-      "La diferencia es semántica: 'bloqueada' la usa el EDR y 'resuelta' la usa el analista al cerrar el ticket",
-      "Una acción bloqueada requiere escalamiento automático a L2; una resuelta puede cerrarse directamente desde L1",
-    ],
-    answer: 1,
-  },
-  {
-    question: "Un mismo evento (modificación de permisos en una carpeta compartida) puede tener impacto bajo en un caso y alto en otro. ¿Cuál par de escenarios demuestra mejor que el impacto no lo define el evento sino el contexto?",
-    options: [
-      "Caso bajo: el cambio fue realizado por un admin. Caso alto: fue realizado por un usuario sin privilegios",
-      "Caso bajo: la carpeta tiene 10 archivos. Caso alto: la carpeta tiene 10.000 archivos",
-      "Caso bajo: admin aplica cambio aprobado en carpeta de pruebas en horario laboral. Caso alto: cuenta comprometida modifica permisos en carpeta financiera sin ticket, y usuarios externos acceden después",
-      "Caso bajo: el cambio amplió permisos de lectura. Caso alto: el cambio otorgó permisos de escritura a usuarios externos",
-    ],
-    answer: 2,
-  },
-  {
-    question: "¿Cuál es la diferencia entre un IOC y un IOA, y por qué un analista no debería depender exclusivamente de IOC?",
-    options: [
-      "Los IOC detectan ataques en tiempo real; los IOA detectan compromisos que ya ocurrieron. Depender solo de IOC genera retrasos en la respuesta",
-      "Los IOA son más confiables que los IOC porque provienen del comportamiento observado, mientras que los IOC pueden estar desactualizados o ser genéricos",
-      "Un IOC identifica un artefacto asociado a una amenaza conocida; un IOA identifica comportamiento compatible con una técnica de ataque. Depender solo de IOC deja puntos ciegos ante amenazas nuevas o que cambian sus indicadores",
-      "La diferencia es operativa: los IOC los consume el SIEM y los IOA los consume el EDR. Un analista que solo trabaja con SIEM naturalmente depende de IOC",
-    ],
-    answer: 2,
-  },
-  {
-    question: "El SIEM detecta múltiples intentos fallidos de login seguidos de un login exitoso en una cuenta sin MFA a las 3 AM. ¿Cuál descripción aplica correctamente amenaza, vulnerabilidad, riesgo e impacto?",
-    options: [
-      "Amenaza: fuerza bruta. Vulnerabilidad: contraseña débil. Riesgo: cuenta bloqueada por reintentos. Impacto: pérdida de disponibilidad de la cuenta",
-      "Amenaza: actor intentando acceso no autorizado. Vulnerabilidad: cuenta sin MFA. Riesgo: acceso exitoso con credenciales comprometidas. Impacto: depende de los privilegios y la actividad posterior",
-      "Amenaza: ausencia de MFA. Vulnerabilidad: política de contraseñas débil. Riesgo: alto por horario nocturno. Impacto: posible exfiltración de datos si el usuario tiene acceso a información sensible",
-      "Amenaza: login exitoso sospechoso. Vulnerabilidad: monitoreo insuficiente. Riesgo: sin MFA el atacante puede reingresar. Impacto: requiere confirmación antes de evaluarse",
-    ],
-    answer: 1,
-  },
-  {
-    question: "Un servidor con una vulnerabilidad crítica está expuesto a internet y recibe intentos de explotación. El WAF bloqueó todos los requests. ¿'Si el WAF bloqueó todo, el servidor no fue comprometido y la alerta puede cerrarse (la vulnerabilidad queda pendiente para gestión de vulnerabilidades)'?",
-    options: [
-      "Verdadero — el bloqueo del WAF confirma que no hubo compromiso, así que el caso puede cerrarse",
-      "Falso — el bloqueo del WAF reduce el impacto inmediato pero no cierra el análisis: hay que verificar si algún request pasó antes del bloqueo, si hubo respuestas anómalas del servidor, si el WAF estuvo en modo \"alert only\" en algún momento, y si la actividad forma parte de una campaña más amplia. Además, la vulnerabilidad sigue activa y expuesta",
-    ],
-    answer: 1,
-  },
-  {
-    question: "¿Qué significa que una organización tiene una gran 'superficie de ataque' y cómo influye eso en el trabajo diario del analista SOC?",
-    options: [
-      "Que la organización tiene muchos empleados y por lo tanto mayor probabilidad de error humano, lo que requiere más campañas de concientización",
-      "Que hay más activos expuestos, más vectores posibles y más fuentes de eventos a monitorear, lo que obliga al analista a priorizar por criticidad y contexto en lugar de tratar todas las alertas igual",
-      "Que el perímetro de red es difícil de defender, por lo que el SOC debería concentrar sus recursos en firewall y WAF antes que en endpoints o identidad",
-      "Que la organización tiene deuda técnica acumulada, lo que hace que el volumen de vulnerabilidades supere la capacidad del equipo de parcheo",
-    ],
-    answer: 1,
-  },
-  {
-    question: "¿Cuál es la diferencia entre impacto potencial e impacto confirmado?",
-    options: [
-      "Potencial: el analista cree que hubo daño. Confirmado: L2 validó que hubo daño. La diferencia es quién lo determina, no la evidencia",
-      "Potencial: el evento ocurrió en un activo crítico. Confirmado: el evento ocurrió en un activo crítico y fue bloqueado. La criticidad del activo define si el impacto se confirma",
-      "Potencial: hay evidencia de actividad que podría haber afectado la seguridad, pero no se confirmó daño real. Confirmado: existe evidencia concreta de afectación. La diferencia cambia cómo se documenta y cómo se escala",
-      "Potencial: el incidente todavía está en curso. Confirmado: el incidente fue contenido. La diferencia indica el estado operativo del caso, no el tipo de evidencia disponible",
-    ],
-    answer: 2,
-  },
-];
-
-// ── Quiz Módulo 3 ────────────────────────────────────────────────────────────
-const MODULO_3_QUIZ_QUESTIONS: QuizQuestion[] = [
-  {
-    question: "Un endpoint genera conexiones HTTPS cada 45 segundos hacia sync-cloud-check.net. El proceso es update_service.exe, ubicado en AppData\\Roaming, sin firma digital y visto por primera vez hoy. ¿Cuál es el conjunto de hipótesis y pasos de validación más completo y correcto?",
-    options: [
-      "Hipótesis: posible falso positivo de herramienta de actualización corporativa. Validar: consultar con el equipo de IT si desplegaron algo nuevo y cerrar si confirman",
-      "Hipótesis: beaconing compatible con C2. Validar: reputación del dominio, proceso padre de update_service.exe, si el archivo es nuevo en el host, si hay otros endpoints con el mismo proceso, y actividad previa que explique su origen",
-      "Hipótesis: malware confirmado. Acción: aislar inmediatamente el endpoint y escalar a IR sin más análisis porque el patrón periódico y la ruta son concluyentes",
-      "Hipótesis: exfiltración de datos. Validar: volumen de datos transferidos por sesión, porque si es menor a 1MB probablemente sea legítimo",
-    ],
-    answer: 1,
-  },
-  {
-    question: "El EDR detecta WINWORD.EXE → powershell.exe -nop -w hidden -enc → conexión a raw.githubusercontent.com → archivo creado en C:\\Users\\Public. El usuario pertenece a RRHH. ¿Cuál combinación de factores justifica la alta prioridad?",
-    options: [
-      "El dominio raw.githubusercontent.com tiene mala reputación y cualquier conexión hacia él desde un endpoint corporativo es crítica",
-      "PowerShell con parámetros de evasión iniciado por Word indica posible ejecución de macro maliciosa; el usuario no técnico no tiene razón para que Word ejecute comandos codificados, y el archivo creado en ruta pública puede ser un payload",
-      "La alta prioridad viene del parámetro -enc, que siempre indica actividad maliciosa porque es el único parámetro que oculta comandos en Base64",
-      "Es alta prioridad porque el archivo fue creado en C:\\Users\\Public, que es una ruta restringida donde solo pueden escribir procesos con privilegios elevados",
-    ],
-    answer: 1,
-  },
-  {
-    question: "Un host genera 480 consultas DNS en 15 minutos con patrones como 'akd92kdkd-check.com', 'plq77smmx-update.net'. Todas responden NXDOMAIN. ¿Cuál análisis es correcto?",
-    options: [
-      "Es tráfico de spam o malvertising: el navegador cargó páginas con muchos trackers. Validar que el usuario no esté en sitios sospechosos y cerrar si no hay descarga asociada",
-      "El patrón de subdominios aleatorios con NXDOMAIN puede indicar un algoritmo de generación de dominios (DGA) intentando contactar su C2. Validar: proceso que genera las consultas, si el volumen es inusual para ese host, si ocurre en otros endpoints y si hay alguna conexión exitosa entre las fallidas",
-      "NXDOMAIN confirma que los dominios no existen y que ninguna conexión fue exitosa, por lo que el riesgo real es bajo. Registrar y monitorear sin escalar",
-      "Son dominios con patrones de typosquatting orientados a phishing. Validar si el usuario intentó ingresar a alguno manualmente y si hay credenciales comprometidas en los logs de autenticación",
-    ],
-    answer: 1,
-  },
-  {
-    question: "\"Si el firewall registra 'Action: Blocked' para una conexión saliente hacia un dominio sospechoso, el riesgo quedó mitigado por el control y el analista puede cerrar la alerta documentando que fue bloqueada.\"",
-    options: [
-      "Verdadero — el bloqueo del firewall es suficiente para cerrar la alerta sin más análisis",
-      "Falso — el bloqueo indica que ese intento específico no prosperó, pero no responde qué proceso generó la conexión, si el mismo proceso intentó conectarse a otros destinos que sí fueron permitidos, si hubo actividad previa que explique el origen, si hay otros hosts con el mismo comportamiento, y si el dominio forma parte de una campaña activa",
-    ],
-    answer: 1,
-  },
-  {
-    question: "¿Cuál par de descripciones refleja correctamente los elementos para diferenciar un despliegue masivo de software legítimo de movimiento lateral usando SMB?",
-    options: [
-      "Legítimo: muchos destinos conectados. Sospechoso: pocos destinos conectados. La cantidad de hosts afectados es el indicador principal",
-      "Legítimo: ticket de cambio aprobado, host origen administrativo, herramienta corporativa firmada, ventana de mantenimiento, destinos dentro del alcance del ticket. Sospechoso: origen desde endpoint de usuario, cuenta sin privilegios habituales para esa acción, sin ticket, fuera de horario, con acceso a shares administrativos como ADMIN$ o C$",
-      "Legítimo: el proceso usa puertos estándar SMB (445). Sospechoso: el proceso usa puertos alternativos o no estándar para la transferencia. El puerto es el elemento más discriminante en este caso",
-      "Legítimo: el despliegue se hace con credenciales de dominio. Sospechoso: el movimiento lateral siempre requiere credenciales locales o hashes robados, lo que lo hace detectable por el tipo de autenticación",
-    ],
-    answer: 1,
-  },
-  {
-    question: "El firewall muestra una conexión de USER-LAP-088 hacia suspicious-domain.com puerto 443 permitida. El EDR no está disponible en ese endpoint. ¿Cuál documentación y plan de acción es más correcto?",
-    options: [
-      "Documentar que el EDR no detectó actividad maliciosa en el endpoint y cerrar, ya que la ausencia de alerta del EDR indica que no hubo ejecución de código",
-      "Documentar que la visibilidad está limitada a nivel de red (firewall): se tiene IP, destino y acción, pero no el proceso que generó la conexión ni actividad en el endpoint. Recomendar: buscar el host en otras fuentes disponibles (DNS, proxy, SIEM), verificar reputación del dominio, evaluar si el host puede obtener agente EDR, y escalar si el dominio tiene reputación maliciosa confirmada",
-      "Documentar que el dominio fue contactado exitosamente y escalar como incidente confirmado porque la conexión fue permitida hacia un dominio sospechoso, lo que prueba que hubo comunicación maliciosa",
-      "Recomendar instalar el EDR antes de continuar el análisis, ya que sin visibilidad de endpoint no es posible determinar nada y cualquier conclusión sería especulativa",
-    ],
-    answer: 1,
-  },
-  {
-    question: "¿Cuál respuesta demuestra el uso correcto del modelo OSI como herramienta de diagnóstico, usando el ejemplo de 'un usuario no puede acceder a una aplicación'?",
-    options: [
-      "El modelo OSI es útil para saber qué protocolo está fallando. En el ejemplo, hay que revisar directamente la capa 7 (aplicación) porque el problema es de acceso a una aplicación",
-      "El modelo OSI permite descartar capas de forma ordenada: primero verificar si hay conectividad (capas 1-3), luego si el puerto responde (capa 4), si la sesión se establece (capa 5), si hay problema de cifrado o certificado (capa 6), y finalmente si la aplicación responde correctamente con las credenciales del usuario (capa 7). Cada capa descartada reduce el espacio del problema",
-      "El modelo OSI es útil principalmente para el equipo de redes, no para el SOC. En el ejemplo, el analista debería escalar directamente al equipo de infraestructura porque el problema puede estar en cualquier capa",
-      "El modelo OSI ayuda a identificar si el problema es de red o de aplicación. En el ejemplo, si el ping responde, el problema está en capa 7 y el SOC no tiene responsabilidad de diagnóstico",
-    ],
-    answer: 1,
-  },
-  {
-    question: "Una cuenta admin.backup inicia sesión a las 3 AM desde una notebook de usuario sin MFA, accede a 12 servidores y crea un servicio remoto. ¿Cuál análisis aplica correctamente los conceptos de protocolo, movimiento lateral, autenticación y visibilidad?",
-    options: [
-      "La cuenta admin.backup puede tener actividad nocturna normal para tareas de backup. Validar si existe un job programado que explique el horario y los accesos, y cerrar si se confirma",
-      "El acceso desde notebook de usuario (no host administrativo), sin MFA en cuenta privilegiada, con propagación a 12 servidores y creación de servicio remoto a las 3 AM sin ticket visible combina múltiples señales de movimiento lateral. Validar: ticket de cambio, proceso que creó el servicio, binario instalado, si la cuenta tenía historial de este comportamiento, y correlacionar con alertas previas en los hosts destino",
-      "Es un incidente confirmado de movimiento lateral porque ninguna cuenta de backup legítima necesita crear servicios remotos. Aislar todos los servidores afectados y revocar la cuenta de inmediato",
-      "El principal indicador de compromiso es la ausencia de MFA, porque todos los demás comportamientos podrían explicarse operativamente. Habilitar MFA en la cuenta y monitorear si la actividad continúa",
-    ],
-    answer: 1,
-  },
-];
-
-// ── Contenido de un módulo — 7 PDFs + 1 quiz final ──────────────────────────
-// Solo se usa para el Módulo 1 (7 PDFs — socIntro, soc1..soc6 — y su quiz) y,
-// como placeholder, para simular los módulos 4 a 8 hasta tener su contenido
-// real. buildModules() (más abajo) ya agrupa automáticamente cada tanda de
-// steps que termina en un "quiz" como un módulo aparte, así que apenas
-// reemplaces el contenido de cada llamada (PDFs y preguntas reales) no hace
-// falta tocar nada más.
-function buildModuleSteps(moduleNumber: number): CourseStep[] {
   return [
-    { type: "pdf", title: `Módulo ${moduleNumber} — Introducción al SOC`,          pdfSrc: socIntro },
-    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 1`,                  pdfSrc: soc1 },
-    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 2`,                  pdfSrc: soc2 },
-    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 3`,                  pdfSrc: soc3 },
-    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 4`,                  pdfSrc: soc4 },
-    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 5`,                  pdfSrc: soc5 },
-    { type: "pdf", title: `Módulo ${moduleNumber} — Contenido 6`,                  pdfSrc: soc6 },
-    { type: "quiz", title: `Módulo ${moduleNumber} — Quiz final`, questions: MODULO_1_QUIZ_QUESTIONS },
+    { type: "pdf", title: `Módulo ${moduleNumber} — Introducción`, pdfSrc: pdf("socIntro") },
+    ...Array.from({ length: contents }, (_, i): CourseStep => ({
+      type:   "pdf",
+      title:  `Módulo ${moduleNumber} — Contenido ${i + 1}`,
+      pdfSrc: pdf(`soc${i + 1}`),
+    })),
+    { type: "pdf",  title: `Módulo ${moduleNumber} — Cierre`,     pdfSrc: pdf("socFinal") },
+    { type: "quiz", title: `Módulo ${moduleNumber} — Quiz final`, moduleNumber },
   ];
 }
 
-// ── Módulo 2 — 8 steps: socIntro, soc1..soc6, socFinal + quiz real ─────────
-const MODULO_2_STEPS: CourseStep[] = [
-  { type: "pdf", title: "Módulo 2 — Introducción",     pdfSrc: socIntroM2 },
-  { type: "pdf", title: "Módulo 2 — Contenido 1",       pdfSrc: soc1M2 },
-  { type: "pdf", title: "Módulo 2 — Contenido 2",       pdfSrc: soc2M2 },
-  { type: "pdf", title: "Módulo 2 — Contenido 3",       pdfSrc: soc3M2 },
-  { type: "pdf", title: "Módulo 2 — Contenido 4",       pdfSrc: soc4M2 },
-  { type: "pdf", title: "Módulo 2 — Contenido 5",       pdfSrc: soc5M2 },
-  { type: "pdf", title: "Módulo 2 — Contenido 6",       pdfSrc: soc6M2 },
-  { type: "pdf", title: "Módulo 2 — Cierre",            pdfSrc: socFinalM2 },
-  { type: "quiz", title: "Módulo 2 — Quiz final", questions: MODULO_2_QUIZ_QUESTIONS },
-];
+const COURSE_STEPS: CourseStep[] = MODULES_CONFIG.flatMap((m, i) => buildModuleSteps(i + 1, m.contents));
 
-// ── Módulo 3 — 9 steps: socIntro, soc1..soc6, soc9, socFinal + quiz real ───
-const MODULO_3_STEPS: CourseStep[] = [
-  { type: "pdf", title: "Módulo 3 — Introducción",     pdfSrc: socIntroM3 },
-  { type: "pdf", title: "Módulo 3 — Contenido 1",       pdfSrc: soc1M3 },
-  { type: "pdf", title: "Módulo 3 — Contenido 2",       pdfSrc: soc2M3 },
-  { type: "pdf", title: "Módulo 3 — Contenido 3",       pdfSrc: soc3M3 },
-  { type: "pdf", title: "Módulo 3 — Contenido 4",       pdfSrc: soc4M3 },
-  { type: "pdf", title: "Módulo 3 — Contenido 5",       pdfSrc: soc5M3 },
-  { type: "pdf", title: "Módulo 3 — Contenido 6",       pdfSrc: soc6M3 },
-  { type: "pdf", title: "Módulo 3 — Contenido 7",       pdfSrc: soc9M3 },
-  { type: "pdf", title: "Módulo 3 — Cierre",            pdfSrc: socFinalM3 },
-  { type: "quiz", title: "Módulo 3 — Quiz final", questions: MODULO_3_QUIZ_QUESTIONS },
-];
-
-// 8 módulos — Módulos 1, 2 y 3 con su contenido real, y Módulos 4 a 8
-// repitiendo el contenido del Módulo 1 como simulación de la estructura
-// final hasta tener el material definitivo. Reemplazá esa última parte por
-// llamadas explícitas con el contenido real a medida que lo tengas, ej:
-//   const COURSE_STEPS: CourseStep[] = [
-//     ...buildModuleSteps(1),
-//     ...MODULO_2_STEPS,
-//     ...MODULO_3_STEPS,
-//     ...modulo4Steps, // ← array armado a mano con el contenido real
-//     ...
-//   ];
-const COURSE_STEPS: CourseStep[] = [
-  ...buildModuleSteps(1),
-  ...MODULO_2_STEPS,
-  ...MODULO_3_STEPS,
-  ...Array.from({ length: 5 }, (_, i) => buildModuleSteps(i + 4)).flat(), // módulos 4 a 8 (placeholder)
-];
-
-const TOTAL_STEPS = COURSE_STEPS.length;
+const TOTAL_STEPS   = COURSE_STEPS.length; // 87
 const PASSING_SCORE = 0.70;
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Agrupación visual de steps en módulos
-//  Solo se usa para presentación (acordeón horizontal); COURSE_STEPS y toda la
-//  lógica de progreso siguen indexando por el step "plano" de siempre.
+//  Agrupación visual de steps en módulos (solo presentación)
 // ══════════════════════════════════════════════════════════════════════════════
 interface CourseModule {
-  key:          string;
-  title:        string;
-  icon:         string;
-  stepIndices:  number[];
+  key:         string;
+  title:       string;
+  icon:        string;
+  stepIndices: number[];
 }
 
-// Agrupa de forma secuencial: "intro" es su propio módulo, y luego cada
-// tanda de steps no-intro se cierra apenas se procesa un "quiz" (el patrón
-// real de COURSE_STEPS es video → pdf → quiz, repetido). No se usa el texto
-// del título porque los PDFs no incluyen "Módulo N" en su título.
 function buildModules(steps: CourseStep[]): CourseModule[] {
   const modules: CourseModule[] = [];
   let moduleNum = 0;
@@ -448,6 +129,47 @@ interface Progress {
   isCompleted:    boolean;
 }
 
+// Lo que manda el backend — sin respuesta correcta
+interface QuizQuestion {
+  id:         string;
+  type:       "multiple" | "truefalse";
+  question:   string;
+  prompt?:    string;
+  statement?: string;
+  options:    string[];
+}
+
+interface QuizAnswer {
+  questionId: string;
+  answer:     string; // texto de la opción elegida
+}
+
+interface QuizSubmitResult {
+  score:   number;
+  passed:  boolean;
+  correct: number;
+  total:   number;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Fisher–Yates — mezcla sin sesgo y sin mutar el original
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Mezcla el orden de las preguntas y, dentro de cada una, el de sus opciones
+function shuffleQuiz(questions: QuizQuestion[]): QuizQuestion[] {
+  return shuffle(questions).map(q => ({ ...q, options: shuffle(q.options) }));
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  SUB-COMPONENTES
 // ══════════════════════════════════════════════════════════════════════════════
@@ -466,7 +188,7 @@ function ProgressBar({ completed, total }: { completed: number; total: number })
 }
 
 // ── Viewer de Video ───────────────────────────────────────────────────────────
-function VideoViewer({ src }: { src: string; }) {
+function VideoViewer({ src }: { src: string }) {
   return (
     <div className="sc-video-wrap">
       <video
@@ -483,25 +205,143 @@ function VideoViewer({ src }: { src: string; }) {
   );
 }
 
-// ── Viewer de PDF (react-pdf — canvas nativo, sin iframe, sin bloqueos) ───────
-function PdfViewer({ src }: { src: string }) {
-  const [numPages,  setNumPages]  = useState<number>(0);
-  const [page,      setPage]      = useState(1);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(700);
+// ── Viewer de PDF ─────────────────────────────────────────────────────────────
+// Un único <Document> (el PDF se descarga una sola vez). La <Page> se
+// renderiza inline o dentro del overlay de pantalla completa vía portal — el
+// contexto de react-pdf atraviesa portales, así que no hace falta un segundo
+// Document.
+//
+// Protección de contenido:
+//  - sin capa de texto ni de anotaciones → no hay texto en el DOM para copiar
+//  - sin links al archivo, click derecho / arrastre / copiar bloqueados
+//  - Ctrl/Cmd + S y Ctrl/Cmd + P bloqueados mientras el visor está montado
+//  - @media print oculta el visor (ver CSS)
+function PdfViewer({ src, title }: { src: string; title: string }) {
+  const { theme } = UseTheme();
 
-  // Ancho responsivo: mide el contenedor y ajusta el canvas
+  const [numPages, setNumPages] = useState(0);
+  const [page,     setPage]     = useState(1);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState(false);
+  const [ratio,    setRatio]    = useState<number | null>(null); // ancho/alto de la página
+  const [isFs,     setIsFs]     = useState(false);
+
+  const wrapRef  = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const touchX   = useRef<number | null>(null);
+
+  const [width,     setWidth]     = useState(0);
+  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+
+  const goPrev = useCallback(() => setPage(p => Math.max(1, p - 1)), []);
+  const goNext = useCallback(() => setPage(p => Math.min(numPages || 1, p + 1)), [numPages]);
+
+  // ── Ancho del contenedor inline ────────────────────────────────────────
   useEffect(() => {
-    if (!wrapRef.current) return;
-    const obs = new ResizeObserver(([entry]) => {
-      setWidth(Math.floor(entry.contentRect.width));
-    });
-    obs.observe(wrapRef.current);
-    setWidth(wrapRef.current.offsetWidth || 700);
+    const el = wrapRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)));
+    obs.observe(el);
+    setWidth(el.clientWidth);
     return () => obs.disconnect();
   }, []);
+
+  // ── Tamaño del escenario en pantalla completa ──────────────────────────
+  useEffect(() => {
+    if (!isFs) return;
+    const el = stageRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      setStageSize({
+        w: Math.floor(entry.contentRect.width),
+        h: Math.floor(entry.contentRect.height),
+      });
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [isFs]);
+
+  // ── Pantalla completa ──────────────────────────────────────────────────
+  // Se pide fullscreen nativo sobre <html> dentro del click (gesto del
+  // usuario) y además se muestra el overlay fijo. En iPhone, donde Safari no
+  // soporta fullscreen de elementos, el overlay solo ya ocupa toda la pantalla.
+  const openFs = () => {
+    setIsFs(true);
+    const root = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
+    if (document.fullscreenElement) return;
+    if (root.requestFullscreen) {
+      root.requestFullscreen().catch(() => { /* overlay igual funciona */ });
+    } else if (root.webkitRequestFullscreen) {
+      root.webkitRequestFullscreen();
+    }
+  };
+
+  const closeFs = useCallback(() => {
+    setIsFs(false);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  // Si el usuario sale del fullscreen nativo (Esc del navegador), cerramos el overlay
+  useEffect(() => {
+    const onChange = () => { if (!document.fullscreenElement) setIsFs(false); };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  // Bloquear el scroll del body con el overlay abierto
+  useEffect(() => {
+    if (!isFs) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [isFs]);
+
+  // Al desmontar (cambio de step) salir del fullscreen nativo si quedó activo
+  useEffect(() => () => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  // ── Teclado: flechas para paginar + bloqueo de guardar/imprimir ───────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && ["s", "p"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        return;
+      }
+      if (mod || e.altKey || !numPages) return;
+
+      const nextKeys = isFs ? ["ArrowRight", "ArrowDown", "PageDown", " "] : ["ArrowRight", "PageDown"];
+      const prevKeys = isFs ? ["ArrowLeft",  "ArrowUp",   "PageUp"]        : ["ArrowLeft",  "PageUp"];
+
+      if (nextKeys.includes(e.key))      { e.preventDefault(); goNext(); }
+      else if (prevKeys.includes(e.key)) { e.preventDefault(); goPrev(); }
+      else if (isFs && e.key === "Home") { e.preventDefault(); setPage(1); }
+      else if (isFs && e.key === "End")  { e.preventDefault(); setPage(numPages); }
+      else if (isFs && e.key === "Escape") { e.preventDefault(); closeFs(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [numPages, isFs, goNext, goPrev, closeFs]);
+
+  // ── Swipe en mobile (pantalla completa) ───────────────────────────────
+  const onTouchStart = (e: React.TouchEvent) => { touchX.current = e.touches[0].clientX; };
+  const onTouchEnd   = (e: React.TouchEvent) => {
+    if (touchX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchX.current;
+    touchX.current = null;
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0) goNext(); else goPrev();
+  };
+
+  const blockEvent = (e: React.SyntheticEvent) => e.preventDefault();
 
   const onLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -513,20 +353,54 @@ function PdfViewer({ src }: { src: string }) {
     setError(true);
   };
 
+  // Guardamos la proporción de la página para encajarla en pantalla completa
+  const onPageLoad = (p: { getViewport: (o: { scale: number }) => { width: number; height: number } }) => {
+    const vp = p.getViewport({ scale: 1 });
+    if (vp.height > 0) setRatio(vp.width / vp.height);
+  };
+
+  // En pantalla completa la página entra entera: limita ancho o alto, lo que llegue primero
+  const fsWidth = (() => {
+    if (!stageSize.w || !stageSize.h) return 0;
+    if (!ratio) return stageSize.w;
+    return Math.floor(Math.min(stageSize.w, stageSize.h * ratio));
+  })();
+
   if (error) {
     return (
       <div className="sc-pdf-error">
         <span>No se pudo cargar el PDF.</span>
         <span style={{ fontSize: "0.72rem", opacity: 0.5 }}>
-          Verificá que el archivo esté en <code>public/</code>.
+          Verificá que el archivo esté en <code>public/pdf/</code>.
         </span>
       </div>
     );
   }
 
+  const pagination = (variant: "inline" | "fs") => (
+    <div className={`sc-pdf-pagination${variant === "fs" ? " sc-pdf-pagination--fs" : ""}`}>
+      <button className="sc-pdf-page-btn" onClick={goPrev} disabled={page === 1} aria-label="Página anterior">
+        ← ANTERIOR
+      </button>
+      <span className="sc-pdf-page-info">Página {page} / {numPages}</span>
+      <button className="sc-pdf-page-btn" onClick={goNext} disabled={page === numPages} aria-label="Página siguiente">
+        SIGUIENTE →
+      </button>
+    </div>
+  );
+
   return (
-    <div className="sc-pdf-wrap">
-      <div className="sc-pdf-canvas-container" ref={wrapRef}>
+    <div
+      className="sc-pdf-wrap sc-protected"
+      onContextMenu={blockEvent}
+      onCopy={blockEvent}
+      onCut={blockEvent}
+      onDragStart={blockEvent}
+    >
+      <div
+        className={`sc-pdf-canvas-container${loading ? " is-loading" : ""}${isFs ? " is-fs-open" : ""}`}
+        ref={wrapRef}
+      >
         {loading && (
           <div className="sc-pdf-loading">
             <span className="sc-loading-dot" />
@@ -534,38 +408,72 @@ function PdfViewer({ src }: { src: string }) {
             <span className="sc-loading-dot" />
           </div>
         )}
-        <Document
-          file={src}
-          onLoadSuccess={onLoadSuccess}
-          onLoadError={onLoadError}
-          loading=""
-          // Deshabilitar descarga — react-pdf no expone botón de descarga por defecto
-        >
-          <Page
-            pageNumber={page}
-            width={width > 0 ? width : 700}
-            renderTextLayer={false}     // sin capa de texto seleccionable
-            renderAnnotationLayer={false} // sin links clicables del PDF
-          />
+
+        <Document file={src} onLoadSuccess={onLoadSuccess} onLoadError={onLoadError} loading="">
+          {!isFs && width > 0 && (
+            <Page
+              pageNumber={page}
+              width={width}
+              renderTextLayer={false}
+              renderAnnotationLayer={false}
+              onLoadSuccess={onPageLoad}
+              loading=""
+            />
+          )}
+
+          {isFs && createPortal(
+            <div
+              className={`sc-wrap ${theme} sc-pdf-fs sc-protected`}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${title} — pantalla completa`}
+              onContextMenu={blockEvent}
+              onCopy={blockEvent}
+              onCut={blockEvent}
+              onDragStart={blockEvent}
+            >
+              <div className="sc-pdf-fs-top">
+                <span className="sc-pdf-fs-title">{title}</span>
+                <button className="sc-pdf-fs-close" onClick={closeFs} aria-label="Salir de pantalla completa">
+                  ✕ <span className="sc-pdf-fs-close-label">SALIR</span>
+                </button>
+              </div>
+
+              <div
+                className="sc-pdf-fs-stage"
+                ref={stageRef}
+                onTouchStart={onTouchStart}
+                onTouchEnd={onTouchEnd}
+              >
+                {fsWidth > 0 && (
+                  <Page
+                    pageNumber={page}
+                    width={fsWidth}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                    onLoadSuccess={onPageLoad}
+                    loading=""
+                  />
+                )}
+              </div>
+
+              {numPages > 0 && pagination("fs")}
+              <p className="sc-pdf-fs-hint">Usá ← → del teclado para pasar de página · Esc para salir</p>
+            </div>,
+            document.body,
+          )}
         </Document>
+
+        {isFs && (
+          <div className="sc-pdf-fs-placeholder">Leyendo en pantalla completa…</div>
+        )}
       </div>
 
       {numPages > 0 && (
-        <div className="sc-pdf-pagination">
-          <button
-            className="sc-pdf-page-btn"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            ← ANTERIOR
-          </button>
-          <span className="sc-pdf-page-info">Página {page} / {numPages}</span>
-          <button
-            className="sc-pdf-page-btn"
-            onClick={() => setPage(p => Math.min(numPages, p + 1))}
-            disabled={page === numPages}
-          >
-            SIGUIENTE →
+        <div className="sc-pdf-toolbar">
+          {pagination("inline")}
+          <button className="sc-pdf-fs-btn" onClick={openFs} aria-label="Ver en pantalla completa">
+            ⛶ PANTALLA COMPLETA
           </button>
         </div>
       )}
@@ -574,47 +482,88 @@ function PdfViewer({ src }: { src: string }) {
 }
 
 // ── Quiz ──────────────────────────────────────────────────────────────────────
-function QuizViewer({ questions, existingResult, onSubmit }: {
-  questions:      QuizQuestion[];
+// Las preguntas se piden al backend (sin respuestas) y se mezclan en cada
+// intento: orden de preguntas y orden de opciones. Se envía el TEXTO de la
+// opción elegida junto al id de la pregunta; el backend corrige.
+function QuizViewer({ stepIndex, existingResult, onSubmit }: {
   stepIndex:      number;
   existingResult: QuizResult | null;
-  onSubmit:       (answers: number[]) => Promise<{ score: number; passed: boolean; correct: number }>;
+  onSubmit:       (answers: QuizAnswer[]) => Promise<QuizSubmitResult | null>;
 }) {
-  const [answers,    setAnswers]    = useState<Record<number, number>>({});
+  const rawQuestions = useRef<QuizQuestion[]>([]);
+
+  const [questions,  setQuestions]  = useState<QuizQuestion[]>([]);
+  const [loadingQz,  setLoadingQz]  = useState(true);
+  const [loadError,  setLoadError]  = useState("");
+  const [answers,    setAnswers]    = useState<Record<string, string>>({});
   const [submitted,  setSubmitted]  = useState(false);
   const [score,      setScore]      = useState<number | null>(null);
   const [passed,     setPassed]     = useState(false);
   const [attempts,   setAttempts]   = useState(existingResult?.attempts ?? 0);
   const [saving,     setSaving]     = useState(false);
-
+  const [submitErr,  setSubmitErr]  = useState("");
   const [showPrior,  setShowPrior]  = useState(!!existingResult?.passed);
 
-  const handleSelect = (qIdx: number, aIdx: number) => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingQz(true);
+      setLoadError("");
+      try {
+        const { data } = await axios.get(
+          `${API_URL}/api/course/${COURSE_ID}/quiz/${stepIndex}`,
+          { withCredentials: true },
+        );
+        if (cancelled) return;
+        rawQuestions.current = data.data.questions as QuizQuestion[];
+        setQuestions(shuffleQuiz(rawQuestions.current));
+      } catch (err: any) {
+        if (cancelled) return;
+        setLoadError(err.response?.data?.message ?? "No se pudo cargar el quiz.");
+      } finally {
+        if (!cancelled) setLoadingQz(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [stepIndex]);
+
+  const answeredCount = questions.filter(q => answers[q.id] !== undefined).length;
+  const allAnswered   = questions.length > 0 && answeredCount === questions.length;
+
+  const handleSelect = (questionId: string, option: string) => {
     if (submitted) return;
-    setAnswers(prev => ({ ...prev, [qIdx]: aIdx }));
+    setAnswers(prev => ({ ...prev, [questionId]: option }));
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(answers).length < questions.length) return;
+    if (!allAnswered || saving) return;
     setSaving(true);
+    setSubmitErr("");
 
-    // Construir array de respuestas — el backend calcula el score
-    const answersArray = questions.map((_, i) => answers[i] ?? -1);
-    const result = await onSubmit(answersArray);
+    const payload: QuizAnswer[] = questions.map(q => ({ questionId: q.id, answer: answers[q.id] }));
+    const result = await onSubmit(payload);
+
+    setSaving(false);
+    if (!result) {
+      setSubmitErr("No se pudo enviar el quiz. Revisá tu conexión e intentá de nuevo.");
+      return;
+    }
 
     setScore(result.score);
     setPassed(result.passed);
     setSubmitted(true);
     setAttempts(prev => prev + 1);
-    setSaving(false);
   };
 
+  // Cada reintento vuelve a mezclar preguntas y opciones
   const handleRetry = () => {
+    setQuestions(shuffleQuiz(rawQuestions.current));
     setAnswers({});
     setSubmitted(false);
     setScore(null);
     setPassed(false);
     setShowPrior(false);
+    setSubmitErr("");
   };
 
   if (showPrior && existingResult) {
@@ -634,6 +583,20 @@ function QuizViewer({ questions, existingResult, onSubmit }: {
     );
   }
 
+  if (loadingQz) {
+    return (
+      <div className="sc-loading">
+        <span className="sc-loading-dot" />
+        <span className="sc-loading-dot" />
+        <span className="sc-loading-dot" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return <div className="sc-pdf-error"><span>{loadError}</span></div>;
+  }
+
   if (submitted && score !== null) {
     return (
       <div className={`sc-quiz-result${passed ? " sc-quiz-result--passed" : " sc-quiz-result--failed"}`}>
@@ -648,61 +611,62 @@ function QuizViewer({ questions, existingResult, onSubmit }: {
           }
         </p>
         <p className="sc-quiz-attempts">Intento #{attempts}</p>
-        {/* Revisión de respuestas — muestra opciones pero no la correcta (está en el backend) */}
+        {/* Revisión — muestra lo elegido, nunca la correcta (vive en el backend) */}
         <div className="sc-quiz-review">
-          {questions.map((q, i) => {
-            const userAns = answers[i];
-            return (
-              <div key={i} className="sc-quiz-review-item">
-                <p className="sc-quiz-review-q">{i + 1}. {q.question}</p>
-                <p className="sc-quiz-review-a">
-                  Tu respuesta: <strong>{q.options[userAns] ?? "—"}</strong>
-                </p>
-              </div>
-            );
-          })}
+          {questions.map((q, i) => (
+            <div key={q.id} className="sc-quiz-review-item">
+              <p className="sc-quiz-review-q">{i + 1}. {q.question}</p>
+              <p className="sc-quiz-review-a">
+                Tu respuesta: <strong>{answers[q.id] ?? "—"}</strong>
+              </p>
+            </div>
+          ))}
         </div>
         {!passed && (
           <button className="sc-btn sc-btn--accent" onClick={handleRetry}>
             REINTENTAR
           </button>
         )}
-        {saving && <p className="sc-quiz-saving">Guardando resultado...</p>}
       </div>
     );
   }
 
   return (
-    <div className="sc-quiz-wrap">
+    <div className="sc-quiz-wrap sc-protected" onCopy={(e) => e.preventDefault()}>
       <p className="sc-quiz-subtitle">
         Respondé todas las preguntas para aprobar. Mínimo {Math.round(PASSING_SCORE * 100)}%.
         {attempts > 0 && <span className="sc-quiz-attempts"> · Intentos anteriores: {attempts}</span>}
       </p>
+
       {questions.map((q, qIdx) => (
-        <div key={qIdx} className="sc-quiz-question">
+        <div key={q.id} className="sc-quiz-question">
           <p className="sc-quiz-q-text">{qIdx + 1}. {q.question}</p>
+          {q.statement && <blockquote className="sc-quiz-statement">“{q.statement}”</blockquote>}
+          {q.prompt && <p className="sc-quiz-q-prompt">{q.prompt}</p>}
+
           <div className="sc-quiz-options">
             {q.options.map((opt, aIdx) => (
               <button
-                key={aIdx}
-                className={`sc-quiz-option${answers[qIdx] === aIdx ? " selected" : ""}`}
-                onClick={() => handleSelect(qIdx, aIdx)}
+                key={opt}
+                className={`sc-quiz-option${answers[q.id] === opt ? " selected" : ""}`}
+                onClick={() => handleSelect(q.id, opt)}
               >
-                <span className="sc-quiz-option-letter">
-                  {String.fromCharCode(65 + aIdx)}
-                </span>
+                <span className="sc-quiz-option-letter">{String.fromCharCode(65 + aIdx)}</span>
                 {opt}
               </button>
             ))}
           </div>
         </div>
       ))}
+
+      {submitErr && <p className="sc-quiz-error">{submitErr}</p>}
+
       <button
         className="sc-btn sc-btn--accent"
         onClick={handleSubmit}
-        disabled={Object.keys(answers).length < questions.length}
+        disabled={!allAnswered || saving}
       >
-        ENVIAR RESPUESTAS
+        {saving ? "ENVIANDO..." : `ENVIAR RESPUESTAS (${answeredCount}/${questions.length})`}
       </button>
     </div>
   );
@@ -710,11 +674,11 @@ function QuizViewer({ questions, existingResult, onSubmit }: {
 
 // ── Pantalla de finalización ──────────────────────────────────────────────────
 function CompletionScreen({ startedAt, completedAt }: { startedAt: string; completedAt: string }) {
-  const start    = new Date(startedAt);
-  const end      = new Date(completedAt);
-  const msTotal  = end.getTime() - start.getTime();
-  const days     = Math.floor(msTotal / (1000 * 60 * 60 * 24));
-  const hours    = Math.floor((msTotal % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const start   = new Date(startedAt);
+  const end     = new Date(completedAt);
+  const msTotal = end.getTime() - start.getTime();
+  const days    = Math.floor(msTotal / (1000 * 60 * 60 * 24));
+  const hours   = Math.floor((msTotal % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
   const fmt = (d: Date) => d.toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
 
@@ -748,9 +712,6 @@ function CompletionScreen({ startedAt, completedAt }: { startedAt: string; compl
           Accedé a la bolsa de trabajo y empezá a construir tu camino en ciberseguridad.
         </p>
       </div>
-{/*       <a href="/dashboard?tab=bolsa" className="sc-btn sc-btn--accent sc-btn--lg">
-        VER BOLSA DE TRABAJO →
-      </a> */}
     </div>
   );
 }
@@ -762,15 +723,15 @@ export default function Soc1Course() {
   const { user }  = UseSession();
   const { theme } = UseTheme();
 
-  const [progress,    setProgress]    = useState<Progress | null>(null);
-  const [loading,     setLoading]     = useState(true);
-  const [blocked,     setBlocked]     = useState(false);
-  const [blockMsg,    setBlockMsg]    = useState("");
-  const [saving,      setSaving]      = useState(false);
-  const [activeStep,  setActiveStep]  = useState(0);
-  const [showIntro,   setShowIntro]   = useState(true);
+  const [progress,   setProgress]   = useState<Progress | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [blocked,    setBlocked]    = useState(false);
+  const [blockMsg,   setBlockMsg]   = useState("");
+  const [saving,     setSaving]     = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [showIntro,  setShowIntro]  = useState(true);
 
-  // Módulos actualmente desplegados (pueden ser varios a la vez; solo UI, no toca progreso)
+  // Módulos desplegados (pueden ser varios a la vez; solo UI, no toca progreso)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
   const toggleModule = (key: string) => {
@@ -790,11 +751,11 @@ export default function Soc1Course() {
     setLoading(true);
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/course/${COURSE_ID}/progress`,
+        `${API_URL}/api/course/${COURSE_ID}/progress`,
         { withCredentials: true }
       );
       setProgress(data.data);
-      setActiveStep(data.data.currentStep ?? 0);
+      setActiveStep(Math.min(data.data.currentStep ?? 0, TOTAL_STEPS - 1));
       setBlocked(false);
     } catch (err: any) {
       if (err.response?.status === 403) {
@@ -808,9 +769,7 @@ export default function Soc1Course() {
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
 
-  // ── Asegurar que el módulo que contiene el step activo esté desplegado ───
-  // No cierra los demás: el alumno puede tener varios módulos abiertos para
-  // ir y volver entre un paso anterior y uno posterior.
+  // ── Asegurar que el módulo del step activo esté desplegado ───────────────
   useEffect(() => {
     const mod = COURSE_MODULES.find(m => m.stepIndices.includes(activeStep));
     if (!mod) return;
@@ -823,23 +782,20 @@ export default function Soc1Course() {
   }, [activeStep]);
 
   // ── Avanzar step (video / pdf / intro) ───────────────────────────────────
-  // ⚠️ Esta ruta pega a /progress/step, que el backend RECHAZA con 400 si el
-  // stepIndex enviado corresponde a un quiz (course.quizSteps.includes(...)).
-  // Los quizzes avanzan exclusivamente por /progress/quiz (ver handleQuizSubmit),
-  // que ya deja guardado el avance de progreso en esa misma request. Por eso
-  // handleNext NUNCA debe llamarse con activeStep apuntando a un step de quiz.
+  // ⚠️ /progress/step RECHAZA con 400 los steps de quiz. Los quizzes avanzan
+  // solo por /progress/quiz (handleQuizSubmit). handleNext nunca se llama
+  // con activeStep apuntando a un quiz.
   const handleNext = async () => {
     if (!progress || saving) return;
     setSaving(true);
     try {
       const { data } = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/course/${COURSE_ID}/progress/step`,
+        `${API_URL}/api/course/${COURSE_ID}/progress/step`,
         { stepIndex: activeStep },
         { withCredentials: true }
       );
       setProgress(data.data);
-      const nextStep = Math.min(activeStep + 1, TOTAL_STEPS - 1);
-      setActiveStep(nextStep);
+      setActiveStep(Math.min(activeStep + 1, TOTAL_STEPS - 1));
     } catch (err) {
       console.error("Error guardando step:", err);
     } finally {
@@ -847,20 +803,20 @@ export default function Soc1Course() {
     }
   };
 
-  // ── Guardar resultado del quiz ────────────────────────────────────────────
-  const handleQuizSubmit = async (answers: number[]): Promise<{ score: number; passed: boolean; correct: number }> => {
-    if (!progress) return { score: 0, passed: false, correct: 0 };
+  // ── Enviar quiz — el backend corrige comparando el texto de cada respuesta
+  const handleQuizSubmit = async (answers: QuizAnswer[]): Promise<QuizSubmitResult | null> => {
+    if (!progress) return null;
     try {
       const { data } = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/course/${COURSE_ID}/progress/quiz`,
+        `${API_URL}/api/course/${COURSE_ID}/progress/quiz`,
         { stepIndex: activeStep, answers },
         { withCredentials: true }
       );
       setProgress(data.data);
-      return { score: data.score, passed: data.passed, correct: data.correct };
+      return { score: data.score, passed: data.passed, correct: data.correct, total: data.total };
     } catch (err) {
       console.error("Error guardando quiz:", err);
-      return { score: 0, passed: false, correct: 0 };
+      return null;
     }
   };
 
@@ -870,13 +826,11 @@ export default function Soc1Course() {
     const step = COURSE_STEPS[activeStep];
     if (!step) return false;
 
-    // Si es quiz, solo puede avanzar si está aprobado
     if (step.type === "quiz") {
       const result = progress.quizResults?.[String(activeStep)];
       return !!result?.passed;
     }
 
-    // Para video / pdf / intro siempre puede avanzar (el usuario controla)
     return true;
   }, [progress, activeStep]);
 
@@ -989,11 +943,6 @@ export default function Soc1Course() {
   }
 
   // ── Vista principal del curso ─────────────────────────────────────────────
-  // Bloques horizontales centrados, uno por módulo. Al tocar el header de un
-  // módulo, se despliega en el flujo normal y empuja hacia abajo a los
-  // módulos siguientes (sin superponerse). Se pueden tener varios módulos
-  // abiertos a la vez para ir y volver entre pasos. Adentro, cada módulo
-  // tiene su propio aside con los steps (video / pdf / quiz) que contiene.
   return (
     <div className={`sc-wrap ${theme}`}>
 
@@ -1035,7 +984,6 @@ export default function Soc1Course() {
 
               {isExpanded && (
                 <div className="sc-module-body">
-                  {/* Aside propio del módulo */}
                   <aside className="sc-module-aside">
                     <p className="sc-module-aside-title">// CONTENIDO</p>
                     <ul className="sc-module-aside-list">
@@ -1059,7 +1007,6 @@ export default function Soc1Course() {
                     </ul>
                   </aside>
 
-                  {/* Contenido del step activo dentro de este módulo */}
                   <div className="sc-module-stage">
                     {hasActiveStep ? (
                       <>
@@ -1078,19 +1025,18 @@ export default function Soc1Course() {
                         )}
 
                         {step?.type === "pdf" && step.pdfSrc && (
-                          <PdfViewer key={activeStep} src={step.pdfSrc} />
+                          <PdfViewer key={activeStep} src={step.pdfSrc} title={step.title} />
                         )}
 
-                        {step?.type === "quiz" && step.questions && (
+                        {step?.type === "quiz" && (
                           <QuizViewer
-                            questions={step.questions}
+                            key={activeStep}
                             stepIndex={activeStep}
                             existingResult={progress?.quizResults?.[String(activeStep)] ?? null}
                             onSubmit={handleQuizSubmit}
                           />
                         )}
 
-                        {/* ── Navegación unificada (idéntica a la original) ── */}
                         <div className="sc-nav">
                           {activeStep > 0 && (
                             <button
