@@ -58,7 +58,7 @@ const Courses: React.FC = () => {
 
                     <div className="h-hero-video">
                         <video controls className="h-video-player">
-                            <source src="https://res.cloudinary.com/dfpomipab/video/upload/v1782857862/video-curso_jqxafe.mp4#t=0.001" type="video/mp4" />
+                            <source src="https://res.cloudinary.com/dfpomipab/video/upload/v1792174664/Video_Modern_Soc_Operations_Baja_Cali_lm9kwg.mp4" type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
                         <div className="h-video-decorator" />

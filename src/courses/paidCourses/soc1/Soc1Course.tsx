@@ -16,19 +16,21 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  ESTRUCTURA DEL CURSO
-//  Los PDFs viven en /public/pdf/ModuloX/ → se sirven en /pdf/ModuloX/…
-//  (lo que está en /public no se importa: se referencia por URL).
+//  Los PDFs y videos viven en /public/pdf/modernSocCurso/pdf/ModuloX/ y se
+//  sirven en /pdf/modernSocCurso/pdf/ModuloX/… (lo que está en /public no se
+//  importa: se referencia por URL).
 //  Tipos de step: "intro" | "video" | "pdf" | "quiz"
 // ══════════════════════════════════════════════════════════════════════════════
 const COURSE_ID = "soc1";
 const API_URL   = import.meta.env.VITE_API_URL;
-const PDF_BASE = `${import.meta.env.BASE_URL}pdf/modernSocCurso/pdf`;
+const PDF_BASE  = `${import.meta.env.BASE_URL}pdf/modernSocCurso/pdf`;
 
-// Cantidad de PDFs "socN" de cada módulo (sin contar socIntro ni socFinal).
+// contents   → cantidad de PDFs "socN" del módulo (sin socIntro ni socFinal)
+// introVideo → (opcional) video que va ANTES de socIntro, en la misma carpeta
 // ⚠️ Tiene que coincidir con SOC1_MODULE_SIZES del backend (config/courses.js):
-//    steps del módulo = socIntro + contents + socFinal + quiz = contents + 3
-const MODULES_CONFIG: { contents: number }[] = [
-  { contents: 6  }, // Módulo 1 →  9 steps
+//    steps del módulo = [video] + socIntro + contents + socFinal + quiz
+const MODULES_CONFIG: { contents: number; introVideo?: string }[] = [
+  { contents: 6, introVideo: "https://res.cloudinary.com/dfpomipab/video/upload/v1792174664/Video_Modern_Soc_Operations_Baja_Cali_lm9kwg.mp4" }, // Módulo 1 → 10 steps (video + 9)
   { contents: 8  }, // Módulo 2 → 11 steps
   { contents: 9  }, // Módulo 3 → 12 steps
   { contents: 11 }, // Módulo 4 → 14 steps
@@ -47,24 +49,29 @@ interface CourseStep {
   moduleNumber?: number; // quiz — las preguntas las sirve el backend
 }
 
-function buildModuleSteps(moduleNumber: number, contents: number): CourseStep[] {
-  const pdf = (file: string) => `${PDF_BASE}/Modulo${moduleNumber}/${file}.pdf`;
+function buildModuleSteps(moduleNumber: number, contents: number, introVideo?: string): CourseStep[] {
+  const file = (name: string) => `${PDF_BASE}/Modulo${moduleNumber}/${name}`;
+  // Si es una URL absoluta (Cloudinary, etc.) se usa tal cual; si no, se busca en /public
+  const resolve = (name: string) => (/^https?:\/\//i.test(name) ? name : file(name));
 
   return [
-    { type: "pdf", title: `Módulo ${moduleNumber} — Introducción`, pdfSrc: pdf("socIntro") },
+    ...(introVideo
+      ? [{ type: "video" as const, title: `Módulo ${moduleNumber} — Video introductorio`, src: resolve(introVideo) }]
+      : []),
+    { type: "pdf", title: `Módulo ${moduleNumber} — Introducción`, pdfSrc: file("socIntro.pdf") },
     ...Array.from({ length: contents }, (_, i): CourseStep => ({
       type:   "pdf",
       title:  `Módulo ${moduleNumber} — Contenido ${i + 1}`,
-      pdfSrc: pdf(`soc${i + 1}`),
+      pdfSrc: file(`soc${i + 1}.pdf`),
     })),
-    { type: "pdf",  title: `Módulo ${moduleNumber} — Cierre`,     pdfSrc: pdf("socFinal") },
+    { type: "pdf",  title: `Módulo ${moduleNumber} — Cierre`,     pdfSrc: file("socFinal.pdf") },
     { type: "quiz", title: `Módulo ${moduleNumber} — Quiz final`, moduleNumber },
   ];
 }
 
-const COURSE_STEPS: CourseStep[] = MODULES_CONFIG.flatMap((m, i) => buildModuleSteps(i + 1, m.contents));
+const COURSE_STEPS: CourseStep[] = MODULES_CONFIG.flatMap((m, i) => buildModuleSteps(i + 1, m.contents, m.introVideo));
 
-const TOTAL_STEPS   = COURSE_STEPS.length; // 87
+const TOTAL_STEPS   = COURSE_STEPS.length; // 88
 const PASSING_SCORE = 0.70;
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1021,7 +1028,7 @@ export default function Soc1Course() {
                         )}
 
                         {step?.type === "video" && step.src && (
-                          <VideoViewer src={step.src} />
+                          <VideoViewer key={activeStep} src={step.src} />
                         )}
 
                         {step?.type === "pdf" && step.pdfSrc && (
