@@ -120,7 +120,7 @@ const EXAM_RULES: string[] = [
   "El examen debe rendirse en una computadora de escritorio o notebook (Windows, Linux o macOS) — no está disponible en celulares ni tablets.",
   "Si tu dispositivo cuenta con cámara y/o micrófono, se solicitará permiso para usarlos durante el examen, con el fin de validar que lo estés rindiendo vos y sin ayuda de terceros.",
   "El examen se rinde en Google Chrome o Microsoft Edge, en pantalla completa, y sin extensiones que modifiquen la página (por ejemplo, asistentes de IA). Si detectamos alguna, vas a tener que desactivarla para poder empezar.",
-  "Cada vez que salgas del examen (minimizar, cambiar de ventana o de pestaña, salir de pantalla completa) se registra una salida. A la 3.ª salida el examen se cancela y perdés el voucher.",
+  "Cada vez que salgas del examen (minimizar, cambiar de ventana o de pestaña, salir de pantalla completa) se registra una salida. A la 2.ª salida el examen se cancela y perdés el voucher.",
   "Si cerrás la pestaña o salís de pantalla completa y confirmás los avisos, el examen se da por finalizado y perdés el voucher. Si se corta la luz o se apaga la computadora, vas a poder retomarlo desde donde estabas mientras quede tiempo.",
   "No se puede copiar, pegar, imprimir ni sacar capturas del contenido del examen. Todos los intentos quedan registrados.",
 ];
@@ -129,7 +129,7 @@ const VIOLATION_GRACE_SECONDS = 30;
 
 // ── Integridad del entorno ────────────────────────────────────────────────────
 // Salidas permitidas antes de cancelar (el número real lo manda el backend)
-const DEFAULT_MAX_STRIKES = 3;
+const DEFAULT_MAX_STRIKES = 2;
 // Eventos que llegan juntos (blur + visibilitychange + fullscreen) cuentan una vez
 const STRIKE_DEBOUNCE_MS  = 3000;
 // Para no contar como salida un parpadeo de foco (diálogos del sistema, etc.)
@@ -273,7 +273,7 @@ function violationReasonLabel(reason: string): string {
   switch (reason) {
     case "second_monitor_connected": return "Se detectó un segundo monitor conectado durante el examen.";
     case "duplicate_tab_detected":   return "Se detectó otra pestaña de este examen abierta.";
-    case "focus_limit_reached":      return "Saliste del examen 3 veces (minimizar, cambiar de ventana o salir de pantalla completa).";
+    case "focus_limit_reached":      return "Saliste del examen 2 veces (minimizar, cambiar de ventana o salir de pantalla completa).";
     case "fullscreen_exit_confirmed": return "Confirmaste la salida de pantalla completa durante el examen.";
     case "tab_close_confirmed":      return "Confirmaste el cierre de la pestaña durante el examen.";
     case "tab_closed":               return "Cerraste la pestaña del examen después de confirmar el aviso del navegador.";
@@ -1603,11 +1603,26 @@ export default function CertificationExam({ certId, title }: { certId: string; t
         <h2 className="cex-title">{title}</h2>
         <div className="cex-card">
           <h3 className="cex-card-title">{resuming ? "Retomar examen" : "Todo listo"}</h3>
-          <p style={{ fontSize: "0.85rem", opacity: 0.75, lineHeight: 1.6, marginBottom: 24 }}>
+                    <p style={{ fontSize: "0.85rem", opacity: 0.75, lineHeight: 1.6, marginBottom: 24 }}>
             {resuming
               ? "Vas a volver a la pregunta donde te quedaste. La pantalla pasará a modo completo y el temporizador sigue corriendo."
               : "Al tocar \"Empezar examen\" se va a consumir tu voucher, la pantalla pasará a modo completo y el temporizador de 2 horas comenzará a correr. No vas a poder pausarlo."}
           </p>
+
+          <div className="cex-alert cex-alert--warning">
+            <span className="cex-alert-icon">⚠</span>
+            <span className="cex-alert-text">
+              Cada vez que salgas del examen (minimizar, cambiar de pestaña o de ventana, salir de
+              pantalla completa o sacar una captura) se registra una salida.{" "}
+              <strong>
+                A la {maxStrikes}.ª salida el examen se cancela automáticamente y perdés el voucher,
+              </strong>{" "}
+              sin posibilidad de retomarlo.
+              {resuming && strikes > 0 && (
+                <> Ya tenés {strikes} de {maxStrikes} salida{strikes > 1 ? "s" : ""} registrada{strikes > 1 ? "s" : ""} en este intento.</>
+              )}
+            </span>
+          </div>
           {errorMsg && (
             <div className="cex-alert">
               <span className="cex-alert-icon">⚠</span>
@@ -1635,14 +1650,14 @@ export default function CertificationExam({ certId, title }: { certId: string; t
     const reviewLen = view.review?.queue.length ?? 0;
 
     const leaveTitle = leaveModal?.kind === "tab" ? "cerrar la pestaña" : "salir de pantalla completa";
-    const strikesLeft = Math.max(0, maxStrikes - strikes);
+    /* const strikesLeft = Math.max(0, maxStrikes - strikes); */
 
     return (
       <div className={`cex-wrap cex-protected ${isLight ? "light" : ""}${shielded ? " cex-shielded" : ""}`}>
         {/* Marca de agua: identifica cualquier foto o captura del examen */}
         <div className="cex-watermark" aria-hidden="true">
           {Array.from({ length: 24 }).map((_, i) => (
-            <span key={i}>{user?.email ?? "hidden-security"} · {attempt.attemptId.slice(-6)}</span>
+            <span key={i}>{/* user?.email ??  */"Certificación Desarrollada por Hidden Security"} · {attempt.attemptId.slice(-6)}</span>
           ))}
         </div>
 
@@ -1685,11 +1700,11 @@ export default function CertificationExam({ certId, title }: { certId: string; t
                       : "Si salís del modo pantalla completa, el examen se da por finalizado y no vas a poder continuarlo. "}
                     <strong>Se pierde el voucher de certificación que usaste.</strong>
                   </p>
-                  <div className="cex-strike-meter">
+                  {/* <div className="cex-strike-meter">
                     <span>Salidas de la pestaña o pantalla completa registradas </span>
                     <strong>{strikes} / {maxStrikes}</strong>
                     <em>{strikesLeft > 0 ? `A la ${maxStrikes}.ª salida el examen se cancela solo.` : "Límite alcanzado."}</em>
-                  </div>
+                  </div> */}
                   <div className="cex-btn-row">
                     <button className="cex-btn cex-btn--accent" onClick={cancelLeave}>VOLVER AL EXAMEN</button>
                     <button
@@ -1762,7 +1777,7 @@ export default function CertificationExam({ certId, title }: { certId: string; t
             {inReview ? "Revisión" : q?.kind === "sjt" ? "Caso SJT" : q?.kind === "exp" ? "Caso exploratorio" : "Individual"}
           </span>
           <span className={`cex-strike-chip${strikes > 0 ? " has-strikes" : ""}`} title="Salidas del examen registradas">
-            SALIDAS {strikes}/{maxStrikes}
+            SALIDAS DE PANTALLA REGISTRADAS {strikes}/{maxStrikes}
           </span>
           <span className={`cex-timer ${timerClass}`}>{formatDuration(remainingMs)}</span>
         </div>

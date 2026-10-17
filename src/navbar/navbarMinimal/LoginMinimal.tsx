@@ -11,6 +11,13 @@ interface LoginProps {
   closeLogin: () => void;
 }
 
+// Rutas de las páginas legales (ajustar si en el router tienen otro path)
+const LEGAL_LINKS = {
+    cookies: "/policy-cookie",
+    privacy: "/policy-privacity",
+    terms: "/terms-and-conditions",
+};
+
 const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
     const { theme } = UseTheme();
     const {
@@ -20,6 +27,7 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
         handleResetPassword,
         emailNotVerified,
         resendVerificationEmail,
+        legalRequired,
     } = UseSession();
     const loginRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +37,7 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
     const [visiblePassword,  setVisiblePassword]  = useState<boolean>(false);
     const [resendLoading,    setResendLoading]    = useState(false);
     const [resendSuccess,    setResendSuccess]    = useState(false);
+    const [acceptedLegal,    setAcceptedLegal]    = useState(false);
 
     const handleClose = () => {
         setExit(true);
@@ -47,7 +56,8 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
 
     const loginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const response = await handleLogin(email, password); 
+        if (legalRequired && !acceptedLegal) return;
+        const response = await handleLogin(email, password, legalRequired ? acceptedLegal : undefined); 
         if (response) { closeLogin(); }
     };
 
@@ -148,6 +158,58 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
                                 </button>
                             </div>
 
+                            {/* ── Aceptación legal (solo si el backend la pide) ── */}
+                            {legalRequired && (
+                                <div className="auth-legal-block">
+                                    <p className="auth-legal-notice">
+                                        Actualizamos nuestras condiciones. Para ingresar necesitamos que las aceptes.
+                                    </p>
+                                    <label className="auth-legal">
+                                        <input
+                                            type="checkbox"
+                                            className="auth-legal-input"
+                                            checked={acceptedLegal}
+                                            onChange={(e) => setAcceptedLegal(e.target.checked)}
+                                        />
+                                        <span className="auth-legal-box" aria-hidden="true">
+                                            <svg viewBox="0 0 16 16" width="12" height="12">
+                                                <path d="M3 8.5L6.5 12L13 4.5" fill="none" strokeWidth="2.2" strokeLinecap="square" />
+                                            </svg>
+                                        </span>
+                                        <span className="auth-legal-text">
+                                            Acepto la{" "}
+                                            <a
+                                                href={LEGAL_LINKS.cookies}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Política de Cookies
+                                            </a>
+                                            , la{" "}
+                                            <a
+                                                href={LEGAL_LINKS.privacy}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Política de Privacidad
+                                            </a>
+                                            {" "}y los{" "}
+                                            <a
+                                                href={LEGAL_LINKS.terms}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Términos y Condiciones
+                                            </a>
+                                            {" "}de Hidden Security.
+                                        </span>
+                                    </label>
+                                </div>
+                            )}
+
                             {/* ── Error genérico ── */}
                             {error && !emailNotVerified && (
                                 <div className="auth-error-msg">{error}</div>
@@ -182,8 +244,14 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
                                 </div>
                             )}
 
-                            <button type="submit" className="auth-primary-btn">
-                                <span className="btn-label">INGRESAR</span>
+                            <button
+                                type="submit"
+                                className="auth-primary-btn"
+                                disabled={legalRequired && !acceptedLegal}
+                            >
+                                <span className="btn-label">
+                                    {legalRequired ? "ACEPTAR E INGRESAR" : "INGRESAR"}
+                                </span>
                                 <span className="btn-arrow">→</span>
                                 <div className="btn-fill"></div>
                             </button>

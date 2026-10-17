@@ -12,8 +12,9 @@ interface ProviderProps {
 }
 
 interface SessionContextType {
-    handleRegister: (email: string, password: string, loginOpen: any, registerOpen: any) => Promise<void>;
-    handleLogin: (email: string, password: string) => Promise<boolean | undefined>;
+    handleRegister: (email: string, password: string, loginOpen: any, registerOpen: any, acceptedLegal: boolean) => Promise<void>;
+    handleLogin: (email: string, password: string, acceptedLegal?: boolean) => Promise<boolean | undefined>; 
+    legalRequired: boolean;
     handleLogout: () => Promise<void>;
     handleResetPassword: (email: string) => Promise<void>;
     resendVerificationEmail: (email: string) => Promise<void>;
@@ -47,6 +48,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     const [ user,             setUser ]             = useState<unknown>(null)
     const [ isAdmin,          setIsAdmin ]          = useState<boolean | null>(null)
     const [ emailNotVerified, setEmailNotVerified ] = useState(false)
+    const [legalRequired, setLegalRequired] = useState<boolean>(false);
         // Refresh de claims — un solo pedido en vuelo + mínimo entre refrescos
     const refreshInFlight = useRef<Promise<void> | null>(null);
     const lastRefreshAt   = useRef(0);
@@ -74,11 +76,15 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     }, [user, navigate]);
 
     // Register
-    const handleRegister = async (email: string, password: string, loginOpen: React.Dispatch<React.SetStateAction<boolean>>, registerOpen: React.Dispatch<React.SetStateAction<boolean>>) => {
+    const handleRegister = async ( email: string, password: string, loginOpen: React.Dispatch<React.SetStateAction<boolean>>, registerOpen: React.Dispatch<React.SetStateAction<boolean>>, acceptedLegal: boolean ) => {
         try {
             setError(null)
             setLoading(true)
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/register`, { email, password })
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/register`, {
+                email,
+                password,
+                acceptedLegal
+            })
             if(response.status === 201){
                 setLoading(false)
                 registerOpen(false)
@@ -95,7 +101,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     }
 
     // Login
-    const handleLogin = async (email: string, password: string) => {
+    const handleLogin = async (email: string, password: string, acceptedLegal?: boolean) => {
         try {
             setLoading(true);
             setError(null);
@@ -103,13 +109,14 @@ export const SessionProvider = ({ children }: ProviderProps) => {
 
             const response = await axios.post(
                 `${import.meta.env.VITE_API_URL}/login`, 
-                { email, password }, 
+                { email, password, acceptedLegal }, 
                 { withCredentials: true }
             );
 
             if (response.status === 200) {
                 const { user, isAdmin, isEnterprise, partner } = response.data;
                 const mergedUser = { ...user, isEnterprise, admin: isAdmin, partner };
+                setLegalRequired(false);
                 setUser(mergedUser);
 
                 setLoading(false);
@@ -132,6 +139,12 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             const serverData = error.response?.data;
             const serverCode = serverData?.code;
             const attempts   = serverData?.attempts;
+
+            // ── Documentos legales no aceptados ────────────────────────────────
+            if (serverCode === "auth/legal-not-accepted") {
+                setLegalRequired(true);
+                return;
+            }
 
             // ── Email no verificado ────────────────────────────────────────────
             if (serverCode === "auth/email-not-verified") {
@@ -347,14 +360,15 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     }, [userUid]); // eslint-disable-line
 
     return(
-        <SessionContext.Provider value={{
-            handleRegister, handleLogin, handleLogout, handleResetPassword,
-            resendVerificationEmail,
-            error, setError, loading, setLoading,
-            user, setUser,
-            handleUnbanUser, verifyIsAdmin, isAdmin, handleBanUser,
-            emailNotVerified, setEmailNotVerified, refreshClaims,
-        }}>
+            <SessionContext.Provider value={{
+                handleRegister, handleLogin, handleLogout, handleResetPassword,
+                resendVerificationEmail,
+                error, setError, loading, setLoading,
+                user, setUser,
+                handleUnbanUser, verifyIsAdmin, isAdmin, handleBanUser,
+                emailNotVerified, setEmailNotVerified, refreshClaims,
+                legalRequired,
+            }}>
             { children }
         </SessionContext.Provider>
     )

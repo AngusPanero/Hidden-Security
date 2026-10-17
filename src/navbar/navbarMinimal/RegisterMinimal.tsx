@@ -8,6 +8,13 @@ import { UseTheme } from "../../contexts/ThemeContext";
 import Loader from "../../loader/Loader";
 import Error from "../../processMessages/Error";
 
+// Rutas de las páginas legales (ajustar si en el router tienen otro path)
+const LEGAL_LINKS = {
+    cookies: "/policy-cookie",
+    privacy: "/policy-privacity",
+    terms: "/terms-and-conditions",
+};
+
 const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
     const { language, texts } = UseLanguage();  
     const { handleRegister, loading, error } = UseSession();
@@ -22,6 +29,7 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
     const [passwordError, setPasswordError] = useState<string>("");
     const [showRequirements, setShowRequirements] = useState(false);
     const [visiblePassword, setVisiblePassword] = useState<boolean>(false);
+    const [acceptedLegal, setAcceptedLegal] = useState<boolean>(false);
 
     const handleClose = () => {
         setExit(true);
@@ -35,7 +43,12 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
         { label: `${texts[language].register.reqSpecial}`, test: (pass: string) => /[@$!%*?&]/.test(pass) },
     ];
 
-    const isFormValid = email.includes("@") && password.length >= 10 && password === password2 && !passwordError;
+    const isFormValid =
+        email.includes("@") &&
+        password.length >= 10 &&
+        password === password2 &&
+        !passwordError &&
+        acceptedLegal;
     
     const validatePassword = (pass: string) => {
         const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
@@ -87,7 +100,6 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
                     <main className="k-reg-main">
                         {registered ? (
                             <div className="k-reg-success">
-                                {/* <span className="k-reg-success-icon">✉</span> */}
                                 <h2 className="k-reg-title">¡CUENTA CREADA!</h2>
                                 <p className="k-reg-success-text">
                                     Te enviamos un email de verificación a <strong>{email}</strong>.
@@ -114,8 +126,15 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
 
                                 <form className="k-reg-form" onSubmit={(e) => {
                                     e.preventDefault(); 
+                                    if (!acceptedLegal) return;
                                     if (!validatePassword(password)) return; 
-                                    handleRegister(email, password, () => setRegistered(true), () => setRegistered(true));
+                                    handleRegister(
+                                        email,
+                                        password,
+                                        () => setRegistered(true),
+                                        () => setRegistered(true),
+                                        acceptedLegal
+                                    );
                                 }}>
                                     
                                     <div className="k-reg-group">
@@ -192,6 +211,52 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
                                             <div className="box-focus"></div>
                                         </div>
                                     </div>
+
+                                    {/* ACEPTACIÓN LEGAL */}
+                                    <label className="k-reg-legal">
+                                        <input
+                                            type="checkbox"
+                                            className="k-reg-legal-input"
+                                            checked={acceptedLegal}
+                                            onChange={(e) => setAcceptedLegal(e.target.checked)}
+                                            required
+                                        />
+                                        <span className="k-reg-legal-box" aria-hidden="true">
+                                            <svg viewBox="0 0 16 16" width="12" height="12">
+                                                <path d="M3 8.5L6.5 12L13 4.5" fill="none" strokeWidth="2.2" strokeLinecap="square" />
+                                            </svg>
+                                        </span>
+                                        <span className="k-reg-legal-text">
+                                            Al registrarme acepto la{" "}
+                                            <a
+                                                href={LEGAL_LINKS.cookies}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Política de Cookies
+                                            </a>
+                                            , la{" "}
+                                            <a
+                                                href={LEGAL_LINKS.privacy}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Política de Privacidad
+                                            </a>
+                                            {" "}y los{" "}
+                                            <a
+                                                href={LEGAL_LINKS.terms}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Términos y Condiciones
+                                            </a>
+                                            {" "}de Hidden Security.
+                                        </span>
+                                    </label>
 
                                     <div className="k-reg-feedback">
                                         {(password !== password2 && password2 !== "") && <span className="k-reg-error">Las contraseñas no coinciden!</span>}
