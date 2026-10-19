@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { UseTheme } from "../contexts/ThemeContext";
-import "./certificateView.css";
+import "./certificateview.css";
 
 import logoHS from "../../public/logos/logo-hidden-final.png";
 
