@@ -63,9 +63,9 @@
   padding:58px 70px 0;
   display:flex; flex-direction:column;
 }
-.hcv-page .hcv-grid{position:absolute; inset:0; pointer-events:none; opacity:.5;
+/* .hcv-page .hcv-grid{position:absolute; inset:0; pointer-events:none; opacity:.5;
   background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
-  background-size:38px 38px}
+  background-size:38px 38px} */
 .hcv-page .hcv-glow{position:absolute; width:720px; height:720px; right:-260px; top:-300px; pointer-events:none;
   background:radial-gradient(circle,rgba(204,255,0,.13),transparent 62%)}
 .hcv-page .hcv-frame{position:absolute; inset:24px; border:1px solid rgba(204,255,0,.28); pointer-events:none}
@@ -84,7 +84,7 @@
 
 .hcv-page .hcv-head{display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:22px; border-bottom:1px solid rgba(255,255,255,.1)}
 .hcv-page .hcv-brand{display:flex; align-items:center; gap:16px}
-.hcv-page .hcv-logo{height:58px; width:auto; object-fit:contain}
+.hcv-page .hcv-logo{height:88px; width:auto; object-fit:contain}
 .hcv-page .hcv-brand-text{display:flex; flex-direction:column; gap:4px}
 .hcv-page .hcv-brand-name{font-size:21px; font-weight:900; letter-spacing:.2em}
 .hcv-page .hcv-brand-sub{font-size:11px; font-weight:500; letter-spacing:.06em; color:rgba(255,255,255,.55)}

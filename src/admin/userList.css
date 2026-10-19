@@ -3,8 +3,11 @@
    Reemplaza completo al userList.css anterior.
 ══════════════════════════════════════════════════════════════ */
 
-/* ─── VARIABLES dark ─── */
-.user-list-container {
+/* ─── VARIABLES dark ───
+   Se definen también en .ul-modal-root porque el sheet de detalle se
+   renderiza en un portal (fuera del contenedor). */
+.user-list-container,
+.ul-modal-root {
   --ul-bg:        #000000;
   --ul-surface:   #080808;
   --ul-surface-2: #111111;
@@ -22,7 +25,9 @@
   --ul-enterprise:#00d9ff;
   --ul-partner:   #f5a524;
   --ul-trainee:   #a78bfa;
+}
 
+.user-list-container {
   background:  var(--ul-bg);
   color:       var(--ul-text);
   font-family: 'Montserrat', sans-serif;
@@ -33,7 +38,8 @@
 }
 
 /* ─── VARIABLES light ─── */
-.user-list-container.light {
+.user-list-container.light,
+.ul-modal-root.light {
   --ul-bg:        #ffffff;
   --ul-surface:   #f5f5f5;
   --ul-surface-2: #eeeeee;
@@ -281,10 +287,14 @@
 .ul-status--error { color: var(--ul-error); background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.3); }
 
 .ul-chevron {
-  font-size:   10px;
+  font-size:   1.2rem;
+  font-weight: 700;
+  line-height: 1;
   color:       var(--ul-text-dim);
   flex-shrink: 0;
+  transition:  transform 0.2s, color 0.2s;
 }
+.ul-row:hover .ul-chevron { transform: translateX(3px); color: var(--ul-accent); }
 
 /* ════════════════════════════════════════════════
    DETALLE (como dm-purchase-detail)
@@ -390,6 +400,167 @@
   color:       var(--ul-text-mid);
 }
 
+
+/* ════════════════════════════════════════════════
+   SHEET DE DETALLE — bottom sheet en mobile
+   (deslizar hacia abajo para cerrar), modal centrado en desktop
+════════════════════════════════════════════════ */
+.ul-modal-root {
+  position:        fixed;
+  inset:           0;
+  z-index:         1000;
+  display:         flex;
+  align-items:     flex-end;
+  justify-content: center;
+  background:      rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  font-family:     'Montserrat', sans-serif;
+  color:           var(--ul-text);
+  animation:       ul-sheet-fade 0.2s ease-out;
+}
+.ul-modal-root * { box-sizing: border-box; }
+
+.ul-sheet {
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  max-height:     92vh;
+  max-height:     92dvh;
+  background:     var(--ul-surface);
+  border:         1px solid var(--ul-border);
+  border-top:     3px solid var(--ul-accent);
+  border-bottom:  none;
+  border-radius:  14px 14px 0 0;
+  overflow:       hidden;
+  transition:     transform 0.25s ease;
+  animation:      ul-sheet-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ul-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ul-sheet-in   { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes ul-sheet-pop  { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* Zona de arrastre: solo la cabecera, así el scroll del cuerpo no cierra el sheet */
+.ul-sheet-drag {
+  flex-shrink:   0;
+  touch-action:  none;
+  border-bottom: 1px solid var(--ul-border);
+}
+
+.ul-sheet-handle {
+  display:       block;
+  width:         40px;
+  height:        4px;
+  margin:        10px auto 0;
+  border-radius: 2px;
+  background:    var(--ul-border);
+}
+.ul-modal-root:not(.light) .ul-sheet-handle { background: rgba(255, 255, 255, 0.2); }
+
+.ul-sheet-header {
+  display:         flex;
+  align-items:     flex-start;
+  justify-content: space-between;
+  gap:             12px;
+  padding:         12px 16px 16px;
+}
+
+.ul-sheet-heading {
+  display:        flex;
+  flex-direction: column;
+  gap:            8px;
+  min-width:      0;
+}
+
+.ul-sheet-badges {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex-wrap:   wrap;
+}
+
+.ul-sheet-email {
+  margin:         0;
+  font-size:      1.05rem;
+  font-weight:    800;
+  letter-spacing: 0.01em;
+  line-height:    1.3;
+  color:          var(--ul-text);
+  overflow-wrap:  anywhere;
+}
+
+.ul-sheet-sub {
+  font-size:   0.78rem;
+  font-weight: 600;
+  color:       var(--ul-text-mid);
+}
+
+.ul-sheet-close {
+  flex-shrink:  0;
+  width:        40px;
+  height:       40px;
+  display:      grid;
+  place-items:  center;
+  background:   var(--ul-surface-2);
+  border:       1px solid var(--ul-border);
+  color:        var(--ul-text);
+  font-family:  inherit;
+  font-size:    0.9rem;
+  cursor:       pointer;
+  transition:   border-color 0.2s, color 0.2s;
+}
+.ul-sheet-close:hover,
+.ul-sheet-close:focus-visible { border-color: var(--ul-accent); color: var(--ul-accent); outline: none; }
+
+.ul-sheet-body {
+  flex:                1;
+  overflow-y:          auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding:             16px;
+  background:          var(--ul-detail-bg);
+}
+
+/* El detalle reutiliza los estilos de antes, sin el borde del acordeón */
+.ul-sheet .ul-detail {
+  grid-template-columns: 1fr;
+  gap:        18px;
+  padding:    0;
+  border-top: none;
+  background: transparent;
+  animation:  none;
+}
+
+.ul-sheet-footer {
+  flex-shrink: 0;
+  display:     flex;
+  flex-direction: column;
+  gap:         8px;
+  padding:     12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top:  1px solid var(--ul-border);
+  background:  var(--ul-surface);
+}
+.ul-sheet-footer .ul-btn { width: 100%; min-height: 46px; text-align: center; }
+
+/* ── Desktop: modal centrado ── */
+@media (min-width: 769px) {
+  .ul-modal-root { align-items: center; padding: 24px; }
+  .ul-sheet {
+    max-width:     720px;
+    max-height:    88vh;
+    border-bottom: 1px solid var(--ul-border);
+    border-radius: 0;
+    animation:     ul-sheet-pop 0.22s ease-out;
+  }
+  .ul-sheet-handle { display: none; }
+  .ul-sheet-header { padding: 20px 22px; }
+  .ul-sheet-body   { padding: 20px 22px; }
+  .ul-sheet .ul-detail { grid-template-columns: 1fr 1fr; gap: 20px; }
+  .ul-sheet-footer { flex-direction: row; padding: 14px 22px; }
+  .ul-sheet-footer .ul-btn { width: auto; flex: 1; min-height: 42px; }
+}
+
 /* ════════════════════════════════════════════════
    EMPTY
 ════════════════════════════════════════════════ */
@@ -454,10 +625,12 @@
 .ul-row:focus-visible,
 .ul-filter:focus-visible,
 .ul-btn:focus-visible,
+.ul-sheet-close:focus-visible,
 .ul-page-btn:focus-visible { outline: 1px solid var(--ul-accent); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ul-stats, .ul-filters, .ul-list, .ul-detail { animation: none; }
+  .ul-stats, .ul-filters, .ul-list, .ul-detail,
+  .ul-modal-root, .ul-sheet { animation: none; }
 }
 
 /* ════════════════════════════════════════════════

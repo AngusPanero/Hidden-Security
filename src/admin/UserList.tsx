@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { UseSession } from "../contexts/SessionContext"
 import { UseUsers } from "../contexts/UsersContext"
 import "./userList.css"
@@ -37,6 +38,9 @@ const ROLE_LABELS: Record<RoleFilter, string> = {
 
 const PAGE_SIZE = 15;
 
+// Distancia (px) que hay que arrastrar hacia abajo para cerrar el sheet
+const DISMISS_DISTANCE = 110;
+
 // Prioridad: admin > enterprise > partner > trainee > user.
 // Tiene que coincidir con el orden de getUserRole en PrivateRoute.
 // Se usa para el badge y para el filtro, así nunca se desincronizan.
@@ -66,7 +70,146 @@ const formatDateTime = (dateString?: string) => {
 
 // Minúsculas y sin tildes, para que "ADMIN" o "usuário" matcheen igual
 const normalize = (s?: string) =>
-    (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+// ─── Detalle del usuario: bottom sheet en mobile, modal centrado en desktop ──
+interface UserSheetProps {
+    user:          User
+    theme:         string
+    onClose:       () => void
+    onManageClaims:(user: User) => void
+    onBan:         (email: string) => void
+    onUnban:       (uid: string) => void
+}
+
+const UserSheet = ({ user, theme, onClose, onManageClaims, onBan, onUnban }: UserSheetProps) => {
+    const closeRef = useRef<HTMLButtonElement>(null);
+    const startY   = useRef<number | null>(null);
+    const [dragY, setDragY] = useState(0);
+
+    // Bloquear scroll del fondo + cerrar con Escape
+    useEffect(() => {
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+        window.addEventListener("keydown", onKey);
+        closeRef.current?.focus({ preventScroll: true });
+        return () => {
+            document.body.style.overflow = prevOverflow;
+            window.removeEventListener("keydown", onKey);
+        };
+    }, [onClose]);
+
+    // Deslizar hacia abajo para cerrar (solo desde la cabecera, así el
+    // scroll del contenido no lo cierra sin querer)
+    const onTouchStart = (e: React.TouchEvent) => { startY.current = e.touches[0].clientY; };
+    const onTouchMove  = (e: React.TouchEvent) => {
+        if (startY.current === null) return;
+        setDragY(Math.max(0, e.touches[0].clientY - startY.current));
+    };
+    const onTouchEnd   = () => {
+        if (dragY > DISMISS_DISTANCE) onClose();
+        else setDragY(0);
+        startY.current = null;
+    };
+
+    const role = getUserRole(user);
+    const tone = user.isBanned ? "error" : "ok";
+
+    return createPortal(
+        <div className={`ul-modal-root ${theme}`} onClick={onClose}>
+            <div
+                className="ul-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="ul-sheet-title"
+                onClick={(e) => e.stopPropagation()}
+                style={dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined}
+            >
+                {/* ── cabecera (zona de arrastre) ── */}
+                <div
+                    className="ul-sheet-drag"
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                >
+                    <span className="ul-sheet-handle" aria-hidden="true" />
+                    <header className="ul-sheet-header">
+                        <div className="ul-sheet-heading">
+                            <div className="ul-sheet-badges">
+                                <span className={`ul-role ul-role--${role}`}>{ROLE_LABELS[role]}</span>
+                                <span className={`ul-status ul-status--${tone}`}>
+                                    {user.isBanned ? "BANEADO" : "ACTIVO"}
+                                </span>
+                            </div>
+                            <h3 id="ul-sheet-title" className="ul-sheet-email">{user.email}</h3>
+                            {user.displayName && <span className="ul-sheet-sub">{user.displayName}</span>}
+                        </div>
+                        <button ref={closeRef} type="button" className="ul-sheet-close" onClick={onClose} aria-label="Cerrar detalle">
+                            ✕
+                        </button>
+                    </header>
+                </div>
+
+                {/* ── cuerpo ── */}
+                <div className="ul-sheet-body">
+                    <div className="ul-detail">
+                        <div className="ul-detail-block">
+                            <span className="ul-detail-title">Cuenta</span>
+                            <div className="ul-detail-row"><span>Email</span><strong>{user.email}</strong></div>
+                            {user.displayName && (
+                                <div className="ul-detail-row"><span>Nombre</span><strong>{user.displayName}</strong></div>
+                            )}
+                            <div className="ul-detail-row"><span>UID</span><strong className="ul-mono">{user.uid}</strong></div>
+                            <div className="ul-detail-row"><span>Rol</span><strong>{ROLE_LABELS[role]}</strong></div>
+                        </div>
+
+                        <div className="ul-detail-block">
+                            <span className="ul-detail-title">Actividad</span>
+                            <div className="ul-detail-row"><span>Creado</span><strong>{formatDateTime(user.metadata?.creationTime)}</strong></div>
+                            <div className="ul-detail-row"><span>Último acceso</span><strong>{formatDateTime(user.metadata?.lastSignInTime)}</strong></div>
+                            <div className={`ul-detail-row ${user.isBanned ? "ul-red" : "ul-green"}`}>
+                                <span>Estado</span><strong>{user.isBanned ? "Baneado" : "Activo"}</strong>
+                            </div>
+                        </div>
+
+                        {user.isAdmin && (
+                            <div className="ul-message ul-message--neutral">
+                                <div className="ul-message-text">
+                                    <strong>CUENTA_ADMIN</strong>
+                                    <span>Las cuentas admin no se pueden banear ni modificar desde el panel.</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── pie con acciones (siempre visible, aunque el cuerpo scrollee) ── */}
+                {!user.isAdmin && (
+                    <footer className="ul-sheet-footer">
+                        <button
+                            type="button"
+                            className="ul-btn ul-btn--accent"
+                            onClick={() => onManageClaims(user)}
+                        >
+                            Gestionar claims
+                        </button>
+                        {user.isBanned ? (
+                            <button type="button" className="ul-btn ul-btn--ok" onClick={() => onUnban(user.uid)}>
+                                Desbanear
+                            </button>
+                        ) : (
+                            <button type="button" className="ul-btn ul-btn--danger" onClick={() => onBan(user.email)}>
+                                Banear
+                            </button>
+                        )}
+                    </footer>
+                )}
+            </div>
+        </div>,
+        document.body
+    );
+};
 
 const UserList = () => {
     const { theme } = UseTheme()
@@ -74,7 +217,7 @@ const UserList = () => {
     const { handleBanUser, handleUnbanUser } = UseSession()
 
     const [page, setPage]             = useState(1);
-    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [selectedUid, setSelectedUid] = useState<string | null>(null);
     const [search, setSearch]         = useState("");
 
     const [activeRoles, setActiveRoles] = useState<Set<RoleFilter>>(
@@ -114,19 +257,17 @@ const UserList = () => {
     const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
     const pageUsers  = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+    // Se busca por uid en la lista actual: si se banea/desbanea y se recargan
+    // los usuarios, el sheet muestra el estado nuevo sin cerrarse.
+    const selectedUser = selectedUid ? allUsers.find(u => u.uid === selectedUid) ?? null : null;
+
     useEffect(() => {
         setPage(1);
-        setExpandedId(null);
     }, [activeRoles]);
 
     useEffect(() => {
         setPage(1);
-        setExpandedId(null);
     }, [search]);
-
-    useEffect(() => {
-        setExpandedId(null);
-    }, [page]);
 
     const toggleRole = (role: RoleFilter) => {
         setActiveRoles(prev => {
@@ -135,6 +276,14 @@ const UserList = () => {
             else next.add(role);
             return next;
         });
+    };
+
+    const closeSheet = useCallback(() => setSelectedUid(null), []);
+
+    // Se cierra el sheet antes de abrir el gestor, para no apilar dos modales
+    const openClaims = (user: User) => {
+        setSelectedUid(null);
+        setClaimsTarget(user);
     };
 
     return (
@@ -186,16 +335,6 @@ const UserList = () => {
                     onChange={e => setSearch(e.target.value)}
                     aria-label="Buscar usuarios"
                 />
-                {/* {search && (
-                    <button
-                        type="button"
-                        className="ul-search-clear"
-                        onClick={() => setSearch("")}
-                        aria-label="Limpiar búsqueda"
-                    >
-                        ✕
-                    </button>
-                )} */}
             </div>
 
             {/* ── Lista ── */}
@@ -207,17 +346,17 @@ const UserList = () => {
             ) : (
                 <div className="ul-list">
                     {pageUsers.map((user: User) => {
-                        const role       = getUserRole(user);
-                        const isExpanded = expandedId === user.uid;
-                        const tone       = user.isBanned ? "error" : "ok";
+                        const role = getUserRole(user);
+                        const tone = user.isBanned ? "error" : "ok";
 
                         return (
                             <div key={user.uid} className={`ul-wrapper ul-tone-${tone}`}>
                                 <button
                                     type="button"
                                     className="ul-row"
-                                    onClick={() => setExpandedId(isExpanded ? null : user.uid)}
-                                    aria-expanded={isExpanded}
+                                    onClick={() => setSelectedUid(user.uid)}
+                                    aria-haspopup="dialog"
+                                    aria-label={`Ver detalle de ${user.email}`}
                                 >
                                     <div className="ul-row-left">
                                         <span className="ul-row-date">[{formatDate(user.metadata?.creationTime)}]</span>
@@ -231,60 +370,9 @@ const UserList = () => {
                                         <span className={`ul-status ul-status--${tone}`}>
                                             {user.isBanned ? "BANEADO" : "ACTIVO"}
                                         </span>
-                                        <span className="ul-chevron">{isExpanded ? "▲" : "▼"}</span>
+                                        <span className="ul-chevron" aria-hidden="true">›</span>
                                     </div>
                                 </button>
-
-                                {isExpanded && (
-                                    <div className="ul-detail">
-                                        <div className="ul-detail-block">
-                                            <span className="ul-detail-title">Cuenta</span>
-                                            <div className="ul-detail-row"><span>Email</span><strong>{user.email}</strong></div>
-                                            {user.displayName && (
-                                                <div className="ul-detail-row"><span>Nombre</span><strong>{user.displayName}</strong></div>
-                                            )}
-                                            <div className="ul-detail-row"><span>UID</span><strong className="ul-mono">{user.uid}</strong></div>
-                                            <div className="ul-detail-row"><span>Rol</span><strong>{ROLE_LABELS[role]}</strong></div>
-                                        </div>
-
-                                        <div className="ul-detail-block">
-                                            <span className="ul-detail-title">Actividad</span>
-                                            <div className="ul-detail-row"><span>Creado</span><strong>{formatDateTime(user.metadata?.creationTime)}</strong></div>
-                                            <div className="ul-detail-row"><span>Último acceso</span><strong>{formatDateTime(user.metadata?.lastSignInTime)}</strong></div>
-                                            <div className={`ul-detail-row ${user.isBanned ? "ul-red" : "ul-green"}`}>
-                                                <span>Estado</span><strong>{user.isBanned ? "Baneado" : "Activo"}</strong>
-                                            </div>
-                                        </div>
-
-                                        {user.isAdmin ? (
-                                            <div className="ul-message ul-message--neutral">
-                                                <div className="ul-message-text">
-                                                    <strong>CUENTA_ADMIN</strong>
-                                                    <span>Las cuentas admin no se pueden banear ni modificar desde el panel.</span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="ul-actions">
-                                                <button
-                                                    type="button"
-                                                    className="ul-btn ul-btn--accent"
-                                                    onClick={() => setClaimsTarget(user)}
-                                                >
-                                                    Gestionar claims
-                                                </button>
-                                                {user.isBanned ? (
-                                                    <button type="button" className="ul-btn ul-btn--ok" onClick={() => handleUnbanUser(user.uid)}>
-                                                        Desbanear
-                                                    </button>
-                                                ) : (
-                                                    <button type="button" className="ul-btn ul-btn--danger" onClick={() => handleBanUser(user.email)}>
-                                                        Banear
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
                             </div>
                         );
                     })}
@@ -315,6 +403,18 @@ const UserList = () => {
                         Siguiente →
                     </button>
                 </div>
+            )}
+
+            {/* ── Detalle del usuario (bottom sheet) ── */}
+            {selectedUser && (
+                <UserSheet
+                    user={selectedUser}
+                    theme={theme}
+                    onClose={closeSheet}
+                    onManageClaims={openClaims}
+                    onBan={handleBanUser}
+                    onUnban={handleUnbanUser}
+                />
             )}
 
             {/* ── Gestor de claims (adentro del container para heredar el theme) ── */}

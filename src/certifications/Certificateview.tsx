@@ -7,7 +7,7 @@ import { jsPDF } from "jspdf";
 import { UseTheme } from "../contexts/ThemeContext";
 import "./certificateview.css";
 
-import logoHS from "../../public/logos/logo-hidden-final.png";
+import logoHS from "../../public/insignias/SOC.png";
 
 const API_URL  = import.meta.env.VITE_API_URL;
 const SITE_URL = "https://www.hidden-security.org";
