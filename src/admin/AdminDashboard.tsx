@@ -134,13 +134,36 @@ const AdminDashboard = () => {
     <div className={`hs-admin ${theme}`}>
 
       {/* ── TOAST ── */}
-      {toast && (
-        <div className="hs-toast">
-          <span className="hs-toast-dot" />
-          <span>{toast}</span>
-          <button className="hs-toast-close" onClick={() => setToast(null)}>×</button>
-        </div>
-      )}
+      {toast && (() => {
+        // "🔔 NUEVA_VENTA — email · $monto" → título + detalle (solo presentación)
+        const [rawTitle, ...rest] = toast.split(" — ");
+        const hasDetail = rest.length > 0;
+        const title  = hasDetail ? rawTitle.replace(/^\W+/u, "").replace(/_/g, " ") : "Notificación";
+        const detail = hasDetail ? rest.join(" — ") : toast;
+        const [who, amount] = detail.split(" · ");
+        return (
+          <div className="hs-toast" role="status" aria-live="polite" key={toast}>
+            <span className="hs-toast-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 3a5 5 0 00-5 5v3l-1.5 2.5h13L15 11V8a5 5 0 00-5-5z" />
+                <path d="M8.5 16a1.5 1.5 0 003 0" />
+              </svg>
+            </span>
+            <div className="hs-toast-body">
+              <span className="hs-toast-title">
+                <span className="hs-toast-dot" aria-hidden="true" />
+                {title}
+              </span>
+              <span className="hs-toast-detail">
+                <span className="hs-toast-who">{who}</span>
+                {amount && <span className="hs-toast-amount">{amount}</span>}
+              </span>
+            </div>
+            <button className="hs-toast-close" onClick={() => setToast(null)} aria-label="Cerrar notificación">✕</button>
+            <span className="hs-toast-progress" aria-hidden="true" />
+          </div>
+        );
+      })()}
 
       {/* ── HEADER ── */}
       <header className="hs-header">

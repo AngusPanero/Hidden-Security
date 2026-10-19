@@ -811,60 +811,117 @@ const UserDashboard = () => {
                 </div>
             )}
 
-            {/* ══ TAB: NOTIFICACIONES ══ */}
-            {activeTab === "notif" && (
-                <div className="dm-section">
-                    {notifications.length === 0 ? (
-                        <div className="dm-empty-state">
-                            <span className="dm-empty-icon">◫</span>
-                            <p>SIN_NOTIFICACIONES</p>
-                            <p style={{ fontSize: "0.75rem", opacity: 0.4, marginTop: 8 }}>
-                                Cuando una empresa actualice tu postulación, aparecerá acá.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="dm-notif-list">
-                            {notifications.map((n) => {
-                                const statusInfo = APP_STATUS[n.status] ?? APP_STATUS.pending;
-                                return (
-                                    <div
-                                        key={n.id}
-                                        className={`dm-notif-item${n.read ? "" : " dm-notif-item--unread"}`}
-                                        style={{ borderLeftColor: statusInfo.color }}
-                                    >
-                                        {/* Empresa */}
-                                        <div className="dm-notif-company">
-                                            {n.companyLogo
-                                                ? <img src={n.companyLogo} alt={n.companyName ?? "empresa"} className="dm-notif-logo" />
-                                                : <div className="dm-notif-logo-placeholder">{(n.companyName ?? "?")[0].toUpperCase()}</div>
-                                            }
-                                            <span className="dm-notif-company-name">{n.companyName ?? "Empresa"}</span>
-                                        </div>
+            {/* ══ TAB: NOTIFICACIONES ══
+    Reemplaza el bloque {activeTab === "notif" && (...)} de UserDashboard.tsx.
+    Usa lo mismo que antes: notifications (id, read, status, companyName,
+    companyLogo, vacancyTitle, createdAt) y APP_STATUS. Estilos: dm-nt-*. */}
+{activeTab === "notif" && (() => {
+    // Agrupar por día calendario: Hoy, Ayer, nombre del día (esta semana) o fecha
+    const dayKey = (iso: string) => {
+        const d = new Date(iso);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    };
+    const today = dayKey(new Date().toISOString());
+    const groupLabel = (key: number) => {
+        const diff = Math.round((today - key) / 86_400_000);
+        if (diff <= 0) return "Hoy";
+        if (diff === 1) return "Ayer";
+        if (diff < 7) return new Date(key).toLocaleDateString("es-AR", { weekday: "long" });
+        return new Date(key).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+    };
+    const timeOf = (iso: string) =>
+        new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
 
-                                        {/* Vacante */}
-                                        <p className="dm-notif-vacancy">{n.vacancyTitle}</p>
+    const sorted = [...notifications].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const groups: { key: number; label: string; items: typeof notifications }[] = [];
+    for (const n of sorted) {
+        const key = dayKey(n.createdAt);
+        let group = groups[groups.length - 1];
+        if (!group || group.key !== key) {
+            group = { key, label: groupLabel(key), items: [] };
+            groups.push(group);
+        }
+        group.items.push(n);
+    }
+    const unreadCount = notifications.filter((n) => !n.read).length;
 
-                                        {/* Estado */}
-                                        <div className="dm-notif-status" style={{ background: statusInfo.bg, borderColor: statusInfo.color }}>
-                                            <span className="dm-notif-status-dot" style={{ background: statusInfo.color }} />
-                                            <span className="dm-notif-status-label" style={{ color: statusInfo.color }}>
-                                                {statusInfo.label}
-                                            </span>
-                                        </div>
-
-                                        {/* Fecha */}
-                                        <p className="dm-notif-date">
-                                            {new Date(n.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
-                                            {" · "}
-                                            {new Date(n.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                                        </p>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+    return (
+        <div className="dm-section dm-nt">
+            {notifications.length === 0 ? (
+                <div className="dm-nt-empty">
+                    <span className="dm-nt-empty-icon" aria-hidden="true">
+                        <span />
+                    </span>
+                    <p className="dm-nt-empty-title">Sin notificaciones</p>
+                    <p className="dm-nt-empty-text">
+                        Cuando una empresa actualice el estado de una de tus postulaciones, lo vas a ver acá.
+                    </p>
                 </div>
+            ) : (
+                <>
+                    {/* Encabezado */}
+                    <div className="dm-nt-head">
+                        <span className="dm-nt-head-title">
+                            Actualizaciones de tus postulaciones
+                        </span>
+                        <span className={`dm-nt-head-count${unreadCount ? " dm-nt-head-count--new" : ""}`}>
+                            {unreadCount
+                                ? `${unreadCount} ${unreadCount === 1 ? "nueva" : "nuevas"}`
+                                : `${notifications.length} en total`}
+                        </span>
+                    </div>
+
+                    {/* Lista agrupada por día */}
+                    {groups.map((group) => (
+                        <section key={group.key} className="dm-nt-group">
+                            <h3 className="dm-nt-day">{group.label}</h3>
+                            <ul className="dm-nt-list">
+                                {group.items.map((n) => {
+                                    const statusInfo = APP_STATUS[n.status] ?? APP_STATUS.pending;
+                                    return (
+                                        <li
+                                            key={n.id}
+                                            className={`dm-nt-item${n.read ? "" : " dm-nt-item--unread"}`}
+                                            style={{ "--nt-color": statusInfo.color } as React.CSSProperties}
+                                        >
+                                            {/* Logo de la empresa */}
+                                            {n.companyLogo
+                                                ? <img src={n.companyLogo} alt={n.companyName || "Empresa"} className="dm-nt-logo" />
+                                                : <span className="dm-nt-logo dm-nt-logo--placeholder">
+                                                    {(n.companyName || "?").charAt(0).toUpperCase()}
+                                                  </span>}
+
+                                            <div className="dm-nt-body">
+                                                <div className="dm-nt-top">
+                                                    <span className="dm-nt-company">{n.companyName || "Empresa confidencial"}</span>
+                                                    <time className="dm-nt-time" dateTime={n.createdAt}>{timeOf(n.createdAt)}</time>
+                                                </div>
+
+                                                <p className="dm-nt-vacancy">{n.vacancyTitle}</p>
+
+                                                <span
+                                                    className="dm-nt-status"
+                                                    style={{ color: statusInfo.color, background: statusInfo.bg, borderColor: statusInfo.color }}
+                                                >
+                                                    <span className="dm-nt-status-dot" style={{ background: statusInfo.color }} />
+                                                    {statusInfo.label}
+                                                </span>
+                                            </div>
+
+                                            {!n.read && <span className="dm-nt-unread" aria-label="Sin leer" />}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </section>
+                    ))}
+                </>
             )}
+        </div>
+    );
+})()}
 
             {/* ══ TAB: MI CUENTA ══ */}
             {activeTab === "cuenta" && (

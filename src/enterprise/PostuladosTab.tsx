@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { UseSession } from "../contexts/SessionContext";
-import "./enterpriseDashboard.css";
-import "./postuladosPlanBlocked.css";
-import "./postuladosPlanBlocked.css";
-import { HS_SKILLS } from "../skills/Skills"; 
+import { UseTheme } from "../contexts/ThemeContext";
+import { HS_SKILLS } from "../skills/Skills";
+import "./postuladosTab.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Applicant {
@@ -141,9 +140,9 @@ function getValidations(cv: any) {
 const DECLARED_PAGE_SIZE = 20;
 const COURSE_PAGE_SIZE   = 24;
 
-// ─── Chip de skill dentro del modal ───────────────────────────────────────────
+// ─── Chip de skill dentro del CV ──────────────────────────────────────────────
 function CvChip({ label, kind }: { label: string; kind: "plain" | "cert" | "course" }) {
-  return <span className={`hs-cvx-chip hs-cvx-chip--${kind}`}>{kind === "cert" ? "✓ " : ""}{label}</span>;
+  return <span className={`pp-chip pp-chip--${kind}`}>{kind === "cert" ? "✓ " : ""}{label}</span>;
 }
 
 // ─── Curso validado: botón con el nombre → árbol de skills paginado ──────────
@@ -162,32 +161,31 @@ function ValidatedCourse({ title, skills }: { title: string; skills: string[] })
   let lastBranch = "";
 
   return (
-    <div className={`hs-cvx-course${open ? " open" : ""}`}>
-      <button type="button" className="hs-cvx-course-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="hs-cvx-arrow hs-cvx-arrow--course" aria-hidden="true">▸</span>
-        <span className="hs-cvx-course-info">
-          <span className="hs-cvx-course-kicker">CURSO COMPLETADO EN HIDDEN SECURITY</span>
-          <span className="hs-cvx-course-title">{title}</span>
-          <span className="hs-cvx-course-meta">
+    <div className={`pp-course${open ? " open" : ""}`}>
+      <button type="button" className="pp-course-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="pp-course-info">
+          <span className="pp-course-kicker">Curso completado en Hidden Security</span>
+          <span className="pp-course-title">{title}</span>
+          <span className="pp-course-meta">
             {skills.length} skills validadas
             {branchCounts.length > 0 && " · " + branchCounts.map(b => `${b.n} ${CATEGORY_LABELS[b.cat].toLowerCase()}`).join(" · ")}
           </span>
         </span>
-        <span className="hs-cvx-action hs-cvx-action--course">{open ? "OCULTAR" : "VER SKILLS"}</span>
+        <span className="pp-toggle">{open ? "Ocultar" : "Ver skills"}<span className="pp-chevron" aria-hidden="true" /></span>
       </button>
 
       {open && (
-        <div className="hs-cvx-course-body">
-          <p className="hs-cvx-note">Skills que el postulante demostró al completar el curso y aprobar sus evaluaciones.</p>
+        <div className="pp-course-body">
+          <p className="pp-note">Skills que el postulante demostró al completar el curso y aprobar sus evaluaciones.</p>
 
           {segments.map((seg, i) => {
             const showBranch = seg.branchLabel !== lastBranch;
             lastBranch = seg.branchLabel;
             return (
-              <div key={`${seg.branchLabel}-${seg.group}-${i}`} className="hs-cvx-seg">
-                {showBranch && <span className="hs-cvx-branch">{seg.branchLabel}</span>}
-                <span className="hs-cvx-subgroup">{seg.group}</span>
-                <div className="hs-cvx-chips">
+              <div key={`${seg.branchLabel}-${seg.group}-${i}`} className="pp-seg">
+                {showBranch && <span className="pp-branch">{seg.branchLabel}</span>}
+                <span className="pp-subgroup">{seg.group}</span>
+                <div className="pp-chips">
                   {seg.skills.map(s => <CvChip key={s} label={s} kind="course" />)}
                 </div>
               </div>
@@ -195,10 +193,10 @@ function ValidatedCourse({ title, skills }: { title: string; skills: string[] })
           })}
 
           {totalPages > 1 && (
-            <div className="hs-cvx-pager">
-              <button type="button" className="hs-action-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← ANTERIOR</button>
-              <span className="hs-cvx-pager-info">Página {page + 1} / {totalPages}</span>
-              <button type="button" className="hs-action-btn" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>SIGUIENTE →</button>
+            <div className="pp-pager">
+              <button type="button" className="pp-btn pp-btn--sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Anterior</button>
+              <span className="pp-pager-info">{page + 1} / {totalPages}</span>
+              <button type="button" className="pp-btn pp-btn--sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Siguiente →</button>
             </div>
           )}
         </div>
@@ -224,20 +222,19 @@ function DeclaredBranch({
   const segments  = segmentByGroup(sorted.slice(0, visible));
 
   return (
-    <div className={`hs-cvx-branchbox${open ? " open" : ""}`}>
-      <button type="button" className="hs-cvx-branchbox-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="hs-cvx-arrow" aria-hidden="true">▸</span>
-        <span className="hs-cvx-branchbox-title">{CATEGORY_LABELS[category]}</span>
-        <span className="hs-cvx-branchbox-count">{items.length} skills</span>
-        <span className="hs-cvx-action">{open ? "OCULTAR" : "VER"}</span>
+    <div className={`pp-declared${open ? " open" : ""}`}>
+      <button type="button" className="pp-declared-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="pp-declared-title">{CATEGORY_LABELS[category]}</span>
+        <span className="pp-declared-count">{items.length}</span>
+        <span className="pp-toggle">{open ? "Ocultar" : "Ver"}<span className="pp-chevron" aria-hidden="true" /></span>
       </button>
 
       {open && (
-        <div className="hs-cvx-branchbox-body">
+        <div className="pp-declared-body">
           {segments.map((seg, i) => (
-            <div key={`${seg.group}-${i}`} className="hs-cvx-seg">
-              <span className="hs-cvx-subgroup">{seg.group}</span>
-              <div className="hs-cvx-chips">
+            <div key={`${seg.group}-${i}`} className="pp-seg">
+              <span className="pp-subgroup">{seg.group}</span>
+              <div className="pp-chips">
                 {seg.skills.map(s => (
                   <CvChip
                     key={s}
@@ -249,7 +246,7 @@ function DeclaredBranch({
             </div>
           ))}
           {remaining > 0 && (
-            <button type="button" className="hs-action-btn hs-cvx-more" onClick={() => setVisible(v => v + DECLARED_PAGE_SIZE)}>
+            <button type="button" className="pp-btn pp-btn--sm pp-more" onClick={() => setVisible(v => v + DECLARED_PAGE_SIZE)}>
               Ver {Math.min(DECLARED_PAGE_SIZE, remaining)} más ({remaining} restantes)
             </button>
           )}
@@ -467,26 +464,96 @@ const windowMessage = (msg: string) =>
 // ─── Bloque sin plan activo (misma estética que VacancyManager / UsersDatabase) ──
 function PostuladosNoPlanBlock({ planExpired }: { planExpired: boolean }) {
   return (
-    <div className="hs-pp-blocked">
-      <span className="hs-pp-blocked-mark" aria-hidden="true"></span>
-      <span className="hs-mono">// SIN_PLAN_ACTIVO</span>
-      <h2 className="hs-pp-blocked-title">
-        SOLO PARA CUENTAS <span className="hs-pp-blocked-accent">BUSINESS / ENTERPRISE</span>
+    <div className="pp-blocked">
+      <span className="pp-blocked-mark" aria-hidden="true"></span>
+      <span className="pp-eyebrow">Sin plan activo</span>
+      <h2 className="pp-blocked-title">
+        Solo para cuentas <span className="pp-accent">Business / Enterprise</span>
       </h2>
-      <p className="hs-pp-blocked-text">
+      <p className="pp-blocked-text">
         Necesitás un plan de empresa activo para ver y gestionar postulantes.
         {planExpired && " Tu plan venció — renovalo para volver a gestionar postulantes."}
       </p>
-      <Link to="/pricing?tipo=empresas" className="hs-pp-blocked-cta">
+      <Link to="/pricing?tipo=empresas" className="pp-blocked-cta">
         {planExpired ? "Renovar plan" : "Ver planes corporativos"}
       </Link>
     </div>
   );
 }
 
+// ─── Sheet: bottom sheet en mobile, modal centrado en desktop ─────────────────
+// Se cierra deslizando la cabecera hacia abajo, tocando el fondo, con la ✕ o
+// con Escape. El arrastre solo funciona desde la cabecera: scrollear el CV
+// nunca lo cierra sin querer.
+const DISMISS_DISTANCE = 110;
+
+function Sheet({ onClose, labelId, header, footer, children }: {
+  onClose: () => void;
+  labelId: string;
+  header: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  const startY = useRef<number | null>(null);
+  const [dragY, setDragY] = useState(0);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const onTouchStart = (e: React.TouchEvent) => { startY.current = e.touches[0].clientY; };
+  const onTouchMove  = (e: React.TouchEvent) => {
+    if (startY.current === null) return;
+    setDragY(Math.max(0, e.touches[0].clientY - startY.current));
+  };
+  const onTouchEnd   = () => {
+    if (startY.current === null) return;
+    startY.current = null;
+    if (dragY > DISMISS_DISTANCE) onClose();
+    else setDragY(0);
+  };
+
+  return (
+    <div className="pp-sheet-root" onClick={onClose}>
+      <div
+        className="pp-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelId}
+        onClick={(e) => e.stopPropagation()}
+        style={dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined}
+      >
+        <div className="pp-sheet-drag" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+          <span className="pp-sheet-handle" aria-hidden="true" />
+          <div className="pp-sheet-header">
+            <div className="pp-sheet-heading">{header}</div>
+            <button type="button" className="pp-sheet-close" onClick={onClose} aria-label="Cerrar">✕</button>
+          </div>
+        </div>
+        <div className="pp-sheet-body">{children}</div>
+        {footer && <div className="pp-sheet-footer">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+
+const initials = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join("") || "?";
+
 // ─── Tab: Postulados ──────────────────────────────────────────────────────────
 export default function PostuladosTab() {
-  const { user } = UseSession();
+  const { user }  = UseSession();
+  const { theme } = UseTheme();
 
   // ── Plan B2B activo — mismo criterio que VacancyManager ──────
   const enterprisePlan   = (user as any)?.enterprisePlan       ?? null;
@@ -535,6 +602,8 @@ export default function PostuladosTab() {
     } catch { setCvData(null); }
     finally  { setLoadingCv(false); }
   };
+
+  const closeCV = useCallback(() => setCvModal(null), []);
 
   // ── Descargar PDF ─────────────────────────────────────────────
   // Funciona desde la fila (sin abrir el modal) y desde el modal.
@@ -634,21 +703,22 @@ export default function PostuladosTab() {
   });
 
   const hasFilters = filterStatus || filterSearch;
+  const themeClass = theme === "light" ? " light" : "";
 
   // Sin plan activo: solo el bloque con el link a /pricing, nada más
   if (!hasActivePlan) return (
-    <div className="hs-postulados">
+    <div className={`pp-wrap${themeClass}`}>
       <PostuladosNoPlanBlock planExpired={planExpired} />
     </div>
   );
 
   if (loading) return (
-    <div className="hs-postulados-loading">
-      <span className="hs-live-dot" /> Cargando postulaciones...
+    <div className={`pp-wrap${themeClass}`}>
+      <div className="pp-loading"><span className="pp-live-dot" /> Cargando postulaciones…</div>
     </div>
   );
 
-  // ── Render de una fila de postulante ──────────────────────────
+  // ── Fila de postulante ────────────────────────────────────────
   const renderApplicantRow = (applicant: any, vacancyId: string, index: number, showVacancy = false) => {
     const statusInfo  = APPLICANT_STATUS_LABELS[applicant.status] ?? APPLICANT_STATUS_LABELS.pending;
     const isUpdating  = updatingStatus === `${vacancyId}-${applicant.userId}`;
@@ -659,430 +729,451 @@ export default function PostuladosTab() {
     const isRejected  = applicant.status === "rejected";
 
     return (
-      <div key={`${vacancyId}-${applicant.userId}`} className="hs-postulados-applicant-row">
-        <span className="hs-postulados-applicant-num">#{index + 1}</span>
+      <li
+        key={`${vacancyId}-${applicant.userId}`}
+        className="pp-row"
+        style={{ "--pp-status": statusInfo.color } as React.CSSProperties}
+      >
+        <span className="pp-avatar" aria-hidden="true">{initials(applicant.applicantName || "")}</span>
 
-        <div className="hs-postulados-applicant-info">
-          <span className="hs-postulados-applicant-uid">{name}</span>
-          {showVacancy && (
-            <span style={{ fontSize: "0.62rem", opacity: 0.45, letterSpacing: 1 }}>
-              {applicant.vacancyTitle}
-            </span>
-          )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 2 }}>
-            {email && <span className="hs-postulados-applicant-date">{email}</span>}
-            {phone && <span className="hs-postulados-applicant-date">{phone}</span>}
-            {applicant.appliedAt && (
-              <span className="hs-postulados-applicant-date">
-                {new Date(applicant.appliedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-              </span>
-            )}
+        <div className="pp-row-info">
+          <span className="pp-row-name">
+            <span className="pp-row-num">#{index + 1}</span>{name}
+          </span>
+          {showVacancy && <span className="pp-row-vacancy">{applicant.vacancyTitle}</span>}
+          <div className="pp-row-meta">
+            {email && <a href={`mailto:${email}`} className="pp-row-link">{email}</a>}
+            {phone && <a href={`tel:${phone}`} className="pp-row-link">{phone}</a>}
+            {applicant.appliedAt && <span>Se postuló el {fmtDate(applicant.appliedAt)}</span>}
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
-          <button
-            className="hs-action-btn hs-action-btn--accent"
-            style={{ fontSize: "0.58rem", padding: "4px 9px" }}
-            onClick={() => openCV(applicant.userId, name)}
-          >
-            VER CV
-          </button>
-          <button
-            className="hs-action-btn"
-            style={{ fontSize: "0.58rem", padding: "4px 9px" }}
-            onClick={() => downloadCV(applicant.userId, name)}
-          >
-            ↓ PDF
-          </button>
-          {isRejected && (
-            <button
-              className="hs-action-btn"
-              style={{ fontSize: "0.58rem", padding: "4px 9px", borderColor: "rgba(244,63,94,0.5)", color: "#f43f5e", opacity: isDeleting ? 0.4 : 1 }}
-              disabled={isDeleting}
-              onClick={() => handleDelete(vacancyId, applicant.userId)}
-            >
-              {isDeleting ? "..." : "ELIMINAR"}
-            </button>
-          )}
-        </div>
-
-        <div className="hs-postulados-applicant-status">
-          <span className="hs-postulados-status-dot" style={{ background: statusInfo.color }} />
+        <label className="pp-status">
+          <span className="pp-visually-hidden">Estado de {name}</span>
+          <span className="pp-status-dot" aria-hidden="true" />
           <select
-            className="hs-postulados-status-select"
+            className="pp-status-select"
             value={applicant.status}
             disabled={isUpdating}
             onChange={(e) => handleStatusChange(vacancyId, applicant.userId, e.target.value)}
-            style={{ borderColor: statusInfo.color, color: statusInfo.color, opacity: isUpdating ? 0.5 : 1 }}
           >
             {Object.entries(APPLICANT_STATUS_LABELS).map(([val, { label }]) => (
               <option key={val} value={val}>{label}</option>
             ))}
           </select>
+        </label>
+
+        <div className="pp-row-actions">
+          <button type="button" className="pp-btn pp-btn--accent" onClick={() => openCV(applicant.userId, name)}>
+            Ver CV
+          </button>
+          <button type="button" className="pp-btn" onClick={() => downloadCV(applicant.userId, name)}>
+            ↓ PDF
+          </button>
+          {isRejected && (
+            <button
+              type="button"
+              className="pp-btn pp-btn--danger"
+              disabled={isDeleting}
+              onClick={() => handleDelete(vacancyId, applicant.userId)}
+            >
+              {isDeleting ? "…" : "Eliminar"}
+            </button>
+          )}
         </div>
-      </div>
+      </li>
     );
   };
 
-  return (
-    <div className="hs-postulados">
+  const statusEntries = Object.entries(APPLICANT_STATUS_LABELS)
+    .map(([key, info]) => ({ key, ...info, count: allFlat.filter((a) => a.status === key).length }));
 
-      {/* Stats */}
-      <div className="hs-postulados-summary">
-        <div className="hs-postulados-stat">
-          <span className="hs-mono hs-eyebrow" style={{ marginBottom: 4 }}>// TOTAL</span>
-          <span className="hs-postulados-stat-value">{totalApplicants >= 100 ? "+99" : totalApplicants}</span>
-          <span className="hs-postulados-stat-label">postulaciones</span>
+  return (
+    <div className={`pp-wrap${themeClass}`}>
+
+      {/* ── Resumen ── */}
+      <div className="pp-summary">
+        <div className="pp-kpi">
+          <span className="pp-kpi-value">{totalApplicants >= 100 ? "+99" : totalApplicants}</span>
+          <span className="pp-kpi-label">Postulaciones</span>
         </div>
-        <div className="hs-postulados-stat">
-          <span className="hs-mono hs-eyebrow" style={{ marginBottom: 4 }}>// VACANTES</span>
-          <span className="hs-postulados-stat-value">{withApplicants.length}</span>
-          <span className="hs-postulados-stat-label">con postulados</span>
+        <div className="pp-kpi">
+          <span className="pp-kpi-value">{withApplicants.length}</span>
+          <span className="pp-kpi-label">Vacantes con postulados</span>
         </div>
-        {Object.entries(APPLICANT_STATUS_LABELS).map(([key, { label, color }]) => {
-          const count = allFlat.filter((a) => a.status === key).length;
-          if (count === 0) return null;
-          return (
-            <div
-              key={key}
-              className="hs-postulados-stat"
-              style={{ cursor: "pointer", borderColor: filterStatus === key ? color : undefined }}
-              onClick={() => setFilterStatus(filterStatus === key ? "" : key)}
-            >
-              <span className="hs-mono hs-eyebrow" style={{ marginBottom: 4, color }}>// {key.toUpperCase()}</span>
-              <span className="hs-postulados-stat-value" style={{ color }}>{count}</span>
-              <span className="hs-postulados-stat-label">{label.toLowerCase()}</span>
-            </div>
-          );
-        })}
       </div>
 
-      {/* Filtros */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
-        <input
-          className="hs-filter-input"
-          placeholder="Buscar por nombre o email..."
-          value={filterSearch}
-          onChange={(e) => setFilterSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 200 }}
-        />
+      {/* Distribución por estado — tocá un estado para filtrar */}
+      {totalApplicants > 0 && (
+        <div className="pp-pipeline">
+          <div className="pp-pipeline-bar" aria-hidden="true">
+            {statusEntries.filter(s => s.count > 0).map(s => (
+              <span key={s.key} style={{ flexGrow: s.count, background: s.color }} />
+            ))}
+          </div>
+          <div className="pp-pipeline-chips">
+            {statusEntries.filter(s => s.count > 0).map(s => (
+              <button
+                key={s.key}
+                type="button"
+                className={`pp-pill${filterStatus === s.key ? " pp-pill--active" : ""}`}
+                style={{ "--pp-status": s.color } as React.CSSProperties}
+                onClick={() => setFilterStatus(filterStatus === s.key ? "" : s.key)}
+                aria-pressed={filterStatus === s.key}
+              >
+                <span className="pp-pill-dot" aria-hidden="true" />
+                {s.label}
+                <b>{s.count}</b>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Filtros ── */}
+      <div className="pp-toolbar">
+        <div className="pp-search">
+          <span className="pp-search-icon" aria-hidden="true">⌕</span>
+          <input
+            className="pp-input pp-input--search"
+            type="search"
+            placeholder="Buscar por nombre o email"
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            aria-label="Buscar postulantes"
+          />
+        </div>
         <select
-          className="hs-filter-select"
+          className="pp-input pp-select"
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
+          aria-label="Filtrar por estado"
         >
           <option value="">Todos los estados</option>
           {Object.entries(APPLICANT_STATUS_LABELS).map(([val, { label }]) => (
             <option key={val} value={val}>{label}</option>
           ))}
         </select>
-        {hasFilters && (
-          <button
-            className="hs-action-btn"
-            style={{ fontSize: "0.6rem" }}
-            onClick={() => { setFilterStatus(""); setFilterSearch(""); }}
-          >
-            LIMPIAR
-          </button>
-        )}
-        {hasFilters && (
-          <span style={{ fontSize: "0.65rem", opacity: 0.5 }}>
-            {filteredFlat.length} resultado{filteredFlat.length !== 1 ? "s" : ""}
-          </span>
-        )}
       </div>
 
-      {/* Vista filtrada — muestra todos flat con nombre de vacante */}
+      {hasFilters && (
+        <div className="pp-results">
+          <span><b>{filteredFlat.length}</b> resultado{filteredFlat.length !== 1 ? "s" : ""}</span>
+          <button type="button" className="pp-link" onClick={() => { setFilterStatus(""); setFilterSearch(""); }}>
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+
+      {/* ── Lista ── */}
       {hasFilters ? (
         filteredFlat.length === 0 ? (
-          <div className="hs-postulados-empty">
-            <span className="hs-mono">// SIN_RESULTADOS</span>
-            <p>Ningún postulante coincide con los filtros aplicados.</p>
+          <div className="pp-empty">
+            <span className="pp-empty-icon" aria-hidden="true">◫</span>
+            <p className="pp-empty-title">Sin resultados</p>
+            <p className="pp-empty-text">Ningún postulante coincide con los filtros aplicados.</p>
           </div>
         ) : (
-          <div className="hs-postulados-list">
-            <div className="hs-postulados-card" style={{ padding: "12px 0" }}>
-              <div className="hs-postulados-applicants" style={{ maxHeight: "none", padding: "0 22px" }}>
-                {filteredFlat.map((a, i) => renderApplicantRow(a, a.vacancyId, i, true))}
-              </div>
-            </div>
-          </div>
+          <ul className="pp-rows pp-rows--flat">
+            {filteredFlat.map((a, i) => renderApplicantRow(a, a.vacancyId, i, true))}
+          </ul>
         )
       ) : (
-        /* Vista normal — agrupada por vacante */
         withApplicants.length === 0 ? (
-          <div className="hs-postulados-empty">
-            <span className="hs-mono">// SIN_POSTULACIONES_AÚN</span>
-            <p>Cuando alguien se postule a una de tus vacantes, aparecerá acá.</p>
+          <div className="pp-empty">
+            <span className="pp-empty-icon" aria-hidden="true">◫</span>
+            <p className="pp-empty-title">Sin postulaciones aún</p>
+            <p className="pp-empty-text">Cuando alguien se postule a una de tus vacantes, aparecerá acá.</p>
           </div>
         ) : (
-          <div className="hs-postulados-list">
+          <div className="pp-groups">
             {withApplicants.map((v) => {
               const isOpen = expanded === v._id;
               const count  = v.applicants?.length ?? 0;
+              const breakdown = statusEntries
+                .map(s => ({ ...s, n: v.applicants.filter(a => a.status === s.key).length }))
+                .filter(s => s.n > 0);
               return (
-                <div key={v._id} className="hs-postulados-card">
-                  <div className="hs-postulados-card-header" onClick={() => setExpanded(isOpen ? null : v._id)}>
-                    <div className="hs-postulados-card-left">
-                      <span className="hs-mono" style={{ fontSize: "0.6rem", letterSpacing: 2 }}>// POSICIÓN</span>
-                      <h3 className="hs-postulados-card-title">{v.title}</h3>
-                    </div>
-                    <div className="hs-postulados-card-right">
-                      <span className="hs-postulados-count">
-                        {count >= 100 ? "+99" : count} postulado{count !== 1 ? "s" : ""}
+                <section key={v._id} className={`pp-group${isOpen ? " open" : ""}`}>
+                  <button type="button" className="pp-group-head" onClick={() => setExpanded(isOpen ? null : v._id)} aria-expanded={isOpen}>
+                    <span className="pp-group-info">
+                      <span className="pp-eyebrow">Posición</span>
+                      <span className="pp-group-title">{v.title}</span>
+                      <span className="pp-group-breakdown">
+                        {breakdown.map(s => (
+                          <span key={s.key} className="pp-mini" title={s.label}>
+                            <span style={{ background: s.color }} />{s.n}
+                          </span>
+                        ))}
                       </span>
-                      <span className="hs-postulados-chevron">{isOpen ? "▲" : "▼"}</span>
-                    </div>
-                  </div>
+                    </span>
+                    <span className="pp-group-right">
+                      <span className="pp-group-count">
+                        <b>{count >= 100 ? "+99" : count}</b> postulado{count !== 1 ? "s" : ""}
+                      </span>
+                      <span className="pp-chevron pp-chevron--lg" aria-hidden="true" />
+                    </span>
+                  </button>
                   {isOpen && (
-                    <div className="hs-postulados-applicants">
+                    <ul className="pp-rows">
                       {v.applicants.map((applicant, i) => renderApplicantRow(applicant, v._id, i, false))}
-                    </div>
+                    </ul>
                   )}
-                </div>
+                </section>
               );
             })}
           </div>
         )
       )}
 
-      {/* Modal ver CV */}
+      {/* ── CV del postulante (bottom sheet en mobile, modal en desktop) ── */}
       {cvModal && (
-        <div className="hs-postulados-cv-overlay" onClick={() => setCvModal(null)}>
-          <div className="hs-postulados-cv-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="hs-postulados-cv-modal-header">
-              <div>
-                <span className="hs-mono" style={{ fontSize: "0.6rem", letterSpacing: 2 }}>// CV_POSTULANTE</span>
-                <h3 className="hs-postulados-card-title" style={{ marginTop: 4 }}>{cvModal.name}</h3>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button
-                  className="hs-action-btn"
-                  style={{ fontSize: "0.65rem" }}
-                  onClick={() => downloadCV(cvModal.userId, cvModal.name)}
-                  disabled={!cvData}
-                >
-                  ↓ DESCARGAR PDF
-                </button>
-                <button className="hs-postulados-cv-close" onClick={() => setCvModal(null)}>×</button>
-              </div>
+        <Sheet
+          onClose={closeCV}
+          labelId="pp-cv-title"
+          header={
+            <>
+              <span className="pp-eyebrow">CV del postulante</span>
+              <h2 id="pp-cv-title" className="pp-sheet-title">{cvModal.name}</h2>
+            </>
+          }
+          footer={
+            <button
+              type="button"
+              className="pp-btn pp-btn--primary pp-btn--block"
+              onClick={() => downloadCV(cvModal.userId, cvModal.name)}
+              disabled={!cvData}
+            >
+              ↓ Descargar PDF
+            </button>
+          }
+        >
+          {loadingCv ? (
+            <div className="pp-loading"><span className="pp-live-dot" /> Cargando CV…</div>
+          ) : !cvData ? (
+            <div className="pp-empty pp-empty--flat">
+              <p className="pp-empty-title">CV incompleto</p>
+              <p className="pp-empty-text">Este postulante todavía no completó su CV.</p>
             </div>
-            <div className="hs-postulados-cv-body">
-              {loadingCv ? (
-                <div className="hs-postulados-loading"><span className="hs-live-dot" /> Cargando CV...</div>
-              ) : !cvData ? (
-                <p style={{ opacity: 0.4, fontSize: "0.8rem" }}>Este postulante no tiene CV completo.</p>
-              ) : (() => {
-                const p   = cvData.personalInfo ?? {};
-                const v   = getValidations(cvData);
-                const dec = normalizeCvSkills(cvData.skills);
-                const declaredBranches = CATEGORY_ORDER
-                  .map(cat => ({ cat, items: dec[cat] }))
-                  .filter(b => b.items.length > 0);
-                const hasValidated = v.certified.length > 0 || v.courses.length > 0;
-                const hasValidatedInDeclared = declaredBranches.some(b =>
-                  b.items.some(s => v.certified.includes(s) || v.courseSkills.has(s))
-                );
-                const photo = safeImgSrc(p.photo);
+          ) : (() => {
+            const p   = cvData.personalInfo ?? {};
+            const v   = getValidations(cvData);
+            const dec = normalizeCvSkills(cvData.skills);
+            const declaredBranches = CATEGORY_ORDER
+              .map(cat => ({ cat, items: dec[cat] }))
+              .filter(b => b.items.length > 0);
+            const hasValidated = v.certified.length > 0 || v.courses.length > 0;
+            const hasValidatedInDeclared = declaredBranches.some(b =>
+              b.items.some(s => v.certified.includes(s) || v.courseSkills.has(s))
+            );
+            const photo = safeImgSrc(p.photo);
+            const wp    = cvData.workPreferences ?? {};
 
-                return (
-                  <div className="hs-cv-view">
-                    {/* Encabezado */}
-                    <div className="hs-cv-header">
-                      {photo && <img src={p.photo} alt={p.firstName} className="hs-cv-photo" />}
-                      <div className="hs-cv-header-info">
-                        <h2 className="hs-cv-name">{p.firstName} {p.lastName}</h2>
-                        {p.headline && <p className="hs-cv-headline">{p.headline}</p>}
-                        {hasValidated && (
-                          <div className="hs-cvx-badges">
-                            {v.certified.length > 0 && <span className="hs-cvx-chip hs-cvx-chip--cert">✓ CERTIFICADO</span>}
-                            {v.courses.length > 0 && <span className="hs-cvx-chip hs-cvx-chip--course">CURSOS COMPLETADOS</span>}
-                          </div>
-                        )}
-                        <div className="hs-cv-contacts">
-                          {p.email    && <span>{p.email}</span>}
-                          {p.phone    && <span>{p.phone}</span>}
-                          {p.location && <span>{p.location}</span>}
-                          {p.linkedin && <span>{p.linkedin}</span>}
-                          {p.github   && <span>{p.github}</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    {p.summary && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// PERFIL</span>
-                        <p className="hs-cv-text">{p.summary}</p>
-                      </div>
-                    )}
-
-                    {/* ── VALIDADO POR HIDDEN SECURITY ── */}
-                    <div className="hs-cvx-validated">
-                      <div className="hs-cvx-block-head">
-                        <span className="hs-cvx-block-title">VALIDADO POR HIDDEN SECURITY</span>
-                        <span className="hs-cvx-block-sub">Comprobado por nosotros</span>
-                      </div>
-
-                      {!hasValidated ? (
-                        <p className="hs-cvx-empty">
-                          Este postulante todavía no tiene certificaciones ni cursos completados en Hidden Security.
-                        </p>
-                      ) : (
-                        <>
-                          {v.certified.length > 0 && (
-                            <div className="hs-cvx-group">
-                              <span className="hs-cvx-label hs-cvx-label--cert">Certificaciones · examen controlado y cronometrado</span>
-                              <div className="hs-cvx-certs">
-                                {v.certified.map(c => (
-                                  <div key={c} className="hs-cvx-cert">
-                                    <span className="hs-cvx-cert-mark" aria-hidden="true">✓</span>
-                                    <span className="hs-cvx-cert-text">
-                                      <strong>{c}</strong>
-                                      <span>Certificación Hidden Security</span>
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {v.courses.length > 0 && (
-                            <div className="hs-cvx-group">
-                              <span className="hs-cvx-label hs-cvx-label--course">Cursos completados · skills validadas por evaluaciones</span>
-                              {v.courses.map(c => <ValidatedCourse key={c.id} title={c.title} skills={c.skills} />)}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* ── AUTODECLARADO EN EL CV ── */}
-                    <div className="hs-cvx-declared">
-                      <div className="hs-cvx-block-head">
-                        <span className="hs-cvx-block-title hs-cvx-block-title--plain">SKILLS AUTODECLARADAS EN SU CV</span>
-                        <span className="hs-cvx-block-sub">
-                          Las cargó el postulante. Hidden Security no las verificó. Tocá cada categoría para ver el detalle.
-                        </span>
-                      </div>
-
-                      {declaredBranches.length === 0 ? (
-                        <p className="hs-cvx-empty">El postulante no declaró skills en su CV.</p>
-                      ) : (
-                        <>
-                          {declaredBranches.map(b => (
-                            <DeclaredBranch
-                              key={b.cat}
-                              category={b.cat}
-                              items={b.items}
-                              certified={v.certified}
-                              courseSkills={v.courseSkills}
-                            />
-                          ))}
-                          {hasValidatedInDeclared && (
-                            <p className="hs-cvx-note">Las que aparecen en dorado o celeste también están validadas por Hidden Security.</p>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {(cvData.experience ?? []).length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// EXPERIENCIA</span>
-                        {cvData.experience.map((e: any, i: number) => (
-                          <div key={i} className="hs-cv-entry">
-                            <div className="hs-cv-entry-header">
-                              <div><strong>{e.position}</strong> <span style={{ opacity: 0.6 }}>· {e.company}{e.location ? `, ${e.location}` : ""}</span></div>
-                              <span style={{ fontSize: "0.72rem", opacity: 0.4 }}>{e.startDate}{e.startDate && " — "}{e.current ? "Actualidad" : e.endDate}</span>
-                            </div>
-                            {e.description && <p className="hs-cv-text">{e.description}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {(cvData.education ?? []).length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// EDUCACIÓN</span>
-                        {cvData.education.map((e: any, i: number) => (
-                          <div key={i} className="hs-cv-entry">
-                            <div className="hs-cv-entry-header">
-                              <div><strong>{e.degree}{e.field ? ` — ${e.field}` : ""}</strong> <span style={{ opacity: 0.6 }}>· {e.institution}</span></div>
-                              <span style={{ fontSize: "0.72rem", opacity: 0.4 }}>{e.startDate}{e.startDate && " — "}{e.current ? "Actualidad" : e.endDate}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {(cvData.certifications ?? []).length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// OTRAS CERTIFICACIONES (DECLARADAS)</span>
-                        {cvData.certifications.map((c: any, i: number) => (
-                          <div key={i} className="hs-cv-entry">
-                            <div className="hs-cv-entry-header">
-                              <div>
-                                <strong>{c.name}</strong> <span style={{ opacity: 0.6 }}>· {c.issuer}</span>
-                                {/^https?:\/\//i.test(c.url ?? "") && (
-                                  <> · <a className="hs-cvx-link" href={c.url} target="_blank" rel="noreferrer">Ver certificación</a></>
-                                )}
-                              </div>
-                              <span style={{ fontSize: "0.72rem", opacity: 0.4 }}>{c.date}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {(cvData.projects ?? []).length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// PROYECTOS</span>
-                        {cvData.projects.map((proj: any, i: number) => (
-                          <div key={i} className="hs-cv-entry">
-                            <div className="hs-cv-entry-header">
-                              <strong>{proj.name}</strong>
-                              <div style={{ display: "flex", gap: 8 }}>
-                                {/^https?:\/\//i.test(proj.url ?? "")     && <a href={proj.url}     target="_blank" rel="noreferrer" className="hs-cvx-link">Demo</a>}
-                                {/^https?:\/\//i.test(proj.repoUrl ?? "") && <a href={proj.repoUrl} target="_blank" rel="noreferrer" className="hs-cvx-link">Repo</a>}
-                              </div>
-                            </div>
-                            {proj.description && <p className="hs-cv-text">{proj.description}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {(cvData.languages ?? []).length > 0 && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// IDIOMAS</span>
-                        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 8 }}>
-                          {cvData.languages.map((l: any, i: number) => (
-                            <div key={i}>
-                              <div style={{ fontWeight: 900, fontSize: "0.85rem", textTransform: "uppercase" }}>{l.language}</div>
-                              <div style={{ fontSize: "0.68rem", opacity: 0.5, letterSpacing: 1 }}>{l.level}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {cvData.availability && (
-                      <div className="hs-cv-section">
-                        <span className="hs-cv-section-title">// DISPONIBILIDAD</span>
-                        <p className="hs-cv-text" style={{ color: "var(--h-accent)" }}>
-                          {cvData.availability}
-                          {cvData.workPreferences?.modality?.length > 0 && ` · ${cvData.workPreferences.modality.join(", ")}`}
-                          {(cvData.workPreferences?.salaryMin || cvData.workPreferences?.salaryMax) &&
-                            ` · ${cvData.workPreferences.currency} ${cvData.workPreferences.salaryMin?.toLocaleString("es-AR") ?? ""}${cvData.workPreferences.salaryMin && cvData.workPreferences.salaryMax ? " — " : ""}${cvData.workPreferences.salaryMax?.toLocaleString("es-AR") ?? ""}`}
-                        </p>
+            return (
+              <div className="pp-cv">
+                {/* Encabezado */}
+                <div className="pp-cv-header">
+                  {photo
+                    ? <img src={p.photo} alt={p.firstName} className="pp-cv-photo" />
+                    : <span className="pp-cv-photo pp-cv-photo--placeholder">{initials(`${p.firstName ?? ""} ${p.lastName ?? ""}`)}</span>}
+                  <div className="pp-cv-header-info">
+                    <h3 className="pp-cv-name">{p.firstName} {p.lastName}</h3>
+                    {p.headline && <p className="pp-cv-headline">{p.headline}</p>}
+                    {hasValidated && (
+                      <div className="pp-chips">
+                        {v.certified.length > 0 && <span className="pp-chip pp-chip--cert">✓ Certificado</span>}
+                        {v.courses.length > 0 && <span className="pp-chip pp-chip--course">Cursos completados</span>}
                       </div>
                     )}
                   </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
+                </div>
+
+                {(p.email || p.phone || p.location || p.linkedin || p.github) && (
+                  <div className="pp-cv-contacts">
+                    {p.email    && <a href={`mailto:${p.email}`}>{p.email}</a>}
+                    {p.phone    && <a href={`tel:${p.phone}`}>{p.phone}</a>}
+                    {p.location && <span>{p.location}</span>}
+                    {p.linkedin && <span>{p.linkedin}</span>}
+                    {p.github   && <span>{p.github}</span>}
+                  </div>
+                )}
+
+                {p.summary && (
+                  <section className="pp-cv-section">
+                    <h4 className="pp-cv-section-title">Perfil</h4>
+                    <p className="pp-cv-text">{p.summary}</p>
+                  </section>
+                )}
+
+                {/* ── VALIDADO POR HIDDEN SECURITY ── */}
+                <section className="pp-validated">
+                  <div className="pp-block-head">
+                    <span className="pp-block-title">Validado por Hidden Security</span>
+                    <span className="pp-block-sub">Comprobado por la plataforma, no declarado por el postulante</span>
+                  </div>
+
+                  {!hasValidated ? (
+                    <p className="pp-note">Este postulante todavía no tiene certificaciones ni cursos completados en Hidden Security.</p>
+                  ) : (
+                    <>
+                      {v.certified.length > 0 && (
+                        <div className="pp-vgroup">
+                          <span className="pp-vlabel pp-vlabel--cert">Certificaciones · examen controlado y cronometrado</span>
+                          <div className="pp-certs">
+                            {v.certified.map(c => (
+                              <div key={c} className="pp-cert">
+                                <span className="pp-cert-mark" aria-hidden="true">✓</span>
+                                <span className="pp-cert-text">
+                                  <strong>{c}</strong>
+                                  <span>Certificación Hidden Security</span>
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {v.courses.length > 0 && (
+                        <div className="pp-vgroup">
+                          <span className="pp-vlabel pp-vlabel--course">Cursos completados · skills validadas por evaluaciones</span>
+                          {v.courses.map(c => <ValidatedCourse key={c.id} title={c.title} skills={c.skills} />)}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </section>
+
+                {/* ── AUTODECLARADO EN EL CV ── */}
+                <section className="pp-declared-block">
+                  <div className="pp-block-head">
+                    <span className="pp-block-title pp-block-title--plain">Skills autodeclaradas</span>
+                    <span className="pp-block-sub">Las cargó el postulante. Hidden Security no las verificó.</span>
+                  </div>
+
+                  {declaredBranches.length === 0 ? (
+                    <p className="pp-note">El postulante no declaró skills en su CV.</p>
+                  ) : (
+                    <>
+                      {declaredBranches.map(b => (
+                        <DeclaredBranch
+                          key={b.cat}
+                          category={b.cat}
+                          items={b.items}
+                          certified={v.certified}
+                          courseSkills={v.courseSkills}
+                        />
+                      ))}
+                      {hasValidatedInDeclared && (
+                        <p className="pp-note">Las que aparecen en dorado o celeste también están validadas por Hidden Security.</p>
+                      )}
+                    </>
+                  )}
+                </section>
+
+                {(cvData.experience ?? []).length > 0 && (
+                  <section className="pp-cv-section">
+                    <h4 className="pp-cv-section-title">Experiencia</h4>
+                    {cvData.experience.map((e: any, i: number) => (
+                      <div key={i} className="pp-entry">
+                        <div className="pp-entry-head">
+                          <div className="pp-entry-main">
+                            <strong>{e.position}</strong>
+                            <span>{e.company}{e.location ? `, ${e.location}` : ""}</span>
+                          </div>
+                          <span className="pp-entry-date">{e.startDate}{e.startDate && " — "}{e.current ? "Actualidad" : e.endDate}</span>
+                        </div>
+                        {e.description && <p className="pp-cv-text">{e.description}</p>}
+                      </div>
+                    ))}
+                  </section>
+                )}
+
+                {(cvData.education ?? []).length > 0 && (
+                  <section className="pp-cv-section">
+                    <h4 className="pp-cv-section-title">Educación</h4>
+                    {cvData.education.map((e: any, i: number) => (
+                      <div key={i} className="pp-entry">
+                        <div className="pp-entry-head">
+                          <div className="pp-entry-main">
+                            <strong>{e.degree}{e.field ? ` — ${e.field}` : ""}</strong>
+                            <span>{e.institution}</span>
+                          </div>
+                          <span className="pp-entry-date">{e.startDate}{e.startDate && " — "}{e.current ? "Actualidad" : e.endDate}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </section>
+                )}
+
+                {(cvData.certifications ?? []).length > 0 && (
+                  <section className="pp-cv-section">
+                    <h4 className="pp-cv-section-title">Otras certificaciones (declaradas)</h4>
+                    {cvData.certifications.map((c: any, i: number) => (
+                      <div key={i} className="pp-entry">
+                        <div className="pp-entry-head">
+                          <div className="pp-entry-main">
+                            <strong>{c.name}</strong>
+                            <span>
+                              {c.issuer}
+                              {/^https?:\/\//i.test(c.url ?? "") && (
+                                <> · <a className="pp-link" href={c.url} target="_blank" rel="noreferrer">Ver certificación</a></>
+                              )}
+                            </span>
+                          </div>
+                          <span className="pp-entry-date">{c.date}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </section>
+                )}
+
+                {(cvData.projects ?? []).length > 0 && (
+                  <section className="pp-cv-section">
+                    <h4 className="pp-cv-section-title">Proyectos</h4>
+                    {cvData.projects.map((proj: any, i: number) => (
+                      <div key={i} className="pp-entry">
+                        <div className="pp-entry-head">
+                          <div className="pp-entry-main"><strong>{proj.name}</strong></div>
+                          <div className="pp-entry-links">
+                            {/^https?:\/\//i.test(proj.url ?? "")     && <a href={proj.url}     target="_blank" rel="noreferrer" className="pp-link">Demo</a>}
+                            {/^https?:\/\//i.test(proj.repoUrl ?? "") && <a href={proj.repoUrl} target="_blank" rel="noreferrer" className="pp-link">Repo</a>}
+                          </div>
+                        </div>
+                        {proj.description && <p className="pp-cv-text">{proj.description}</p>}
+                      </div>
+                    ))}
+                  </section>
+                )}
+
+                {(cvData.languages ?? []).length > 0 && (
+                  <section className="pp-cv-section">
+                    <h4 className="pp-cv-section-title">Idiomas</h4>
+                    <div className="pp-langs">
+                      {cvData.languages.map((l: any, i: number) => (
+                        <div key={i} className="pp-lang">
+                          <strong>{l.language}</strong>
+                          <span>{l.level}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {cvData.availability && (
+                  <section className="pp-cv-section">
+                    <h4 className="pp-cv-section-title">Disponibilidad</h4>
+                    <p className="pp-cv-text pp-cv-text--accent">
+                      {cvData.availability}
+                      {wp.modality?.length > 0 && ` · ${wp.modality.join(", ")}`}
+                      {(wp.salaryMin || wp.salaryMax) &&
+                        ` · ${wp.currency} ${wp.salaryMin?.toLocaleString("es-AR") ?? ""}${wp.salaryMin && wp.salaryMax ? " — " : ""}${wp.salaryMax?.toLocaleString("es-AR") ?? ""}`}
+                    </p>
+                  </section>
+                )}
+              </div>
+            );
+          })()}
+        </Sheet>
       )}
     </div>
   );

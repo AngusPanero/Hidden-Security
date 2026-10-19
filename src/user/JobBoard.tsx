@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import axios from "axios";
 import { UseSession } from "../contexts/SessionContext";
 import "./jobBoard.css";
@@ -52,6 +52,147 @@ const APP_STATUS: Record<string, { label: string; color: string; bg: string }> =
   rejected: { label: "No seleccionado",         color: "#f43f5e", bg: "rgba(244,63,94,0.1)"   },
 };
 
+const LEVELS     = ["Junior", "Semi-Senior", "Senior", "Lead", "Manager"];
+const MODALITIES = ["Remoto", "Presencial", "Híbrido"];
+const CONTRACTS  = ["Full-time", "Part-time", "Freelance", "Pasantía"];
+const CURRENCIES = ["USD", "ARS", "EUR", "BRL"];
+
+// Debajo de este ancho los filtros y los detalles se abren como bottom sheet
+const MOBILE_MQ = "(max-width: 768px)";
+// Distancia (px) que hay que arrastrar hacia abajo para cerrar un sheet
+const DISMISS_DISTANCE = 110;
+
+// ─── Helpers de formato ───────────────────────────────────────────────────────
+const fmtDate = (iso: string, month: "short" | "long" = "short") =>
+  new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month, year: "numeric" });
+
+const daysFromNow = (iso: string) => {
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.ceil(ms / 86_400_000);
+};
+
+// "Hoy", "Ayer", "Hace 5 días" o la fecha si pasó más de un mes.
+// Se cuenta por día calendario, no por horas.
+const publishedLabel = (iso: string) => {
+  const start = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days  = Math.round((start(new Date()) - start(new Date(iso))) / 86_400_000);
+  if (days <= 0) return "Hoy";
+  if (days === 1) return "Ayer";
+  if (days < 30) return `Hace ${days} días`;
+  return fmtDate(iso);
+};
+
+// Texto + tono para la fecha de cierre
+const closingInfo = (iso: string | null): { text: string; soon: boolean } | null => {
+  if (!iso) return null;
+  const d = daysFromNow(iso);
+  if (d < 0)  return { text: "Cerrada", soon: true };
+  if (d === 0) return { text: "Cierra hoy", soon: true };
+  if (d <= 7) return { text: `Cierra en ${d} ${d === 1 ? "día" : "días"}`, soon: true };
+  return { text: `Cierra ${fmtDate(iso)}`, soon: false };
+};
+
+const salaryText = (s?: SalaryRange) => {
+  if (!s?.visible || (!s.min && !s.max)) return null;
+  const min = s.min ? Number(s.min).toLocaleString("es-AR") : "";
+  const max = s.max ? Number(s.max).toLocaleString("es-AR") : "";
+  return { currency: s.currency, amount: min && max ? `${min} – ${max}` : min || max };
+};
+
+// ─── Hook: ¿estamos en mobile? ────────────────────────────────────────────────
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(MOBILE_MQ).matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MQ);
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isMobile;
+}
+
+// ─── Logo de empresa (imagen o inicial) ───────────────────────────────────────
+function CompanyLogo({ name, logo, size }: { name?: string | null; logo?: string | null; size: "sm" | "lg" }) {
+  return logo
+    ? <img src={logo} alt={name ?? "Empresa"} className={`jb-logo jb-logo--${size}`} />
+    : <span className={`jb-logo jb-logo--${size} jb-logo--placeholder`}>{(name || "?").charAt(0).toUpperCase()}</span>;
+}
+
+// ─── Sheet: bottom sheet en mobile, modal centrado en desktop ─────────────────
+// Se cierra deslizando la cabecera hacia abajo, tocando el fondo, con la ✕ o
+// con Escape. El arrastre solo funciona desde la cabecera, así el scroll del
+// contenido nunca lo cierra sin querer.
+interface SheetProps {
+  onClose:   () => void;
+  labelId:   string;
+  header:    ReactNode;
+  footer?:   ReactNode;
+  children:  ReactNode;
+  size?:     "md" | "lg";
+  locked?:   boolean; // no se puede cerrar (ej. mientras se envía)
+}
+
+function Sheet({ onClose, labelId, header, footer, children, size = "lg", locked = false }: SheetProps) {
+  const startY = useRef<number | null>(null);
+  const [dragY, setDragY] = useState(0);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  const tryClose = useCallback(() => { if (!locked) onClose(); }, [locked, onClose]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") tryClose(); };
+    window.addEventListener("keydown", onKey);
+    closeRef.current?.focus({ preventScroll: true });
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [tryClose]);
+
+  const onTouchStart = (e: React.TouchEvent) => { if (!locked) startY.current = e.touches[0].clientY; };
+  const onTouchMove  = (e: React.TouchEvent) => {
+    if (startY.current === null) return;
+    setDragY(Math.max(0, e.touches[0].clientY - startY.current));
+  };
+  const onTouchEnd   = () => {
+    if (startY.current === null) return;
+    if (dragY > DISMISS_DISTANCE) tryClose();
+    else setDragY(0);
+    startY.current = null;
+  };
+
+  return (
+    <div className="jb-sheet-root" onClick={tryClose}>
+      <div
+        className={`jb-sheet jb-sheet--${size}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelId}
+        onClick={(e) => e.stopPropagation()}
+        style={dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined}
+      >
+        <div className="jb-sheet-drag" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+          <span className="jb-sheet-handle" aria-hidden="true" />
+          <div className="jb-sheet-header">
+            <div className="jb-sheet-heading">{header}</div>
+            <button ref={closeRef} type="button" className="jb-sheet-close" onClick={tryClose} disabled={locked} aria-label="Cerrar">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div className="jb-sheet-body">{children}</div>
+
+        {footer && <div className="jb-sheet-footer">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
 // ─── JobBoard ─────────────────────────────────────────────────────────────────
 export default function JobBoard() {
   const { user } = UseSession();
@@ -61,6 +202,8 @@ export default function JobBoard() {
   const hasCompletedCourse = completedCourses.length > 0;
   // Puede usar el flujo de postulación (el CV se valida aparte)
   const canApply = !REQUIRE_COURSE || hasCompletedCourse;
+
+  const isMobile = useIsMobile();
 
   const [vacancies,    setVacancies]    = useState<Vacancy[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -72,6 +215,7 @@ export default function JobBoard() {
   const [showConsent,  setShowConsent]  = useState(false);
   const [consentVacancy, setConsentVacancy] = useState<Vacancy | null>(null);
   const [viewFilter,   setViewFilter]   = useState<ViewFilter>("all");
+  const [showFilters,  setShowFilters]  = useState(false); // panel (desktop) o sheet (mobile)
 
   // Filtros
   const [filterExp,          setFilterExp]          = useState("");
@@ -143,6 +287,18 @@ export default function JobBoard() {
     filterDateFrom || sortOrder !== "desc" ||
     filterCompany.trim();
 
+  // Cuántos filtros hay activos dentro del panel "Filtros" (para el contador del botón).
+  // En desktop nivel, modalidad y empresa están a la vista, así que no se cuentan.
+  const panelFilterCount = [
+    isMobile && filterExp,
+    isMobile && filterModality,
+    isMobile && filterCompany.trim(),
+    filterContractType,
+    filterCurrency,
+    filterSalaryMin || filterSalaryMax,
+    filterDateFrom,
+  ].filter(Boolean).length;
+
   // Primero los filtros de búsqueda (nivel, modalidad, salario, fecha...)
   const byFilters = vacancies
     .filter((v) => {
@@ -188,7 +344,8 @@ export default function JobBoard() {
   const emptyMessage =
     viewFilter === "applied"       ? "Todavía no te postulaste a ninguna vacante."
     : viewFilter === "not_applied" ? "Ya te postulaste a todas las vacantes disponibles."
-    : "SIN_VACANTES_DISPONIBLES";
+    : hasActiveFilters             ? "Ninguna vacante coincide con los filtros."
+    : "Por ahora no hay vacantes publicadas.";
 
   // Abre el modal de consentimiento o bloquea si no tiene CV
   const requestApply = (vacancy: Vacancy) => {
@@ -231,98 +388,178 @@ export default function JobBoard() {
     }
   };
 
+  const closeDetail  = useCallback(() => setSelected(null), []);
+  const closeConsent = useCallback(() => setShowConsent(false), []);
+  const closeFilters = useCallback(() => setShowFilters(false), []);
+
+  // ─── Campos de filtro (se reutilizan en el panel de desktop y en el sheet) ──
+  const levelSelect = (
+    <label className="jb-field">
+      <span className="jb-field-label">Nivel</span>
+      <select className="jb-control" value={filterExp} onChange={(e) => setFilterExp(e.target.value)}>
+        <option value="">Todos los niveles</option>
+        {LEVELS.map((v) => <option key={v}>{v}</option>)}
+      </select>
+    </label>
+  );
+  const modalitySelect = (
+    <label className="jb-field">
+      <span className="jb-field-label">Modalidad</span>
+      <select className="jb-control" value={filterModality} onChange={(e) => setFilterModality(e.target.value)}>
+        <option value="">Todas las modalidades</option>
+        {MODALITIES.map((v) => <option key={v}>{v}</option>)}
+      </select>
+    </label>
+  );
+  const companyInput = (
+    <label className="jb-field">
+      <span className="jb-field-label">Empresa</span>
+      <input className="jb-control" placeholder="Nombre de la empresa" value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)} />
+    </label>
+  );
+  const panelFields = (
+    <>
+      <label className="jb-field">
+        <span className="jb-field-label">Tipo de contrato</span>
+        <select className="jb-control" value={filterContractType} onChange={(e) => setFilterContractType(e.target.value)}>
+          <option value="">Todos</option>
+          {CONTRACTS.map((v) => <option key={v}>{v}</option>)}
+        </select>
+      </label>
+      <label className="jb-field">
+        <span className="jb-field-label">Moneda</span>
+        <select className="jb-control" value={filterCurrency} onChange={(e) => setFilterCurrency(e.target.value)}>
+          <option value="">Todas</option>
+          {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+        </select>
+      </label>
+      <div className="jb-field jb-field--wide">
+        <span className="jb-field-label">Rango salarial</span>
+        <div className="jb-range">
+          <input className="jb-control" type="number" inputMode="numeric" placeholder="Mínimo" value={filterSalaryMin} onChange={(e) => setFilterSalaryMin(e.target.value)} />
+          <span className="jb-range-sep">–</span>
+          <input className="jb-control" type="number" inputMode="numeric" placeholder="Máximo" value={filterSalaryMax} onChange={(e) => setFilterSalaryMax(e.target.value)} />
+        </div>
+      </div>
+      <label className="jb-field">
+        <span className="jb-field-label">Publicadas desde</span>
+        <input className="jb-control" type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+      </label>
+    </>
+  );
+
+  const sortSelect = (
+    <select
+      className="jb-control jb-control--sort"
+      value={sortOrder}
+      onChange={(e) => setSortOrder(e.target.value as "desc" | "asc")}
+      aria-label="Ordenar vacantes"
+    >
+      <option value="desc">Más recientes</option>
+      <option value="asc">Más antiguas</option>
+    </select>
+  );
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="jb-wrap">
 
       {/* Banner curso — solo si el curso es requisito para postularse */}
       {REQUIRE_COURSE && !hasCompletedCourse && (
-        <div className="jb-cert-banner">
-          <span className="jb-cert-icon">🔒</span>
-          <div>
-            <p className="jb-cert-title">Completá tu curso para postularte</p>
-            <p className="jb-cert-sub">Podés ver todas las ofertas, pero necesitás haber completado un curso en Hidden Security para aplicar.</p>
-          </div>
+        <div className="jb-banner jb-banner--error">
+          <strong>Completá tu curso para postularte</strong>
+          <span>Podés ver todas las ofertas, pero necesitás haber completado un curso en Hidden Security para aplicar.</span>
+        </div>
+      )}
+
+      {/* Banner CV requerido */}
+      {canApply && hasCV === false && (
+        <div className="jb-banner jb-banner--warn">
+          <strong>CV requerido para postularse</strong>
+          <span>
+            {REQUIRE_COURSE
+              ? <>Tenés el curso completado, pero aún no creaste tu CV. Andá al tab <b>MI CV</b> para completarlo.</>
+              : <>Aún no creaste tu CV. Andá al tab <b>MI CV</b> para completarlo.</>}
+          </span>
         </div>
       )}
 
       {/* Pestañas: todas / mis postulaciones / no postuladas — solo si puede postularse */}
       {canApply && (
-        <div className="jb-view-tabs" role="tablist" aria-label="Filtrar vacantes por postulación">
+        <div className="jb-tabs" role="tablist" aria-label="Filtrar vacantes por postulación">
           {VIEW_TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               role="tab"
               aria-selected={viewFilter === tab.id}
-              className={`jb-view-tab${viewFilter === tab.id ? " jb-view-tab--active" : ""}`}
+              className={`jb-tab${viewFilter === tab.id ? " jb-tab--active" : ""}`}
               onClick={() => setViewFilter(tab.id)}
             >
               {tab.label}
-              <span className="jb-view-tab-count">{tab.count}</span>
+              <span className="jb-tab-count">{tab.count}</span>
             </button>
           ))}
         </div>
       )}
 
-      {/* Filtros */}
-      <div className="jb-filters-wrap">
-        <div className="jb-filters-row">
-          <select className="jb-filter-select" value={filterExp} onChange={(e) => setFilterExp(e.target.value)}>
-            <option value="">Todos los niveles</option>
-            {["Junior","Semi-Senior","Senior","Lead","Manager"].map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select className="jb-filter-select" value={filterModality} onChange={(e) => setFilterModality(e.target.value)}>
-            <option value="">Todas las modalidades</option>
-            {["Remoto","Presencial","Híbrido"].map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select className="jb-filter-select" value={filterContractType} onChange={(e) => setFilterContractType(e.target.value)}>
-            <option value="">Tipo de contrato</option>
-            {["Full-time","Part-time","Freelance","Pasantía"].map((v) => <option key={v}>{v}</option>)}
-          </select>
+      {/* ── Toolbar de búsqueda ── */}
+      <div className="jb-toolbar">
+        <div className="jb-search">
+          <span className="jb-search-icon" aria-hidden="true">⌕</span>
           <input
-            className="jb-filter-input"
-            placeholder="Filtrar por skill..."
+            className="jb-search-input"
+            type="search"
+            placeholder="Buscar por skill (ej: SIEM, Python, Splunk)"
             value={filterSkill}
             onChange={(e) => setFilterSkill(e.target.value)}
-          />
-          <input
-            className="jb-filter-input"
-            placeholder="Filtrar por empresa..."
-            value={filterCompany}
-            onChange={(e) => setFilterCompany(e.target.value)}
+            aria-label="Buscar por skill"
           />
         </div>
 
-        <div className="jb-filters-row">
-          <select className="jb-filter-select jb-filter-select--sm" value={filterCurrency} onChange={(e) => setFilterCurrency(e.target.value)}>
-            <option value="">Moneda</option>
-            {["USD","ARS","EUR","BRL"].map((c) => <option key={c}>{c}</option>)}
-          </select>
-          <div className="jb-filter-salary-range">
-            <input className="jb-filter-input jb-filter-input--sm" type="number" placeholder="Salario mín." value={filterSalaryMin} onChange={(e) => setFilterSalaryMin(e.target.value)} />
-            <span className="jb-filter-salary-sep">—</span>
-            <input className="jb-filter-input jb-filter-input--sm" type="number" placeholder="Salario máx." value={filterSalaryMax} onChange={(e) => setFilterSalaryMax(e.target.value)} />
+        {!isMobile && (
+          <div className="jb-toolbar-inline">
+            {companyInput}
+            {levelSelect}
+            {modalitySelect}
           </div>
-          <div className="jb-filter-date-wrap">
-            <label className="jb-filter-date-label">Desde</label>
-            <input className="jb-filter-input jb-filter-input--date" type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
-          </div>
-          <select className="jb-filter-select jb-filter-select--sm" value={sortOrder} onChange={(e) => setSortOrder(e.target.value as "desc" | "asc")}>
-            <option value="desc">Más recientes primero</option>
-            <option value="asc">Más antiguas primero</option>
-          </select>
-          {hasActiveFilters && (
-            <button className="jb-filter-clear" onClick={clearFilters}>LIMPIAR</button>
-          )}
-        </div>
+        )}
 
-        <p className="jb-results-count">
-          {filtered.length} {filtered.length === 1 ? "vacante" : "vacantes"}
-          {hasActiveFilters ? " encontradas" : " activas"}
-        </p>
+        <div className="jb-toolbar-actions">
+          <button
+            type="button"
+            className={`jb-filters-btn${showFilters && !isMobile ? " jb-filters-btn--open" : ""}${panelFilterCount ? " jb-filters-btn--active" : ""}`}
+            onClick={() => setShowFilters((v) => !v)}
+            aria-expanded={showFilters}
+          >
+            Filtros
+            {panelFilterCount > 0 && <span className="jb-filters-btn-count">{panelFilterCount}</span>}
+          </button>
+          {sortSelect}
+        </div>
       </div>
 
-      {/* Grid */}
+      {/* Desktop: filtros avanzados desplegables */}
+      {!isMobile && showFilters && (
+        <div className="jb-panel">
+          <div className="jb-panel-grid">{panelFields}</div>
+          {hasActiveFilters && (
+            <button type="button" className="jb-link" onClick={clearFilters}>Limpiar todos los filtros</button>
+          )}
+        </div>
+      )}
+
+      <div className="jb-results">
+        <span>
+          <b>{filtered.length}</b> {filtered.length === 1 ? "vacante" : "vacantes"}
+          {hasActiveFilters ? " encontradas" : " activas"}
+        </span>
+        {hasActiveFilters && (
+          <button type="button" className="jb-link" onClick={clearFilters}>Limpiar filtros</button>
+        )}
+      </div>
+
+      {/* ── Lista ── */}
       {loading ? (
         <div className="jb-loading">
           <span className="dm-loading-dot" /><span className="dm-loading-dot" /><span className="dm-loading-dot" />
@@ -331,6 +568,7 @@ export default function JobBoard() {
         <div className="jb-empty">
           <span className="jb-empty-icon">◫</span>
           <p>{emptyMessage}</p>
+          {hasActiveFilters && <button type="button" className="jb-link" onClick={clearFilters}>Limpiar filtros</button>}
         </div>
       ) : (
         <div className="jb-grid">
@@ -338,245 +576,242 @@ export default function JobBoard() {
             const application = getApplication(v._id);
             const applied     = !!application;
             const appStatus   = application ? APP_STATUS[application.status] ?? APP_STATUS.pending : null;
+            const salary      = salaryText(v.salaryRange);
+            const closing     = closingInfo(v.closesAt);
 
             return (
               <div
                 key={v._id}
+                role="button"
+                tabIndex={0}
                 className={`jb-card${applied ? " jb-card--applied" : ""}`}
+                style={appStatus ? ({ "--jb-status": appStatus.color } as React.CSSProperties) : undefined}
                 onClick={() => setSelected(v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected(v); }
+                }}
+                aria-label={`Ver vacante ${v.title}${v.companyName ? ` en ${v.companyName}` : ""}`}
               >
-                {/* Empresa */}
-                {(v.companyName || v.companyLogo) && (
+                <div className="jb-card-head">
+                  <CompanyLogo name={v.companyName} logo={v.companyLogo} size="sm" />
                   <div className="jb-card-company">
-                    {v.companyLogo
-                      ? <img src={v.companyLogo} alt={v.companyName ?? "empresa"} className="jb-card-logo" />
-                      : <div className="jb-card-logo-placeholder">{(v.companyName ?? "?")[0].toUpperCase()}</div>
-                    }
-                    <span className="jb-card-company-name">{v.companyName}</span>
+                    <span className="jb-card-company-name">{v.companyName || "Empresa confidencial"}</span>
+                    {v.createdAt && <span className="jb-card-date">{publishedLabel(v.createdAt)}</span>}
                   </div>
-                )}
+                </div>
 
                 <h3 className="jb-card-title">{v.title}</h3>
-                <p className="jb-card-sub">
-                  {v.modality} · {v.contractType} · {v.experienceLevel}
-                  {v.location ? ` · ${v.location}` : ""}
-                </p>
 
-                {v.skills.length > 0 && (
-                  <div className="jb-card-skills">
-                    {v.skills.slice(0, 5).map((s) => <span key={s} className="jb-skill">{s}</span>)}
-                    {v.skills.length > 5 && <span className="jb-skill-more">+{v.skills.length - 5}</span>}
-                  </div>
-                )}
+                <div className="jb-tags">
+                  {[v.modality, v.contractType, v.experienceLevel, v.location].filter(Boolean).map((t) => (
+                    <span key={t} className="jb-tag">{t}</span>
+                  ))}
+                </div>
 
-                {v.salaryRange?.visible && (v.salaryRange.min || v.salaryRange.max) && (
+                {salary && (
                   <p className="jb-card-salary">
-                    <span className="jb-salary-currency">{v.salaryRange.currency}</span>{" "}
-                    {v.salaryRange.min ? Number(v.salaryRange.min).toLocaleString("es-AR") : ""}
-                    {v.salaryRange.min && v.salaryRange.max ? " — " : ""}
-                    {v.salaryRange.max ? Number(v.salaryRange.max).toLocaleString("es-AR") : ""}
+                    <span className="jb-currency">{salary.currency}</span> {salary.amount}
                   </p>
                 )}
 
-                <div className="jb-card-meta-row">
-                  {v.closesAt && (
-                    <p className="jb-card-closes">
-                      Cierra: {new Date(v.closesAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-                    </p>
-                  )}
-                  {v.createdAt && (
-                    <p className="jb-card-published">
-                      Publicada: {new Date(v.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-                    </p>
-                  )}
-                </div>
+                {v.skills.length > 0 && (
+                  <div className="jb-skills">
+                    {v.skills.slice(0, 4).map((s) => <span key={s} className="jb-skill">{s}</span>)}
+                    {v.skills.length > 4 && <span className="jb-skill-more">+{v.skills.length - 4}</span>}
+                  </div>
+                )}
 
-                {/* Footer — diferente si ya aplicó */}
                 <div className="jb-card-footer">
                   {applied && appStatus ? (
-                    <div className="jb-card-status" style={{ borderColor: appStatus.color, background: appStatus.bg }}>
-                      <span className="jb-card-status-dot" style={{ background: appStatus.color }} />
-                      <span className="jb-card-status-label" style={{ color: appStatus.color }}>
-                        {appStatus.label}
-                      </span>
-                    </div>
-                  ) : canApply ? (
-                    <span className="jb-cta">VER Y POSTULARSE →</span>
+                    <span className="jb-status" style={{ color: appStatus.color, background: appStatus.bg, borderColor: appStatus.color }}>
+                      <span className="jb-status-dot" style={{ background: appStatus.color }} />
+                      {appStatus.label}
+                    </span>
+                  ) : closing ? (
+                    <span className={`jb-card-closes${closing.soon ? " jb-card-closes--soon" : ""}`}>{closing.text}</span>
                   ) : (
-                    <span className="jb-cta jb-cta--locked">CURSO COMPLETADO REQUERIDO</span>
+                    <span className="jb-card-closes">Sin fecha de cierre</span>
+                  )}
+
+                  {!applied && (
+                    canApply
+                      ? <span className="jb-cta">Ver detalle <span aria-hidden="true">→</span></span>
+                      : <span className="jb-cta jb-cta--locked">Requiere curso</span>
                   )}
                 </div>
-
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Modal detalle */}
+      {/* ── Mobile: filtros en bottom sheet ── */}
+      {isMobile && showFilters && (
+        <Sheet
+          onClose={closeFilters}
+          labelId="jb-filters-title"
+          size="md"
+          header={<h2 id="jb-filters-title" className="jb-sheet-title">Filtros</h2>}
+          footer={
+            <div className="jb-footer-row">
+              <button type="button" className="jb-btn jb-btn--ghost" onClick={clearFilters} disabled={!hasActiveFilters}>
+                Limpiar
+              </button>
+              <button type="button" className="jb-btn jb-btn--primary" onClick={closeFilters}>
+                Ver {filtered.length} {filtered.length === 1 ? "vacante" : "vacantes"}
+              </button>
+            </div>
+          }
+        >
+          <div className="jb-filter-stack">
+            {levelSelect}
+            {modalitySelect}
+            {companyInput}
+            {panelFields}
+          </div>
+        </Sheet>
+      )}
+
+      {/* ── Detalle de la vacante ── */}
       {selected && (() => {
         const application = getApplication(selected._id);
         const applied     = !!application;
         const appStatus   = application ? APP_STATUS[application.status] ?? APP_STATUS.pending : null;
+        const salary      = salaryText(selected.salaryRange);
+        const closing     = closingInfo(selected.closesAt);
+
+        const facts = [
+          { label: "Modalidad", value: selected.modality },
+          { label: "Contrato",  value: selected.contractType },
+          { label: "Nivel",     value: selected.experienceLevel },
+          { label: "Ubicación", value: selected.location },
+          { label: "Publicada", value: selected.createdAt ? fmtDate(selected.createdAt) : "" },
+          { label: "Cierre",    value: selected.closesAt ? fmtDate(selected.closesAt) : "Sin fecha" },
+        ].filter((f) => f.value);
 
         return (
-          <div className="jb-modal-overlay" onClick={() => setSelected(null)}>
-            <div className="jb-modal" onClick={(e) => e.stopPropagation()}>
-
-              <button className="jb-modal-close" onClick={() => setSelected(null)}>×</button>
-
-              {(selected.companyName || selected.companyLogo) && (
-                <div className="jb-modal-company">
-                  {selected.companyLogo
-                    ? <img src={selected.companyLogo} alt={selected.companyName ?? ""} className="jb-modal-logo" />
-                    : <div className="jb-modal-logo-placeholder">{(selected.companyName ?? "?")[0].toUpperCase()}</div>
-                  }
-                  <span className="jb-modal-company-name">{selected.companyName}</span>
+          <Sheet
+            onClose={closeDetail}
+            labelId="jb-detail-title"
+            header={
+              <>
+                <div className="jb-detail-company">
+                  <CompanyLogo name={selected.companyName} logo={selected.companyLogo} size="lg" />
+                  <div className="jb-detail-company-text">
+                    <span className="jb-detail-company-name">{selected.companyName || "Empresa confidencial"}</span>
+                    {closing && (
+                      <span className={`jb-card-closes${closing.soon ? " jb-card-closes--soon" : ""}`}>{closing.text}</span>
+                    )}
+                  </div>
                 </div>
-              )}
+                <h2 id="jb-detail-title" className="jb-detail-title">{selected.title}</h2>
+              </>
+            }
+            footer={
+              applied && appStatus ? (
+                <div className="jb-status-block" style={{ borderColor: appStatus.color, background: appStatus.bg }}>
+                  <span className="jb-status-dot jb-status-dot--lg" style={{ background: appStatus.color }} />
+                  <div>
+                    <p className="jb-status-block-label" style={{ color: appStatus.color }}>{appStatus.label}</p>
+                    {application?.appliedAt && (
+                      <p className="jb-status-block-date">Te postulaste el {fmtDate(application.appliedAt, "long")}</p>
+                    )}
+                  </div>
+                </div>
+              ) : canApply ? (
+                <button className="jb-btn jb-btn--primary jb-btn--block" disabled={applying} onClick={() => requestApply(selected)}>
+                  {applying ? "Enviando…" : "Postularme"}
+                </button>
+              ) : (
+                <div className="jb-banner jb-banner--error jb-banner--flat">
+                  <span>Necesitás completar un curso en Hidden Security para postularte a esta posición.</span>
+                </div>
+              )
+            }
+          >
+            {salary && (
+              <div className="jb-detail-salary">
+                <span className="jb-field-label">Salario</span>
+                <p><span className="jb-currency">{salary.currency}</span> {salary.amount}</p>
+              </div>
+            )}
 
-              <span className="jb-modal-eyebrow">// POSICIÓN</span>
-              <h2 className="jb-modal-title">{selected.title}</h2>
-              <p className="jb-modal-meta">
-                {selected.modality} · {selected.contractType} · {selected.experienceLevel}
-                {selected.location ? ` · ${selected.location}` : ""}
-              </p>
+            <dl className="jb-facts">
+              {facts.map((f) => (
+                <div key={f.label} className="jb-fact">
+                  <dt>{f.label}</dt>
+                  <dd>{f.value}</dd>
+                </div>
+              ))}
+            </dl>
 
-              {selected.salaryRange?.visible && (selected.salaryRange.min || selected.salaryRange.max) && (
-                <p className="jb-modal-salary">
-                  <span className="jb-modal-salary-label">{selected.salaryRange.currency}</span>{" "}
-                  {selected.salaryRange.min ? Number(selected.salaryRange.min).toLocaleString("es-AR") : ""}
-                  {selected.salaryRange.min && selected.salaryRange.max ? " — " : ""}
-                  {selected.salaryRange.max ? Number(selected.salaryRange.max).toLocaleString("es-AR") : ""}
-                </p>
-              )}
-
-              {selected.skills.length > 0 && (
-                <div className="jb-modal-skills">
+            {selected.skills.length > 0 && (
+              <section className="jb-detail-section">
+                <h3 className="jb-section-title">Skills</h3>
+                <div className="jb-skills">
                   {selected.skills.map((s) => <span key={s} className="jb-skill">{s}</span>)}
                 </div>
-              )}
+              </section>
+            )}
 
-              <div className="jb-modal-dates">
-                {selected.createdAt && (
-                  <span className="jb-modal-date">
-                    Publicada: {new Date(selected.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-                  </span>
-                )}
-                {selected.closesAt && (
-                  <span className="jb-modal-date">
-                    Cierra: {new Date(selected.closesAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-                  </span>
-                )}
-              </div>
+            <section className="jb-detail-section">
+              <h3 className="jb-section-title">Descripción</h3>
+              <p className="jb-detail-text">{selected.description}</p>
+            </section>
 
-              <div className="jb-modal-section">
-                <span className="jb-modal-section-title">// DESCRIPCIÓN</span>
-                <p className="jb-modal-text">{selected.description}</p>
-              </div>
-
-              <div className="jb-modal-section">
-                <span className="jb-modal-section-title">// REQUISITOS</span>
-                <p className="jb-modal-text">{selected.requirements}</p>
-              </div>
-
-              {/* Footer del modal */}
-              <div className="jb-modal-footer">
-                {applied && appStatus ? (
-                  <div className="jb-modal-status-block" style={{ borderColor: appStatus.color, background: appStatus.bg }}>
-                    <span className="jb-modal-status-dot" style={{ background: appStatus.color }} />
-                    <div>
-                      <p className="jb-modal-status-label" style={{ color: appStatus.color }}>{appStatus.label}</p>
-                      {application?.appliedAt && (
-                        <p className="jb-modal-status-date">
-                          Aplicaste el {new Date(application.appliedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ) : canApply ? (
-                  <button
-                    className="jb-apply-btn"
-                    disabled={applying}
-                    onClick={() => requestApply(selected)}
-                  >
-                    {applying ? "ENVIANDO..." : "POSTULARME"}
-                  </button>
-                ) : (
-                  <div className="jb-locked-msg">
-                    <span className="jb-locked-icon">🔒</span>
-                    <p>Necesitás completar un curso en Hidden Security para postularte a esta posición.</p>
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
+            <section className="jb-detail-section">
+              <h3 className="jb-section-title">Requisitos</h3>
+              <p className="jb-detail-text">{selected.requirements}</p>
+            </section>
+          </Sheet>
         );
       })()}
 
-      {/* Banner CV requerido */}
-      {canApply && hasCV === false && (
-        <div className="jb-cert-banner" style={{ borderColor: "rgba(249,115,22,0.35)", background: "rgba(249,115,22,0.05)" }}>
-          {/* <span className="jb-cert-icon">📄</span> */}
-          <div>
-            <p className="jb-cert-title" style={{ color: "#f97316" }}>CV requerido para postularse</p>
-            <p className="jb-cert-sub">
-              {REQUIRE_COURSE
-                ? <>Tenés el curso completado! pero aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</>
-                : <>Aún no creaste tu CV. Andá al tab <strong>MI CV</strong> para completarlo.</>}
+      {/* ── Consentimiento ── */}
+      {showConsent && consentVacancy && (
+        <Sheet
+          onClose={closeConsent}
+          labelId="jb-consent-title"
+          size="md"
+          locked={applying}
+          header={
+            <>
+              <span className="jb-eyebrow">Consentimiento de datos</span>
+              <h2 id="jb-consent-title" className="jb-sheet-title">Confirmar postulación</h2>
+              <span className="jb-sheet-sub">{consentVacancy.title}{consentVacancy.companyName ? ` · ${consentVacancy.companyName}` : ""}</span>
+            </>
+          }
+          footer={
+            <div className="jb-footer-row">
+              <button type="button" className="jb-btn jb-btn--ghost" onClick={closeConsent} disabled={applying}>
+                Cancelar
+              </button>
+              <button type="button" className="jb-btn jb-btn--primary" disabled={applying} onClick={handleApply}>
+                {applying ? "Enviando…" : "Acepto y me postulo"}
+              </button>
+            </div>
+          }
+        >
+          <div className="jb-consent">
+            <p className="jb-consent-lead">
+              Al confirmar, autorizás a Hidden Security a compartir los siguientes datos personales y laborales con la empresa publicante, de forma confidencial y con el único fin de evaluar tu postulación:
+            </p>
+            <ul className="jb-consent-list">
+              <li>Nombre completo, datos de contacto y foto de perfil</li>
+              <li>Experiencia laboral, educación y certificaciones</li>
+              <li>Skills técnicas, proyectos y preferencias laborales</li>
+            </ul>
+            <p className="jb-consent-note">
+              Esta información solo podrá ser utilizada en el contexto del proceso de selección para esta posición.
             </p>
           </div>
-        </div>
-      )}
-
-      {/* Modal de consentimiento */}
-      {showConsent && consentVacancy && (
-        <div className="jb-modal-overlay" onClick={() => setShowConsent(false)}>
-          <div className="jb-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
-            <button className="jb-modal-close" onClick={() => setShowConsent(false)}>×</button>
-            <span className="jb-modal-eyebrow">// CONSENTIMIENTO_DE_DATOS</span>
-            <h2 className="jb-modal-title" style={{ fontSize: "1.1rem" }}>Confirmar postulación</h2>
-            <p className="jb-modal-meta" style={{ marginTop: 4 }}>{consentVacancy.title}</p>
-
-            <div style={{ margin: "20px 0", padding: "16px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)", lineHeight: 1.7 }}>
-              <p style={{ fontSize: "0.82rem", fontWeight: 600, marginBottom: 10 }}>
-                Al confirmar, autorizás a Hidden Security a compartir los siguientes datos personales y laborales con la empresa publicante, de forma confidencial y con el único fin de evaluar tu postulación:
-              </p>
-              <ul style={{ paddingLeft: 16, fontSize: "0.78rem", opacity: 0.75, display: "flex", flexDirection: "column", gap: 4 }}>
-                <li>Nombre completo, datos de contacto y foto de perfil</li>
-                <li>Experiencia laboral, educación y certificaciones</li>
-                <li>Skills técnicas, proyectos y preferencias laborales</li>
-              </ul>
-              <p style={{ fontSize: "0.75rem", opacity: 0.5, marginTop: 12 }}>
-                Esta información solo podrá ser utilizada en el contexto del proceso de selección para esta posición.
-              </p>
-            </div>
-
-            <div className="jb-modal-footer" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                className="jb-apply-btn"
-                disabled={applying}
-                onClick={handleApply}
-                style={{ flex: 1 }}
-              >
-                {applying ? "ENVIANDO..." : "ACEPTO Y ME POSTULO"}
-              </button>
-              <button
-                onClick={() => setShowConsent(false)}
-                style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.5)", fontFamily: "'Montserrat',sans-serif", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "14px 20px", cursor: "pointer" }}
-              >
-                CANCELAR
-              </button>
-            </div>
-          </div>
-        </div>
+        </Sheet>
       )}
 
       {/* Toast */}
       {toast && (
-        <div className={`jb-toast jb-toast--${toast.type}`}>
-          <span className="jb-toast-label">{toast.type === "success" ? "// OK" : "// ERROR"}</span>
+        <div className={`jb-toast jb-toast--${toast.type}`} role="status">
+          <span className="jb-toast-label">{toast.type === "success" ? "Listo" : "Error"}</span>
           {toast.msg}
         </div>
       )}

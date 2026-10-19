@@ -581,4 +581,31 @@ body:has(.ccx-fullscreen-overlay) {
 
 @media (max-width: 768px) {
   .ccx-progress--intro .ccx-progress-time { font-size: 1.6rem; }
+}/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Botón "Ver mi certificado" (certificación aprobada)
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+.ccx-cert-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; box-sizing: border-box; margin-top: 4px;
+  padding: 11px 14px;
+  font-family: 'Montserrat', sans-serif; font-size: 0.66rem; font-weight: 900;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: #000; background: var(--ccx-success); border: 1px solid var(--ccx-success);
+  cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+}
+.ccx-cert-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ccx-cert-btn:hover:not(:disabled) { opacity: 0.88; }
+.ccx-cert-btn:active:not(:disabled) { transform: translateY(1px); }
+.ccx-cert-btn:disabled { opacity: 0.6; cursor: progress; }
+.ccx-cert-btn:focus-visible { outline: 2px solid var(--ccx-success); outline-offset: 3px; }
+.ccx-wrap.light .ccx-cert-btn { color: #fff; background: #16a34a; border-color: #16a34a; }
+
+.ccx-cert-error {
+  font-size: 0.7rem; font-weight: 600; line-height: 1.5;
+  color: var(--ccx-danger);
+}
+
+@media (max-width: 768px) {
+  .ccx-cert-btn { padding: 13px 14px; font-size: 0.7rem; }
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UseTheme } from "../contexts/ThemeContext"; 
 import { UseSession } from "../contexts/SessionContext";
 import ModernSocCertification from "./ModernSocCertification";
@@ -9,6 +9,7 @@ import "./certificationCatalog.css";
 
 interface CatalogEntry {
   id:          string; // debe coincidir EXACTO con el certId del backend
+  slug?:       string; // slug del certificado público → /certifications/:slug/:credentialId
   title:       string;
   subtitle:    string;
   // Card del catálogo (grilla) — mismo formato que CourseMeta en CourseCatalog
@@ -31,6 +32,7 @@ interface CatalogEntry {
 const CATALOG: CatalogEntry[] = [
   {
     id:          "modernsoc-cert",
+    slug:        "modernSoc",
     title:       "Modern SOC Operations",
     subtitle:    "Certificación oficial · Analista SOC",
     description: "Examen controlado y cronometrado que valida tus conocimientos reales como analista SOC — fundamentos, operaciones, detección y respuesta a incidentes.",
@@ -123,6 +125,15 @@ function matchesFilter(filter: Filter, s: CertSummary | null | undefined): boole
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
+// Certificado público del usuario (GET /api/certificates/mine)
+interface MyCertificate {
+  certId?:      string;
+  credentialId: string;
+  slug:         string;
+  status:       "active" | "revoked";
+  url:          string;
+}
+
 // Intento en curso de una certificación (GET /api/certification/:certId/status)
 interface InProgressInfo {
   expiresAt: string;
@@ -177,6 +188,7 @@ export function getExamTabId(): string {
 export default function CertificationCatalog() {
   const { theme } = UseTheme();
   const { user }  = UseSession();
+  const navigate  = useNavigate();
   const isLight = theme === "light";
 
   const voucherCount = countVouchers(user);
@@ -194,6 +206,44 @@ export default function CertificationCatalog() {
   // Intentos en curso por certificación (los decide el backend, no el voucher)
   const [inProgress, setInProgress] = useState<Record<string, InProgressInfo | null>>({});
   const [now,        setNow]        = useState(() => Date.now());
+
+  // Certificado público: qué card está buscando y error por card
+  const [certLoading, setCertLoading] = useState<string | null>(null);
+  const [certError,   setCertError]   = useState<Record<string, string>>({});
+
+  // Busca en la DB el certificado del usuario logueado y redirige a su página.
+  // /api/certificates/mine también lo emite si aprobó antes de que existiera
+  // el sistema de certificados (backfill), así que siempre se consulta al click.
+  const openCertificate = async (cert: CatalogEntry, e: React.MouseEvent) => {
+    e.stopPropagation(); // no abrir la intro del examen
+    if (certLoading) return;
+    setCertLoading(cert.id);
+    setCertError(prev => ({ ...prev, [cert.id]: "" }));
+    try {
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/certificates/mine`,
+        { withCredentials: true }
+      );
+      const list: MyCertificate[] = Array.isArray(data?.certificates) ? data.certificates : [];
+      const found = list.find(c => c.certId === cert.id)
+                 ?? list.find(c => !!cert.slug && c.slug === cert.slug);
+
+      if (!found) {
+        setCertError(prev => ({ ...prev, [cert.id]: "Todavía no encontramos tu certificado. Probá de nuevo en unos minutos." }));
+        return;
+      }
+      if (found.status === "revoked") {
+        setCertError(prev => ({ ...prev, [cert.id]: "Este certificado fue revocado. Contactanos si creés que es un error." }));
+        return;
+      }
+      // Ruta interna: funciona igual en local y en producción
+      navigate(`/certifications/${found.slug}/${found.credentialId}`);
+    } catch {
+      setCertError(prev => ({ ...prev, [cert.id]: "No pudimos obtener tu certificado. Probá de nuevo." }));
+    } finally {
+      setCertLoading(null);
+    }
+  };
 
   const fetchSummaries = () => {
     axios.get(`${import.meta.env.VITE_API_URL}/api/certification/summary`, { withCredentials: true })
@@ -471,6 +521,28 @@ export default function CertificationCatalog() {
                   <span className="ccx-result-meta">
                     {summary!.attempts} intento{summary!.attempts > 1 ? "s" : ""} · mínimo {pct(summary!.passingScore)}
                   </span>
+
+                  {/* Aprobada: acceso al certificado público */}
+                  {summary!.passed && cert.slug && (
+                    <>
+                      <button
+                        type="button"
+                        className="ccx-cert-btn"
+                        onClick={(e) => openCertificate(cert, e)}
+                        disabled={certLoading === cert.id}
+                        aria-busy={certLoading === cert.id}
+                      >
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="10" cy="8" r="5" />
+                          <path d="M7 12l-1.5 6L10 16l4.5 2L13 12" />
+                        </svg>
+                        {certLoading === cert.id ? "BUSCANDO CERTIFICADO…" : "VER MI CERTIFICADO →"}
+                      </button>
+                      {certError[cert.id] && (
+                        <span className="ccx-cert-error" role="alert">{certError[cert.id]}</span>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

@@ -390,13 +390,24 @@
 /* ── tabs (idénticas a dm-tabs) ── */
 .cm-tabs {
   display:       flex;
+  flex-shrink:   0;
   border-bottom: 1px solid var(--cm-border);
   overflow-x:    auto;
+  /* Solo scroll horizontal. Antes las tabs tenían margin-bottom:-1px y eso
+     las hacía 1px más altas que la barra: con overflow-x:auto el navegador
+     habilitaba también el scroll vertical, el panel se movía para arriba y
+     el texto se cortaba. Ahora la línea activa es un box-shadow interno, que
+     no suma altura. */
+  overflow-y:    hidden;
+  touch-action:  pan-x;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 .cm-tabs::-webkit-scrollbar { display: none; }
 
 .cm-tab {
+  flex-shrink:    0;
   font-family:    inherit;
   font-size:      12px;
   font-weight:    700;
@@ -406,15 +417,13 @@
   padding:        10px 18px;
   background:     transparent;
   border:         none;
-  border-bottom:  2px solid transparent;
-  margin-bottom:  -1px;
   color:          var(--cm-text-dim);
   cursor:         pointer;
-  transition:     color 0.2s, border-color 0.2s;
+  transition:     color 0.2s, box-shadow 0.2s;
 }
 .cm-tab:hover:not(:disabled) { color: var(--cm-text); }
-.cm-tab.active               { color: var(--cm-accent); border-bottom-color: var(--cm-accent); }
-.cm-tab.danger.active        { color: var(--cm-error);  border-bottom-color: var(--cm-error); }
+.cm-tab.active               { color: var(--cm-accent); box-shadow: inset 0 -2px 0 var(--cm-accent); }
+.cm-tab.danger.active        { color: var(--cm-error);  box-shadow: inset 0 -2px 0 var(--cm-error); }
 
 .cm-block {
   display:        flex;

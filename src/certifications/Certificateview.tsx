@@ -7,7 +7,8 @@ import { jsPDF } from "jspdf";
 import { UseTheme } from "../contexts/ThemeContext";
 import "./certificateview.css";
 
-import logoHS from "../../public/insignias/SOC.png";
+import logoHS from "../../public/logos/logo-hidden-final.png";
+import insigniaSoc from "../../public/insignias/SOC.png";
 
 const API_URL  = import.meta.env.VITE_API_URL;
 const SITE_URL = "https://www.hidden-security.org";
@@ -19,7 +20,7 @@ const ISSUER = {
   location:  "Provincia de Buenos Aires, Argentina",
   web:       "www.hidden-security.org",
   signatory: "María Belén Arroyo",
-  role:      "Responsable · Hidden Security",
+  role:      "Founder CEO · Hidden Security",
 };
  
 // Si Hidden Security tiene página de empresa en LinkedIn, poné su ID numérico
@@ -341,9 +342,7 @@ const CertificateView = () => {
                     </h2>
                     <span className="hcv-name-bar" />
                     <p className="hcv-desc">
-                      aprobó el examen final de certificación del programa <b>{cert.program}</b>,
-                      rendido en un entorno supervisado y corregido por Hidden Security, acreditando
-                      las competencias profesionales de
+                      Esto certifica que el destinatario ha completado con éxito y ha validado sus competencias prácticas en operaciones de SOC, triage de alertas, análisis de incidentes, criterios de escalado y fundamentos de monitorización de seguridad, mediante una evaluación práctica de «Hidden Security».
                     </p>
                     <div className="hcv-title">{cert.title.toUpperCase()}</div>
                     {!!EXAM_FACTS[cert.slug]?.length && (
@@ -354,7 +353,7 @@ const CertificateView = () => {
                   </div>
  
                   <aside className="hcv-side">
-                    <svg className="hcv-seal" viewBox="0 0 200 200" aria-hidden>
+                    {/* <svg className="hcv-seal" viewBox="0 0 200 200" aria-hidden>
                       <defs>
                         <path id="hcv-seal-path" d="M100,100 m-74,0 a74,74 0 1,1 148,0 a74,74 0 1,1 -148,0" />
                       </defs>
@@ -366,7 +365,9 @@ const CertificateView = () => {
                       </text>
                       <path d="M100 66 L126 76 V100 C126 116 114 128 100 134 C86 128 74 116 74 100 V76 Z" fill="#ccff00" />
                       <path d="M88 100 L97 109 L113 91" fill="none" stroke="#050505" strokeWidth="5" strokeLinecap="square" />
-                    </svg>
+                    </svg> */}
+
+                    <img src={insigniaSoc} className="hci-logo" alt="Insignia SOC" />
  
                     <div className="hcv-qr">
                       {qr && <img src={qr} alt="QR de verificación" />}
@@ -406,8 +407,8 @@ const CertificateView = () => {
                   <i />
                   <span>{ISSUER.tagline}</span>
                   <i />
-                  <span>{ISSUER.location}</span>
-                  <i />
+                  {/* <span>{ISSUER.location}</span> */}
+                  {/* <i /> */}
                   <span>{ISSUER.web}</span>
                 </div>
               </div>
@@ -423,6 +424,14 @@ const CertificateView = () => {
               <button className="hcv-btn" onClick={downloadPng} disabled={!!busy}>
                 {busy === "png" ? "GENERANDO…" : "DESCARGAR IMAGEN"}
               </button>
+              {/* Insignia: se descarga el PNG original, tal cual está en public/insignias */}
+              <a
+                className="hcv-btn"
+                href={insigniaSoc}
+                download={`HiddenSecurity-${cert.title.replace(/\s+/g, "")}-Insignia.png`}
+              >
+                DESCARGAR INSIGNIA
+              </a>
               <a className="hcv-btn hcv-btn--in" href={linkedInUrl} target="_blank" rel="noopener noreferrer">
                 AGREGAR A LINKEDIN
               </a>

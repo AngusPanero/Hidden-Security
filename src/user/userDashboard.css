@@ -1646,3 +1646,289 @@
     .dm-hist-retry         { width: 100%; text-align: center; }
     .dm-hist-banner        { font-size: 0.72rem; padding: 12px 14px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICACIONES (dm-nt-*) — pegar al final de userDashboard.css
+   Reemplaza a los estilos .dm-notif-item / .dm-notif-company /
+   .dm-notif-vacancy / .dm-notif-status / .dm-notif-date (que hoy están
+   repetidos 3 veces en el archivo). Esos bloques se pueden borrar.
+   NO borres .dm-notif-badge ni .dm-notif-toast: los usan el tab y el aviso.
+   Tipografía: solo Montserrat.
+══════════════════════════════════════════════════════════════ */
+
+.dm-nt {
+  --nt-accent:   #ccff00;
+  --nt-surface:  #0a0a0a;
+  --nt-surface-2:rgba(255, 255, 255, 0.04);
+  --nt-border:   rgba(255, 255, 255, 0.09);
+  --nt-text:     #ffffff;
+  --nt-mid:      rgba(255, 255, 255, 0.7);
+  --nt-dim:      rgba(255, 255, 255, 0.42);
+
+  display:        flex;
+  flex-direction: column;
+  gap:            22px;
+  font-family:    'Montserrat', sans-serif;
+}
+
+.dm-container.light .dm-nt {
+  --nt-accent:   #ff5500;
+  --nt-surface:  #ffffff;
+  --nt-surface-2:rgba(0, 0, 0, 0.03);
+  --nt-border:   rgba(0, 0, 0, 0.1);
+  --nt-text:     #0b0b0b;
+  --nt-mid:      rgba(0, 0, 0, 0.7);
+  --nt-dim:      rgba(0, 0, 0, 0.45);
+}
+
+.dm-nt * { box-sizing: border-box; }
+
+/* ── Encabezado ── */
+.dm-nt-head {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             12px;
+  flex-wrap:       wrap;
+}
+.dm-nt-head-title {
+  font-size:      0.7rem;
+  font-weight:    800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color:          var(--nt-dim);
+}
+.dm-nt-head-count {
+  font-size:      0.68rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          var(--nt-dim);
+  padding:        4px 10px;
+  border:         1px solid var(--nt-border);
+}
+.dm-nt-head-count--new {
+  color:        var(--nt-accent);
+  border-color: var(--nt-accent);
+  background:   color-mix(in srgb, var(--nt-accent) 8%, transparent);
+}
+
+/* ── Grupo por día ── */
+.dm-nt-group {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+}
+.dm-nt-day {
+  margin:         0;
+  display:        flex;
+  align-items:    center;
+  gap:            12px;
+  font-size:      0.66rem;
+  font-weight:    800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color:          var(--nt-accent);
+}
+.dm-nt-day::after {
+  content:    '';
+  flex:       1;
+  height:     1px;
+  background: var(--nt-border);
+}
+/* "lunes", "martes"… con mayúscula inicial */
+.dm-nt-day::first-letter { text-transform: uppercase; }
+
+.dm-nt-list {
+  list-style: none;
+  margin:     0;
+  padding:    0;
+  display:    flex;
+  flex-direction: column;
+  border:     1px solid var(--nt-border);
+  background: var(--nt-surface);
+}
+
+/* ── Item ── */
+.dm-nt-item {
+  position:    relative;
+  display:     flex;
+  align-items: flex-start;
+  gap:         14px;
+  padding:     16px 44px 16px 20px;
+  border-bottom: 1px solid var(--nt-border);
+  transition:  background 0.2s;
+  animation:   dm-nt-in 0.3s ease both;
+}
+.dm-nt-item:last-child { border-bottom: none; }
+
+/* Línea lateral con el color del estado */
+.dm-nt-item::before {
+  content:    '';
+  position:   absolute;
+  left:       0;
+  top:        0;
+  bottom:     0;
+  width:      3px;
+  background: var(--nt-color, var(--nt-border));
+  opacity:    0.55;
+}
+.dm-nt-item--unread { background: var(--nt-surface-2); }
+.dm-nt-item--unread::before { opacity: 1; }
+
+/* Logo */
+.dm-nt-logo {
+  flex-shrink: 0;
+  width:       40px;
+  height:      40px;
+  object-fit:  cover;
+  border:      1px solid var(--nt-border);
+  background:  #fff;
+}
+.dm-nt-logo--placeholder {
+  display:     grid;
+  place-items: center;
+  background:  color-mix(in srgb, var(--nt-accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--nt-accent) 30%, transparent);
+  color:       var(--nt-accent);
+  font-size:   0.9rem;
+  font-weight: 900;
+}
+
+.dm-nt-body {
+  flex:           1;
+  min-width:      0;
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.dm-nt-top {
+  display:         flex;
+  align-items:     baseline;
+  justify-content: space-between;
+  gap:             10px;
+}
+.dm-nt-company {
+  min-width:      0;
+  font-size:      0.7rem;
+  font-weight:    800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--nt-mid);
+  overflow:       hidden;
+  text-overflow:  ellipsis;
+  white-space:    nowrap;
+}
+.dm-nt-time {
+  flex-shrink:          0;
+  font-size:            0.68rem;
+  font-weight:          700;
+  font-variant-numeric: tabular-nums;
+  color:                var(--nt-dim);
+}
+
+.dm-nt-vacancy {
+  margin:         0;
+  font-size:      0.95rem;
+  font-weight:    800;
+  letter-spacing: -0.01em;
+  line-height:    1.3;
+  color:          var(--nt-text);
+  overflow-wrap:  anywhere;
+}
+
+.dm-nt-status {
+  align-self:     flex-start;
+  display:        inline-flex;
+  align-items:    center;
+  gap:            8px;
+  margin-top:     2px;
+  padding:        5px 10px;
+  border:         1px solid;
+  font-size:      0.64rem;
+  font-weight:    800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height:    1.3;
+}
+.dm-nt-status-dot {
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+
+/* Punto de "sin leer" */
+.dm-nt-unread {
+  position:      absolute;
+  top:           20px;
+  right:         18px;
+  width:         9px;
+  height:        9px;
+  border-radius: 50%;
+  background:    var(--nt-accent);
+  box-shadow:    0 0 0 4px color-mix(in srgb, var(--nt-accent) 18%, transparent);
+}
+
+/* ── Estado vacío ── */
+.dm-nt-empty {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  text-align:     center;
+  gap:            10px;
+  padding:        56px 20px;
+  border:         1px dashed var(--nt-border);
+}
+.dm-nt-empty-icon {
+  position:    relative;
+  width:       44px;
+  height:      44px;
+  border:      1px solid var(--nt-border);
+  display:     grid;
+  place-items: center;
+  margin-bottom: 4px;
+}
+.dm-nt-empty-icon span {
+  width:         10px;
+  height:        10px;
+  border-radius: 50%;
+  background:    var(--nt-accent);
+  opacity:       0.6;
+}
+.dm-nt-empty-title {
+  margin:         0;
+  font-size:      0.8rem;
+  font-weight:    800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color:          var(--nt-text);
+}
+.dm-nt-empty-text {
+  margin:      0;
+  max-width:   340px;
+  font-size:   0.8rem;
+  font-weight: 500;
+  line-height: 1.6;
+  color:       var(--nt-dim);
+}
+
+@keyframes dm-nt-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dm-nt-item { animation: none; }
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .dm-nt { gap: 18px; }
+  .dm-nt-item     { gap: 12px; padding: 14px 36px 14px 16px; }
+  .dm-nt-logo     { width: 34px; height: 34px; }
+  .dm-nt-vacancy  { font-size: 0.88rem; }
+  .dm-nt-status   { font-size: 0.6rem; padding: 4px 8px; }
+  .dm-nt-unread   { top: 17px; right: 14px; }
+  .dm-nt-head-title { font-size: 0.62rem; letter-spacing: 0.14em; }
+}
