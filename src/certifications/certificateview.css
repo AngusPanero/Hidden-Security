@@ -1,0 +1,205 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   certificateView.css — estilos de CertificateView.tsx (prefijo hcv-)
+   El certificado tiene diseño fijo — no cambia con el tema — para que se vea
+   igual en pantalla, en el PDF y al escanear el QR.
+   1123 × 794 = A4 horizontal a 96 dpi (CERT_W / CERT_H en el tsx).
+══════════════════════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+/* Reset local: que los estilos globales del sitio (img, h1, h2, p, span, dl,
+   section…) no se metan en el certificado. Especificidad .hcv-page + etiqueta:
+   le gana a cualquier regla global por etiqueta, pero pierde contra las clases
+   hcv- de abajo, que son las que definen el diseño. */
+.hcv-page *{box-sizing:border-box; font-family:inherit; font-style:normal; text-shadow:none;}
+.hcv-page h1, .hcv-page h2, .hcv-page p, .hcv-page dl, .hcv-page dt, .hcv-page dd{
+  margin:0; padding:0; color:inherit; font-size:inherit; text-transform:none; text-align:inherit;
+  letter-spacing:normal; max-width:none; background:none; -webkit-text-fill-color:currentColor}
+.hcv-page img{max-width:none; border-radius:0; box-shadow:none}
+.hcv-page section{padding:0; margin:0; min-height:0; height:auto}
+
+.hcv-page{
+  --pg-bg:#000; --pg-text:#fff; --pg-muted:rgba(255,255,255,.55); --pg-line:rgba(255,255,255,.12);
+  --pg-accent:#ccff00; --pg-accent-ink:#000; --pg-surface:#0a0a0a;
+  min-height:100vh; background:var(--pg-bg); color:var(--pg-text);
+  font-family:'Montserrat','JetBrains Mono',Arial,sans-serif;
+  padding:110px 16px 64px; box-sizing:border-box;
+}
+.hcv-page.hcv-light{
+  --pg-bg:#f4f4f1; --pg-text:#0b0b0b; --pg-muted:rgba(0,0,0,.55); --pg-line:rgba(0,0,0,.12);
+  --pg-accent:#ff5500; --pg-accent-ink:#fff; --pg-surface:#fff;
+}
+.hcv-page .hcv-wrap{max-width:1123px; margin:0 auto}
+
+/* Estados */
+.hcv-page .hcv-state{max-width:620px; margin:12vh auto 0; display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px}
+.hcv-page .hcv-eyebrow{font-size:12px; font-weight:700; letter-spacing:.2em; color:var(--pg-accent)}
+.hcv-page .hcv-eyebrow--bad{color:#ff3b3b}
+.hcv-page .hcv-state-title{font-size:clamp(26px,4vw,38px); font-weight:900; margin:0; letter-spacing:-.02em}
+.hcv-page .hcv-state-text{color:var(--pg-muted); margin:0; line-height:1.6}
+.hcv-page .hcv-state-code{border:1px solid var(--pg-line); padding:8px 14px; font-family:inherit; font-size:13px; letter-spacing:.08em; word-break:break-all}
+.hcv-page .hcv-spinner{width:34px; height:34px; border:2px solid var(--pg-line); border-top-color:var(--pg-accent); border-radius:50%; animation:hcv-spin .8s linear infinite}
+@keyframes hcv-spin{to{transform:rotate(360deg)}}
+
+/* Barra de verificación */
+.hcv-page .hcv-verify{display:flex; align-items:center; gap:14px; padding:14px 18px; margin-bottom:18px;
+  background:var(--pg-surface); border:1px solid var(--pg-line); border-left:3px solid var(--pg-accent)}
+.hcv-page .hcv-verify--bad{border-left-color:#ff3b3b}
+.hcv-page .hcv-verify-mark{flex:0 0 30px; height:30px; display:grid; place-items:center; font-weight:900;
+  background:var(--pg-accent); color:var(--pg-accent-ink); clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%)}
+.hcv-page .hcv-verify--bad .hcv-verify-mark{background:#ff3b3b; color:#fff}
+.hcv-page .hcv-verify-text{display:flex; flex-direction:column; gap:2px; font-size:13px; line-height:1.45; flex:1; min-width:0}
+.hcv-page .hcv-verify-text strong{font-size:14px; font-weight:800; letter-spacing:.02em}
+.hcv-page .hcv-verify-text span{color:var(--pg-muted)}
+.hcv-page .hcv-verify-id{font-size:12px; font-weight:700; letter-spacing:.1em; color:var(--pg-muted); white-space:nowrap}
+
+/* Escenario escalable */
+.hcv-page .hcv-stage{position:relative; width:100%; overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.hcv-page .hcv-scaler{position:absolute; top:0; left:0; width:1123px; height:794px; transform-origin:top left}
+
+/* ═══ Certificado ═══ */
+.hcv-page .hcv-cert{
+  position:relative; width:1123px; height:794px; overflow:hidden;
+  background:#050505; color:#fff; font-family:'Montserrat','JetBrains Mono',Arial,sans-serif;
+  padding:58px 70px 0;
+  display:flex; flex-direction:column;
+}
+.hcv-page .hcv-grid{position:absolute; inset:0; pointer-events:none; opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:38px 38px}
+.hcv-page .hcv-glow{position:absolute; width:720px; height:720px; right:-260px; top:-300px; pointer-events:none;
+  background:radial-gradient(circle,rgba(204,255,0,.13),transparent 62%)}
+.hcv-page .hcv-frame{position:absolute; inset:24px; border:1px solid rgba(204,255,0,.28); pointer-events:none}
+.hcv-page .hcv-corner{position:absolute; width:34px; height:34px; border-color:#ccff00; border-style:solid; border-width:0}
+.hcv-page .hcv-corner--tl{top:16px; left:16px; border-top-width:3px; border-left-width:3px}
+.hcv-page .hcv-corner--tr{top:16px; right:16px; border-top-width:3px; border-right-width:3px}
+.hcv-page .hcv-corner--bl{bottom:16px; left:16px; border-bottom-width:3px; border-left-width:3px}
+.hcv-page .hcv-corner--br{bottom:16px; right:16px; border-bottom-width:3px; border-right-width:3px}
+.hcv-page .hcv-tag{position:absolute; top:24px; right:120px; background:#ccff00; color:#050505;
+  font-size:10px; font-weight:800; letter-spacing:.24em; padding:7px 22px 7px 16px;
+  clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.hcv-page .hcv-void{position:absolute; inset:0; display:grid; place-items:center; z-index:5; pointer-events:none;
+  font-size:150px; font-weight:900; letter-spacing:.1em; color:rgba(255,59,59,.25); transform:rotate(-14deg)}
+
+.hcv-page .hcv-head, .hcv-page .hcv-body, .hcv-page .hcv-foot, .hcv-page .hcv-strip{position:relative; z-index:1}
+
+.hcv-page .hcv-head{display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:22px; border-bottom:1px solid rgba(255,255,255,.1)}
+.hcv-page .hcv-brand{display:flex; align-items:center; gap:16px}
+.hcv-page .hcv-logo{height:58px; width:auto; object-fit:contain}
+.hcv-page .hcv-brand-text{display:flex; flex-direction:column; gap:4px}
+.hcv-page .hcv-brand-name{font-size:21px; font-weight:900; letter-spacing:.2em}
+.hcv-page .hcv-brand-sub{font-size:11px; font-weight:500; letter-spacing:.06em; color:rgba(255,255,255,.55)}
+.hcv-page .hcv-head-id{display:flex; flex-direction:column; align-items:flex-end; gap:5px; margin-top:34px}
+.hcv-page .hcv-head-id-val{font-size:14px; font-weight:700; letter-spacing:.12em; color:#ccff00; font-variant-numeric:tabular-nums}
+
+.hcv-page .hcv-label{font-size:9.5px; font-weight:700; letter-spacing:.22em; color:rgba(255,255,255,.45)}
+
+.hcv-page .hcv-body{flex:1; display:flex; gap:36px; padding-top:30px}
+.hcv-page .hcv-main{flex:1; display:flex; flex-direction:column; min-width:0}
+.hcv-page .hcv-kicker{font-size:12px; font-weight:800; letter-spacing:.32em; color:#ccff00; margin-bottom:22px}
+.hcv-page .hcv-lead{font-size:15px; font-weight:500; color:rgba(255,255,255,.65); margin-bottom:6px}
+.hcv-page .hcv-name{margin:0; font-weight:800; letter-spacing:-.02em; line-height:1.05; color:#fff; max-width:720px}
+.hcv-page .hcv-name-bar{display:block; width:96px; height:4px; background:#ccff00; margin:18px 0 20px}
+.hcv-page .hcv-desc{margin:0; max-width:640px; font-size:14.5px; line-height:1.65; color:rgba(255,255,255,.7); font-weight:400}
+.hcv-page .hcv-desc b{color:#fff; font-weight:700}
+.hcv-page .hcv-title{margin-top:16px; font-size:58px; font-weight:900; letter-spacing:.01em; line-height:1; color:#ccff00}
+
+.hcv-page .hcv-facts{display:flex; gap:10px; margin-top:26px}
+.hcv-page .hcv-facts span{font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:rgba(255,255,255,.75); border:1px solid rgba(255,255,255,.16); padding:8px 12px;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%)}
+
+.hcv-page .hcv-side{width:236px; display:flex; flex-direction:column; align-items:center; gap:12px; padding-top:0}
+.hcv-page .hcv-seal{width:112px; height:112px}
+.hcv-page .hcv-qr{width:212px; height:212px; background:#fff; padding:12px; margin-top:4px}
+.hcv-page .hcv-qr img{width:100%; height:100%; display:block; image-rendering:pixelated}
+.hcv-page .hcv-qr-cap{font-size:9.5px; font-weight:700; letter-spacing:.2em; color:rgba(255,255,255,.55); text-transform:uppercase}
+
+.hcv-page .hcv-foot{display:flex; justify-content:space-between; align-items:flex-end; padding:20px 0 22px; border-top:1px solid rgba(255,255,255,.1)}
+.hcv-page .hcv-meta{display:flex; gap:44px}
+.hcv-page .hcv-meta > div{display:flex; flex-direction:column; gap:7px}
+.hcv-page .hcv-meta-val{font-size:15px; font-weight:700; color:#fff}
+.hcv-page .hcv-meta-val--sm{font-size:12.5px; font-weight:600; color:rgba(255,255,255,.8)}
+.hcv-page .hcv-sign{display:flex; flex-direction:column; align-items:center; gap:8px; min-width:250px}
+.hcv-page .hcv-sign-name{font-size:17px; font-weight:700; letter-spacing:.02em}
+.hcv-page .hcv-sign-line{display:block; width:100%; height:1px; background:rgba(255,255,255,.4)}
+
+.hcv-page .hcv-strip{margin:0 -45px 25px; height:38px; display:flex; align-items:center; justify-content:center; gap:14px;
+  background:#ccff00; color:#050505; font-size:9.5px; font-weight:800; letter-spacing:.16em; text-transform:uppercase}
+.hcv-page .hcv-strip i{width:5px; height:5px; background:#050505; transform:rotate(45deg)}
+
+/* Acciones */
+.hcv-page .hcv-actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:22px}
+.hcv-page .hcv-btn{appearance:none; cursor:pointer; text-decoration:none; font-family:inherit;
+  font-size:12px; font-weight:800; letter-spacing:.16em; padding:15px 22px;
+  background:transparent; color:var(--pg-text); border:1px solid var(--pg-line);
+  transition:border-color .2s, background .2s, color .2s}
+.hcv-page .hcv-btn:hover{border-color:var(--pg-accent); color:var(--pg-accent)}
+.hcv-page .hcv-btn:disabled{opacity:.5; cursor:wait}
+.hcv-page .hcv-btn--main{background:var(--pg-accent); color:var(--pg-accent-ink); border-color:var(--pg-accent);
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%)}
+.hcv-page .hcv-btn--main:hover{color:var(--pg-accent-ink); filter:brightness(1.08)}
+.hcv-page .hcv-btn--in:hover{border-color:#0a66c2; color:#fff; background:#0a66c2}
+.hcv-page .hcv-note{margin:18px 0 0; font-size:13px; line-height:1.6; color:var(--pg-muted)}
+.hcv-page .hcv-note b{color:var(--pg-text); font-weight:700; word-break:break-all}
+
+/* ═══ Mobile: tarjeta vertical (solo pantalla) ═══ */
+.hcv-page .hcv-m{position:relative; overflow:hidden; background:#050505; color:#fff;
+  border:1px solid rgba(204,255,0,.28); padding:28px 22px 0; margin-bottom:26px;
+  display:flex; flex-direction:column;
+  background-image:radial-gradient(circle at 100% 0,rgba(204,255,0,.14),transparent 55%),
+    linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:auto,30px 30px,30px 30px}
+.hcv-page .hcv-m-corner{position:absolute; width:26px; height:26px; border:0 solid #ccff00}
+.hcv-page .hcv-m-corner--tl{top:8px; left:8px; border-top-width:3px; border-left-width:3px}
+.hcv-page .hcv-m-corner--br{bottom:8px; right:8px; border-bottom-width:3px; border-right-width:3px}
+.hcv-page .hcv-m-void{position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; z-index:3;
+  font-size:64px; font-weight:900; letter-spacing:.08em; color:rgba(255,59,59,.28); transform:rotate(-20deg)}
+
+.hcv-page .hcv-m-head{display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:1px solid rgba(255,255,255,.1); margin-bottom:22px}
+.hcv-page .hcv-m-logo{height:42px; width:auto; object-fit:contain}
+.hcv-page .hcv-m-brand{display:flex; flex-direction:column; gap:3px; min-width:0}
+.hcv-page .hcv-m-brand-name{font-size:15px; font-weight:900; letter-spacing:.18em}
+.hcv-page .hcv-m-brand-sub{font-size:10.5px; font-weight:500; color:rgba(255,255,255,.55)}
+
+.hcv-page .hcv-m-kicker{font-size:10.5px; font-weight:800; letter-spacing:.26em; color:#ccff00; margin-bottom:14px}
+.hcv-page .hcv-m-lead{font-size:13px; font-weight:500; color:rgba(255,255,255,.65); margin-bottom:4px}
+.hcv-page .hcv-m-name{margin:0; color:#fff; font-size:clamp(26px,8vw,34px); font-weight:800; letter-spacing:-.02em; line-height:1.08; overflow-wrap:anywhere}
+.hcv-page .hcv-m-bar{display:block; width:64px; height:3px; background:#ccff00; margin:14px 0}
+.hcv-page .hcv-m-desc{margin:0; font-size:13.5px; line-height:1.6; color:rgba(255,255,255,.7)}
+.hcv-page .hcv-m-desc b{color:#fff; font-weight:700}
+.hcv-page .hcv-m-title{margin-top:10px; font-size:clamp(32px,11vw,44px); font-weight:900; line-height:1; color:#ccff00}
+
+.hcv-page .hcv-m-facts{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px}
+.hcv-page .hcv-m-facts span{font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:rgba(255,255,255,.75); border:1px solid rgba(255,255,255,.16); padding:7px 10px}
+
+.hcv-page .hcv-m-qr-block{display:flex; flex-direction:column; align-items:center; gap:12px; margin:28px 0 6px}
+.hcv-page .hcv-m-qr{width:min(100%,280px); aspect-ratio:1; background:#fff; padding:14px}
+.hcv-page .hcv-m-qr img{width:100%; height:100%; display:block; image-rendering:pixelated}
+.hcv-page .hcv-m-qr-cap{font-size:10px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:rgba(255,255,255,.6)}
+
+.hcv-page .hcv-m-meta{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:22px 0 0; padding-top:18px; border-top:1px solid rgba(255,255,255,.1)}
+.hcv-page .hcv-m-meta div{display:flex; flex-direction:column; gap:5px; min-width:0}
+.hcv-page .hcv-m-meta-full{grid-column:1 / -1}
+.hcv-page .hcv-m-meta dt{font-size:9px; font-weight:700; letter-spacing:.2em; color:rgba(255,255,255,.45)}
+.hcv-page .hcv-m-meta dd{margin:0; font-size:14px; font-weight:700}
+.hcv-page .hcv-m-id{color:#ccff00; letter-spacing:.08em; overflow-wrap:anywhere}
+
+.hcv-page .hcv-m-sign{display:flex; flex-direction:column; align-items:center; gap:7px; margin:26px 0 22px}
+.hcv-page .hcv-m-sign-name{font-size:15px; font-weight:700}
+.hcv-page .hcv-m-sign-line{display:block; width:70%; height:1px; background:rgba(255,255,255,.4)}
+.hcv-page .hcv-m-sign-role{font-size:9px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.45)}
+
+.hcv-page .hcv-m-strip{margin:0 -22px; padding:11px 0; text-align:center; background:#ccff00; color:#050505;
+  font-size:10px; font-weight:800; letter-spacing:.2em; text-transform:uppercase}
+
+.hcv-page .hcv-m-preview-label{display:block; font-size:10.5px; font-weight:700; letter-spacing:.2em; color:var(--pg-muted); margin-bottom:10px}
+
+@media (max-width:768px){
+   .hcv-m-logo{ width: 100px !important; }
+  .hcv-page{padding-top:90px}
+  .hcv-page .hcv-stage{box-shadow:none; border:1px solid var(--pg-line)}
+  .hcv-page .hcv-verify{flex-wrap:wrap}
+  .hcv-page .hcv-verify-id{width:100%; padding-left:44px; white-space:normal; word-break:break-all}
+  .hcv-page .hcv-btn{flex:1 1 calc(50% - 10px); text-align:center; padding:14px 10px; font-size:11px}
+}

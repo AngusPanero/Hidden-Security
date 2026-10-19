@@ -800,7 +800,7 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
       <div className="udb-validated">
         <div className="udb-validated-head">
           <span className="udb-validated-title">VALIDADO POR HIDDEN SECURITY</span>
-          <span className="udb-validated-sub">Comprobado por nosotros, no declarado por el candidato</span>
+          <span className="udb-validated-sub">Comprobado por nosotros</span>
         </div>
 
         {!hasValidated ? (

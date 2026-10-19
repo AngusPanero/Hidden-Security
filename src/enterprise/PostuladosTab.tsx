@@ -921,7 +921,7 @@ export default function PostuladosTab() {
                     <div className="hs-cvx-validated">
                       <div className="hs-cvx-block-head">
                         <span className="hs-cvx-block-title">VALIDADO POR HIDDEN SECURITY</span>
-                        <span className="hs-cvx-block-sub">Comprobado por nosotros, no declarado por el postulante</span>
+                        <span className="hs-cvx-block-sub">Comprobado por nosotros</span>
                       </div>
 
                       {!hasValidated ? (

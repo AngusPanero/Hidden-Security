@@ -25,6 +25,7 @@ import CertificationsRelative from "../certifications/CertificationsRelative";
 import PartnerDashboard from "../partner/PartnerDashboard";
 import TerminosCondiciones from "../terminosCondiciones/TerminosCondiciones";
 import PoliticasPrivacidad from "../privacidad/PoliticasPrivacidad";
+import CertificateView from "../certifications/Certificateview";
 
 const AppRouter = () => {
     return (
@@ -53,6 +54,7 @@ const AppRouter = () => {
                                 <Route path="/enterprise" element={<PrivateRoute role="enterprise"><EnterpriseDashboard /></PrivateRoute>} /> 
                                 <Route path="/certifications"           element={<Certifications />} />
                                 <Route path="/certifications/:certSlug" element={<CertificationsRelative />} />
+                                <Route path="/certifications/:slug/:credentialId" element={<CertificateView />} />
                                 <Route path="/*" element={<Error404Minimal />} />
                             </Routes>
                             <FooterMinimal />
