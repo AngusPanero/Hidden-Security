@@ -638,7 +638,8 @@
 ════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .user-list-container { padding: 28px; }
-  .ul-stats            { grid-template-columns: repeat(2, 1fr); }
+  .ul-stat             { padding: 16px 14px; }
+  .ul-stat-value       { font-size: 22px; }
   .ul-filter           { padding: 10px 16px; font-size: 12px; }
 }
 
@@ -648,12 +649,14 @@
 @media (max-width: 768px) {
   .user-list-container { padding: 20px 14px; }
 
-  .ul-stats       { grid-template-columns: 1fr 1fr; }
-  .ul-stat-accent { border-left: none; border-right: none; border-top: 2px solid var(--ul-accent); border-bottom: 2px solid var(--ul-accent); }
-  .ul-stat-value  { font-size: 22px; }
-  .ul-stat-label  { font-size: 9px; }
+  /* Resumen compacto: una sola fila de 4, números chicos */
+  .ul-stats       { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-bottom: 18px; border-top-width: 2px; }
+  .ul-stat        { padding: 10px 8px; gap: 4px; min-width: 0; }
+  .ul-stat-accent { border-left: none; border-right: none; }
+  .ul-stat-value  { font-size: 17px; font-weight: 800; }
+  .ul-stat-label  { font-size: 8px; letter-spacing: 0.12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .ul-filter { padding: 10px 14px; font-size: 11px; overflow: hidden; }
+  .ul-filter { padding: 10px 12px; font-size: 11px; flex-shrink: 0; }
 
   .ul-row        { padding: 12px 14px; gap: 8px; }
   .ul-row-left   { flex-direction: column; align-items: flex-start; gap: 2px; }

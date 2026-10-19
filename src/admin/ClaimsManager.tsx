@@ -56,6 +56,9 @@ const ACTIONS: { id: Action; label: string; danger?: boolean }[] = [
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024
 
+// Distancia (px) que hay que arrastrar hacia abajo para cerrar el sheet
+const DISMISS_DISTANCE = 110
+
 const uploadToCloudinary = async (file: File): Promise<string> => {
     const imgData = new FormData()
     imgData.append("file", file)
@@ -121,6 +124,8 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
     const [feedback,   setFeedback]   = useState<{ ok: boolean; title: string; text?: string } | null>(null)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const startY       = useRef<number | null>(null)
+    const [dragY, setDragY] = useState(0)
 
     // ── Cargar claims actuales ────────────────────────────────────────────────
     const loadClaims = async () => {
@@ -150,6 +155,31 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
         window.addEventListener("keydown", onKey)
         return () => window.removeEventListener("keydown", onKey)
     }, [onClose, submitting])
+
+    // ── Bloquear el scroll del fondo mientras está abierto ────────────────────
+    useEffect(() => {
+        const prevOverflow = document.body.style.overflow
+        document.body.style.overflow = "hidden"
+        return () => { document.body.style.overflow = prevOverflow }
+    }, [])
+
+    // ── Deslizar hacia abajo para cerrar (mobile) ─────────────────────────────
+    // Solo desde la cabecera, así el scroll del contenido no lo cierra sin
+    // querer. Mientras se está firmando un cambio no se puede cerrar.
+    const onTouchStart = (e: React.TouchEvent) => {
+        if (submitting) return
+        startY.current = e.touches[0].clientY
+    }
+    const onTouchMove = (e: React.TouchEvent) => {
+        if (startY.current === null) return
+        setDragY(Math.max(0, e.touches[0].clientY - startY.current))
+    }
+    const onTouchEnd = () => {
+        if (startY.current === null) return
+        if (dragY > DISMISS_DISTANCE && !submitting) onClose()
+        else setDragY(0)
+        startY.current = null
+    }
 
     // ── Preview del logo (archivo o URL, nunca ambos) ─────────────────────────
     const logoPreview = useMemo(() => {
@@ -345,274 +375,289 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
                 aria-modal="true"
                 aria-labelledby="cm-title"
                 onClick={e => e.stopPropagation()}
+                style={dragY ? { transform: `translateY(${dragY}px)`, transition: "none" } : undefined}
             >
-                {/* ── Hero ── */}
-                <header className="cm-hero">
-                    <div className="cm-hero-left">
-                        <div className="cm-avatar">{user.email.charAt(0).toUpperCase()}</div>
-                        <div className="cm-hero-text">
-                            <h2 id="cm-title" className="cm-hero-name">Gestionar claims</h2>
-                            <p className="cm-hero-email">{user.email}</p>
+                {/* ── Cabecera (zona de arrastre en mobile) ── */}
+                <div
+                    className="cm-drag"
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                >
+                    <span className="cm-handle" aria-hidden="true" />
+                    <header className="cm-hero">
+                        <div className="cm-hero-left">
+                            <div className="cm-avatar">{user.email.charAt(0).toUpperCase()}</div>
+                            <div className="cm-hero-text">
+                                <h2 id="cm-title" className="cm-hero-name">Gestionar claims</h2>
+                                <p className="cm-hero-email">{user.email}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div className="cm-hero-right">
-                        {!loadingData && claims && <span className="cm-hero-badge">{roleLabel}</span>}
-                        <button type="button" className="cm-close" onClick={onClose} disabled={submitting} aria-label="Cerrar">✕</button>
-                    </div>
-                </header>
-
-                {/* ── Estado actual (formato historial) ── */}
-                <section className="cm-section">
-                    <span className="cm-section-title">Estado actual</span>
-
-                    {loadingData ? (
-                        <div className="cm-loading">
-                            <span className="cm-loading-dot" /><span className="cm-loading-dot" /><span className="cm-loading-dot" />
+                        <div className="cm-hero-right">
+                            {!loadingData && claims && <span className="cm-hero-badge">{roleLabel}</span>}
+                            <button type="button" className="cm-close" onClick={onClose} disabled={submitting} aria-label="Cerrar">✕</button>
                         </div>
-                    ) : stateRows.length === 0 ? (
-                        <div className="cm-empty-state">
-                            <span className="cm-empty-icon">◫</span>
-                            <p>SIN_CLAIMS_ASIGNADAS</p>
+                    </header>
+                </div>
+
+                {/* ── Cuerpo (scrollea) ── */}
+                <div className="cm-body">
+
+                    {/* ── Estado actual (formato historial) ── */}
+                    <section className="cm-section">
+                        <span className="cm-section-title">Estado actual</span>
+
+                        {loadingData ? (
+                            <div className="cm-loading">
+                                <span className="cm-loading-dot" /><span className="cm-loading-dot" /><span className="cm-loading-dot" />
+                            </div>
+                        ) : stateRows.length === 0 ? (
+                            <div className="cm-empty-state">
+                                <span className="cm-empty-icon">◫</span>
+                                <p>SIN_CLAIMS_ASIGNADAS</p>
+                            </div>
+                        ) : (
+                            <div className="cm-list">
+                                {stateRows.map(row => {
+                                    const isExpanded = expandedId === row.id
+                                    return (
+                                        <div key={row.id} className={`cm-list-wrapper cm-tone-${row.tone}`}>
+                                            <button
+                                                type="button"
+                                                className="cm-row"
+                                                onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                                                aria-expanded={isExpanded}
+                                            >
+                                                <div className="cm-row-left">
+                                                    <span className="cm-row-date">{row.left}</span>
+                                                    <div className="cm-row-title-group">
+                                                        <span className="cm-row-title">{row.title}</span>
+                                                        <span className={`cm-row-note cm-row-note--${row.tone}`}>{row.note}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="cm-row-right">
+                                                    <span className={`cm-status cm-status--${row.tone}`}>{row.status}</span>
+                                                    <span className="cm-chevron">{isExpanded ? "▲" : "▼"}</span>
+                                                </div>
+                                            </button>
+                                            {isExpanded && (
+                                                <div className="cm-row-detail">
+                                                    {row.details.map(d => (
+                                                        <div key={d.label} className="cm-detail-row">
+                                                            <span>{d.label}</span>
+                                                            <strong>{d.value}</strong>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </section>
+
+                    {claims?.admin ? (
+                        <div className="cm-section">
+                            <div className="cm-message cm-message--error">
+                                <strong>CUENTA_PROTEGIDA</strong>
+                                <span>Las cuentas admin no se pueden modificar desde el panel.</span>
+                            </div>
                         </div>
                     ) : (
-                        <div className="cm-list">
-                            {stateRows.map(row => {
-                                const isExpanded = expandedId === row.id
-                                return (
-                                    <div key={row.id} className={`cm-list-wrapper cm-tone-${row.tone}`}>
-                                        <button
-                                            type="button"
-                                            className="cm-row"
-                                            onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                                            aria-expanded={isExpanded}
-                                        >
-                                            <div className="cm-row-left">
-                                                <span className="cm-row-date">{row.left}</span>
-                                                <div className="cm-row-title-group">
-                                                    <span className="cm-row-title">{row.title}</span>
-                                                    <span className={`cm-row-note cm-row-note--${row.tone}`}>{row.note}</span>
-                                                </div>
-                                            </div>
-                                            <div className="cm-row-right">
-                                                <span className={`cm-status cm-status--${row.tone}`}>{row.status}</span>
-                                                <span className="cm-chevron">{isExpanded ? "▲" : "▼"}</span>
-                                            </div>
-                                        </button>
-                                        {isExpanded && (
-                                            <div className="cm-row-detail">
-                                                {row.details.map(d => (
-                                                    <div key={d.label} className="cm-detail-row">
-                                                        <span>{d.label}</span>
-                                                        <strong>{d.value}</strong>
-                                                    </div>
-                                                ))}
+                        <form className="cm-form" onSubmit={handleSubmit}>
+
+                            {/* ── Tabs de acción ── */}
+                            <div className="cm-tabs" role="tablist">
+                                {ACTIONS.map(a => (
+                                    <button
+                                        key={a.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={action === a.id}
+                                        className={`cm-tab${action === a.id ? " active" : ""}${a.danger ? " danger" : ""}`}
+                                        onClick={() => changeAction(a.id)}
+                                        disabled={submitting}
+                                    >
+                                        {a.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* ── 1) Plan estudiante ── */}
+                            {action === "grant_user_plan" && (
+                                <div className="cm-block">
+                                    <span className="cm-detail-title">Asignar plan de estudiante</span>
+                                    {claims?.isEnterprise && (
+                                        <div className="cm-message cm-message--warn">
+                                            <strong>CUENTA_ENTERPRISE</strong>
+                                            <span>El servidor va a rechazar planes de estudiante para esta cuenta.</span>
+                                        </div>
+                                    )}
+                                    <div className="cm-list" role="radiogroup">
+                                        {USER_PLAN_OPTIONS.map(p => (
+                                            <label key={p.id} className={`cm-option${userPlan === p.id ? " active" : ""}`}>
+                                                <input
+                                                    type="radio"
+                                                    name="userPlan"
+                                                    value={p.id}
+                                                    checked={userPlan === p.id}
+                                                    onChange={() => setUserPlan(p.id)}
+                                                />
+                                                <span className="cm-option-label">{p.label}</span>
+                                                <span className="cm-option-detail">{p.detail}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── 2) Enterprise ── */}
+                            {action === "set_enterprise" && (
+                                <div className="cm-block">
+                                    <span className="cm-detail-title">Cuenta Enterprise</span>
+
+                                    <label className="cm-field">
+                                        <span>Nombre de la empresa</span>
+                                        <input
+                                            type="text"
+                                            value={companyName}
+                                            maxLength={80}
+                                            onChange={e => setCompanyName(e.target.value)}
+                                            placeholder="Ej: Acme Security"
+                                        />
+                                    </label>
+
+                                    <div className="cm-field">
+                                        <span>Logo — subí un archivo o pegá una URL</span>
+                                        <div className="cm-logo-grid">
+                                            <label className={`cm-upload${logoUrl ? " disabled" : ""}`}>
+                                                <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleFileChange}
+                                                    disabled={!!logoUrl || submitting}
+                                                />
+                                                {logoFile ? logoFile.name : "Subir imagen"}
+                                            </label>
+                                            <span className="cm-or">o</span>
+                                            <input
+                                                type="url"
+                                                className="cm-url"
+                                                value={logoUrl}
+                                                maxLength={300}
+                                                placeholder="https://..."
+                                                onChange={e => setLogoUrl(e.target.value)}
+                                                disabled={!!logoFile || submitting}
+                                            />
+                                        </div>
+                                        {(logoPreview || logoFile || logoUrl) && (
+                                            <div className="cm-logo-preview">
+                                                {logoPreview
+                                                    ? <img src={logoPreview} alt="Vista previa del logo" />
+                                                    : <span className="cm-logo-placeholder">{companyName.charAt(0).toUpperCase() || "?"}</span>}
+                                                <button type="button" className="cm-link" onClick={clearLogo} disabled={submitting}>
+                                                    Quitar logo
+                                                </button>
                                             </div>
                                         )}
                                     </div>
-                                )
-                            })}
-                        </div>
-                    )}
-                </section>
 
-                {claims?.admin ? (
-                    <div className="cm-section">
-                        <div className="cm-message cm-message--error">
-                            <strong>CUENTA_PROTEGIDA</strong>
-                            <span>Las cuentas admin no se pueden modificar desde el panel.</span>
-                        </div>
-                    </div>
-                ) : (
-                    <form className="cm-form" onSubmit={handleSubmit}>
-
-                        {/* ── Tabs de acción ── */}
-                        <div className="cm-tabs" role="tablist">
-                            {ACTIONS.map(a => (
-                                <button
-                                    key={a.id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={action === a.id}
-                                    className={`cm-tab${action === a.id ? " active" : ""}${a.danger ? " danger" : ""}`}
-                                    onClick={() => changeAction(a.id)}
-                                    disabled={submitting}
-                                >
-                                    {a.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* ── 1) Plan estudiante ── */}
-                        {action === "grant_user_plan" && (
-                            <div className="cm-block">
-                                <span className="cm-detail-title">Asignar plan de estudiante</span>
-                                {claims?.isEnterprise && (
-                                    <div className="cm-message cm-message--warn">
-                                        <strong>CUENTA_ENTERPRISE</strong>
-                                        <span>El servidor va a rechazar planes de estudiante para esta cuenta.</span>
+                                    <span className="cm-field-label">Plan</span>
+                                    <div className="cm-list" role="radiogroup">
+                                        {ENTERPRISE_PLAN_OPTIONS.map(p => (
+                                            <label key={p.id || "none"} className={`cm-option${enterprisePlan === p.id ? " active" : ""}`}>
+                                                <input
+                                                    type="radio"
+                                                    name="enterprisePlan"
+                                                    value={p.id}
+                                                    checked={enterprisePlan === p.id}
+                                                    onChange={() => setEnterprisePlan(p.id)}
+                                                />
+                                                <span className="cm-option-label">{p.label}</span>
+                                                <span className="cm-option-detail">{p.detail}</span>
+                                            </label>
+                                        ))}
                                     </div>
-                                )}
-                                <div className="cm-list" role="radiogroup">
-                                    {USER_PLAN_OPTIONS.map(p => (
-                                        <label key={p.id} className={`cm-option${userPlan === p.id ? " active" : ""}`}>
-                                            <input
-                                                type="radio"
-                                                name="userPlan"
-                                                value={p.id}
-                                                checked={userPlan === p.id}
-                                                onChange={() => setUserPlan(p.id)}
-                                            />
-                                            <span className="cm-option-label">{p.label}</span>
-                                            <span className="cm-option-detail">{p.detail}</span>
-                                        </label>
-                                    ))}
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* ── 2) Enterprise ── */}
-                        {action === "set_enterprise" && (
-                            <div className="cm-block">
-                                <span className="cm-detail-title">Cuenta Enterprise</span>
+                            {/* ── 3) Partner ── */}
+                            {action === "make_partner" && (
+                                <div className="cm-block">
+                                    <span className="cm-detail-title">Rol partner</span>
+                                    <div className={`cm-message ${claims?.partner ? "cm-message--ok" : "cm-message--neutral"}`}>
+                                        <strong>{claims?.partner ? "YA_ES_PARTNER" : "AGREGAR_PARTNER"}</strong>
+                                        <span>
+                                            {claims?.partner
+                                                ? "Este usuario ya tiene partner: true."
+                                                : "Agrega partner: true sin tocar el resto de sus claims."}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
 
-                                <label className="cm-field">
-                                    <span>Nombre de la empresa</span>
-                                    <input
-                                        type="text"
-                                        value={companyName}
-                                        maxLength={80}
-                                        onChange={e => setCompanyName(e.target.value)}
-                                        placeholder="Ej: Acme Security"
-                                    />
-                                </label>
-
-                                <div className="cm-field">
-                                    <span>Logo — subí un archivo o pegá una URL</span>
-                                    <div className="cm-logo-grid">
-                                        <label className={`cm-upload${logoUrl ? " disabled" : ""}`}>
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                                disabled={!!logoUrl || submitting}
-                                            />
-                                            {logoFile ? logoFile.name : "Subir imagen"}
-                                        </label>
-                                        <span className="cm-or">o</span>
+                            {/* ── 4 / 5) Destructivas ── */}
+                            {isDanger && (
+                                <div className="cm-block">
+                                    <span className="cm-detail-title cm-detail-title--danger">
+                                        {action === "clear_all" ? "Reset total" : "Limpiar compras"}
+                                    </span>
+                                    <div className="cm-message cm-message--error">
+                                        <strong>ACCIÓN_IRREVERSIBLE</strong>
+                                        <span>
+                                            {action === "clear_all"
+                                                ? "Borra todas las claims (compras, enterprise, partner, certificaciones) y cierra las sesiones del usuario."
+                                                : "Borra planes, vouchers, vencimientos y datos del plan enterprise. Conserva tipo de cuenta, empresa, partner y certificaciones."}
+                                        </span>
+                                    </div>
+                                    <label className="cm-check">
                                         <input
-                                            type="url"
-                                            className="cm-url"
-                                            value={logoUrl}
-                                            maxLength={300}
-                                            placeholder="https://..."
-                                            onChange={e => setLogoUrl(e.target.value)}
-                                            disabled={!!logoFile || submitting}
+                                            type="checkbox"
+                                            checked={confirmDanger}
+                                            onChange={e => setConfirmDanger(e.target.checked)}
                                         />
-                                    </div>
-                                    {(logoPreview || logoFile || logoUrl) && (
-                                        <div className="cm-logo-preview">
-                                            {logoPreview
-                                                ? <img src={logoPreview} alt="Vista previa del logo" />
-                                                : <span className="cm-logo-placeholder">{companyName.charAt(0).toUpperCase() || "?"}</span>}
-                                            <button type="button" className="cm-link" onClick={clearLogo} disabled={submitting}>
-                                                Quitar logo
-                                            </button>
-                                        </div>
-                                    )}
+                                        Confirmo que quiero aplicar esto a {user.email}
+                                    </label>
                                 </div>
+                            )}
 
-                                <span className="cm-field-label">Plan</span>
-                                <div className="cm-list" role="radiogroup">
-                                    {ENTERPRISE_PLAN_OPTIONS.map(p => (
-                                        <label key={p.id || "none"} className={`cm-option${enterprisePlan === p.id ? " active" : ""}`}>
-                                            <input
-                                                type="radio"
-                                                name="enterprisePlan"
-                                                value={p.id}
-                                                checked={enterprisePlan === p.id}
-                                                onChange={() => setEnterprisePlan(p.id)}
-                                            />
-                                            <span className="cm-option-label">{p.label}</span>
-                                            <span className="cm-option-detail">{p.detail}</span>
-                                        </label>
-                                    ))}
+                            {/* Resultado del último intento: arriba de la firma para que se vea sin scrollear */}
+                        {feedback && (
+                                <div className={`cm-message ${feedback.ok ? "cm-message--ok" : "cm-message--error"}`} role="status">
+                                    <strong>{feedback.title}</strong>
+                                    {feedback.text && <span>{feedback.text}</span>}
                                 </div>
-                            </div>
-                        )}
-
-                        {/* ── 3) Partner ── */}
-                        {action === "make_partner" && (
-                            <div className="cm-block">
-                                <span className="cm-detail-title">Rol partner</span>
-                                <div className={`cm-message ${claims?.partner ? "cm-message--ok" : "cm-message--neutral"}`}>
-                                    <strong>{claims?.partner ? "YA_ES_PARTNER" : "AGREGAR_PARTNER"}</strong>
-                                    <span>
-                                        {claims?.partner
-                                            ? "Este usuario ya tiene partner: true."
-                                            : "Agrega partner: true sin tocar el resto de sus claims."}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── 4 / 5) Destructivas ── */}
-                        {isDanger && (
-                            <div className="cm-block">
-                                <span className="cm-detail-title cm-detail-title--danger">
-                                    {action === "clear_all" ? "Reset total" : "Limpiar compras"}
-                                </span>
-                                <div className="cm-message cm-message--error">
-                                    <strong>ACCIÓN_IRREVERSIBLE</strong>
-                                    <span>
-                                        {action === "clear_all"
-                                            ? "Borra todas las claims (compras, enterprise, partner, certificaciones) y cierra las sesiones del usuario."
-                                            : "Borra planes, vouchers, vencimientos y datos del plan enterprise. Conserva tipo de cuenta, empresa, partner y certificaciones."}
-                                    </span>
-                                </div>
-                                <label className="cm-check">
-                                    <input
-                                        type="checkbox"
-                                        checked={confirmDanger}
-                                        onChange={e => setConfirmDanger(e.target.checked)}
-                                    />
-                                    Confirmo que quiero aplicar esto a {user.email}
-                                </label>
-                            </div>
-                        )}
+                            )}
 
                         {/* ── Firma ── */}
-                        <div className="cm-sign">
-                            <label className="cm-field cm-pin-field">
-                                <span>Clave de firma</span>
-                                <input
-                                    type="password"
-                                    inputMode="numeric"
-                                    autoComplete="off"
-                                    maxLength={4}
-                                    value={pin}
-                                    onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                                    placeholder="••••"
-                                    disabled={submitting}
-                                />
-                            </label>
-                            <button
-                                type="submit"
-                                className={`cm-submit${isDanger ? " danger" : ""}`}
-                                disabled={!canSubmit}
-                            >
-                                {submitting ? "Aplicando…" : "Firmar y aplicar"}
-                            </button>
-                        </div>
-
-                        {feedback && (
-                            <div className={`cm-message ${feedback.ok ? "cm-message--ok" : "cm-message--error"}`} role="status">
-                                <strong>{feedback.title}</strong>
-                                {feedback.text && <span>{feedback.text}</span>}
+                            <div className="cm-sign">
+                                <label className="cm-field cm-pin-field">
+                                    <span>Clave de firma</span>
+                                    <input
+                                        type="password"
+                                        inputMode="numeric"
+                                        autoComplete="off"
+                                        maxLength={4}
+                                        value={pin}
+                                        onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                        placeholder="••••"
+                                        disabled={submitting}
+                                    />
+                                </label>
+                                <button
+                                    type="submit"
+                                    className={`cm-submit${isDanger ? " danger" : ""}`}
+                                    disabled={!canSubmit}
+                                >
+                                    {submitting ? "Aplicando…" : "Firmar y aplicar"}
+                                </button>
                             </div>
-                        )}
-                    </form>
-                )}
+
+                            </form>
+                    )}
+                </div>
             </div>
         </div>
     )

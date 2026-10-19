@@ -64,18 +64,43 @@
 .user-list-container.light .cm-overlay { background: rgba(0, 0, 0, 0.45); }
 
 .cm-modal {
-  width:       100%;
-  max-width:   760px;
-  max-height:  calc(100vh - 40px);
-  overflow-y:  auto;
-  background:  var(--cm-bg);
-  border:      1px solid var(--cm-border);
-  color:       var(--cm-text);
-  font-family: 'Montserrat', sans-serif;
-  padding:     28px;
-  box-sizing:  border-box;
-  animation:   cm-fade-in 0.3s ease;
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  max-width:      760px;
+  max-height:     calc(100vh - 40px);
+  overflow:       hidden;
+  background:     var(--cm-bg);
+  border:         1px solid var(--cm-border);
+  color:          var(--cm-text);
+  font-family:    'Montserrat', sans-serif;
+  box-sizing:     border-box;
+  transition:     transform 0.25s ease;
+  animation:      cm-fade-in 0.3s ease;
 }
+.cm-modal * { box-sizing: border-box; }
+
+/* Cabecera fija: en mobile es la zona de arrastre para cerrar */
+.cm-drag {
+  flex-shrink: 0;
+  padding:     28px 28px 0;
+}
+
+/* Barrita de arrastre: solo en mobile */
+.cm-handle { display: none; }
+
+/* Cuerpo con scroll propio (la cabecera queda siempre visible) */
+.cm-body {
+  flex:                1;
+  min-height:          0;
+  overflow-y:          auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding:             24px 28px 28px;
+}
+
+@keyframes cm-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes cm-overlay-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* ════════════════════════════════════════════════
    HERO
@@ -86,7 +111,6 @@
   align-items:     center;
   gap:             16px;
   padding-bottom:  20px;
-  margin-bottom:   24px;
   border-bottom:   2px solid;
   border-image:    linear-gradient(90deg, var(--cm-accent) 0%, var(--cm-border) 100%) 1;
 }
@@ -640,7 +664,7 @@
 .cm-link:focus-visible { outline: 1px solid var(--cm-accent); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .cm-modal, .cm-block, .cm-row-detail { animation: none; }
+  .cm-overlay, .cm-modal, .cm-block, .cm-row-detail { animation: none; }
   .cm-loading-dot { animation-duration: 0s; }
 }
 
@@ -648,15 +672,60 @@
    MOBILE 768px
 ════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .cm-overlay { padding: 0, 10px; align-items: flex-end; }
+  /* ── Bottom sheet: sube desde abajo, se cierra deslizando la cabecera ── */
+  .cm-overlay {
+    padding:     0;
+    align-items: flex-end;
+    animation:   cm-overlay-in 0.2s ease-out;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
 
   .cm-modal {
-    max-height: 94vh;
-    padding:    20px 14px;
+    max-width:     none;
+    max-height:    92vh;
+    max-height:    92dvh;
+    border-bottom: none;
+    border-top:    3px solid var(--cm-accent);
+    border-radius: 14px 14px 0 0;
+    animation:     cm-sheet-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .cm-drag {
+    padding:      0 14px;
+    touch-action: none;
+  }
+
+  .cm-handle {
+    display:       block;
+    width:         40px;
+    height:        4px;
+    margin:        10px auto 12px;
+    border-radius: 2px;
+    background:    var(--cm-border);
+  }
+  .cm-overlay .cm-handle { background: rgba(255, 255, 255, 0.2); }
+  .user-list-container.light .cm-overlay .cm-handle { background: rgba(0, 0, 0, 0.15); }
+
+  .cm-hero { padding-bottom: 14px; }
+
+  .cm-body {
+    padding: 18px 14px 0;
+  }
+
+  /* La firma queda pegada abajo: siempre a mano aunque el contenido scrollee */
+  .cm-sign {
+    position:   sticky;
+    bottom:     0;
+    z-index:    2;
+    margin:     0 -14px;
+    padding:    14px 14px calc(14px + env(safe-area-inset-bottom));
+    background: var(--cm-bg);
+    border-top: 1px solid var(--cm-border);
   }
 
   .cm-hero        { align-items: flex-start; }
-  .cm-avatar      { width: 48px; height: 48px; font-size: 20px; }
+  .cm-avatar      { width: 44px; height: 44px; font-size: 19px; }
   .cm-hero-name   { font-size: 17px; }
   .cm-hero-email  { font-size: 13px; }
   .cm-hero-right  { flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
