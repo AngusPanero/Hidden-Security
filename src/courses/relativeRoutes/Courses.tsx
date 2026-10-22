@@ -37,8 +37,15 @@ const Courses: React.FC = () => {
                         <h1 className="h-massive-title Montserrat-900">
                             {data.title} <span className="h-outline">{data.subtitle}</span>
                         </h1>
+
+                        
+
                         <div className="h-intro-box">
                             <LiveTypingText text={data.intro} />
+                        </div>
+
+                        <div className="h-label-mono" style={{ fontFamily: "Montserrat", fontSize: "20px", paddingLeft: "8px" }}>
+                            <LiveTypingText text={data.desarrolladoPor} />
                         </div>
                         <div className="h-quick-stats">
                             <div className="h-stat">
@@ -81,6 +88,12 @@ const Courses: React.FC = () => {
                             <div className="h-audience-block">
                                 <h3 className="h-sub Montserrat-900">OBJETIVO GENERAL</h3>
                                 <p className="h-p-text">{data.objective}</p>
+                            </div>
+
+                            {/* Objetivo general */}
+                            <div className="h-audience-block">
+                                <h3 className="h-sub Montserrat-900">REQUISITOS MÍNIMOS RECOMENDADOS</h3>
+                                <p className="h-p-text">{data.requisitosMinimos}</p>
                             </div>
 
                             {/* Habilidades */}

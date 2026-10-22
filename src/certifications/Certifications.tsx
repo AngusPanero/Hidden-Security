@@ -30,10 +30,10 @@ export const CERTIFICATIONS: CertificationData[] = [
     name:       "SOC ANALYST CERTIFICATION",
     subtitle:   "Validación de habilidades para el SOC moderno",
     img: insigniaSOC,
-    difficulty: 3,
-    timeLimit:  "90 MIN",
+    difficulty: 4,
+    timeLimit:  "120 MIN",
     modules:    8,
-    questions:  60,
+    questions:  80,
     active:     true,
   },
   {

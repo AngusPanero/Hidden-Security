@@ -10,7 +10,9 @@ export interface CourseData {
   subtitle: string;
   label: string;
   intro: string;
-  stats: { time: string; modules: string; mode: string };
+  stats: { time: string; modules: string; mode: string};
+  desarrolladoPor?: string;
+  requisitosMinimos?: string;
   // Sección 02
   audience: string;
   objective: string;
@@ -34,7 +36,9 @@ export const COURSES_DATA: Record<string, CourseData> = {
     subtitle: "Operations.",
     label: "01 // TRAINING_PROGRAM",
     intro: "Formación avanzada en operaciones de seguridad. Domina la detección, análisis y respuesta ante incidentes en infraestructuras críticas.",
-    stats: { time: "50H", modules: "13", mode: "ASINCRÓNICA" },
+    stats: { time: "50H", modules: "8", mode: "ASINCRÓNICA" },
+    desarrolladoPor: "Desarrollado por Hidden Security",
+    requisitosMinimos: "Conocimientos básicos de redes (TCP/IP, DNS, HTTP/S) Manejo básico de Windows y Linux Experiencia o formación equivalente a Analista SOC Nivel 1 Familiaridad con alguna herramienta SIEM o EDR Lectura e interpretación de logs de seguridad Conocimiento básico de MITRE ATT&CK",
 
     audience: "Personas que buscan iniciar o desarrollar una carrera en un Centro de Operaciones de Seguridad (SOC), adquiriendo las habilidades técnicas, operativas y analíticas que demanda la industria actual.",
     objective: "Formar profesionales capaces de monitorear, investigar y responder a eventos e incidentes de seguridad en un Centro de Operaciones de Seguridad moderno, desarrollando pensamiento analítico, criterio técnico y capacidad de toma de decisiones en escenarios inspirados en situaciones reales.",
