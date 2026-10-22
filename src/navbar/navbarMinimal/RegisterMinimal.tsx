@@ -51,7 +51,7 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
         acceptedLegal;
     
     const validatePassword = (pass: string) => {
-        const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
+        const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+=[\]{};':"\\|,.<>/?`~-]).{10,}$/;
         if (!regex.test(pass)) {
             setPasswordError(`${texts[language].register.passError}`);
             return false;
