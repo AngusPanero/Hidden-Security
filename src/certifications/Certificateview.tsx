@@ -25,7 +25,7 @@ const ISSUER = {
  
 // Si Hidden Security tiene página de empresa en LinkedIn, poné su ID numérico
 // acá y LinkedIn va a mostrar el logo junto a la certificación del alumno.
-const LINKEDIN_ORG_ID = "";
+const LINKEDIN_ORG_ID = "110349173";
  
 // Datos del examen que se muestran bajo el título, por certificación (slug).
 const EXAM_FACTS: Record<string, string[]> = {
