@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 
-const LiveTypingText = ({ text, className }: { text: string; className?: string }) => {
+const LiveTypingText = ({ text, className }: { text: any; className?: string }) => {
   const [displayed, setDisplayed] = useState("");
   const [isIntersecting, setIsIntersecting] = useState(false);
   const elementRef = useRef<HTMLSpanElement>(null);
