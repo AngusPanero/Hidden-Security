@@ -40,7 +40,7 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
         { label: `${texts[language].register.reqMinChars}`, test: (pass: string) => pass.length >= 10 },
         { label: `${texts[language].register.reqUpper}`, test: (pass: string) => /[A-Z]/.test(pass) },
         { label: `${texts[language].register.reqNumber}`, test: (pass: string) => /\d/.test(pass) },
-        { label: `${texts[language].register.reqSpecial}`, test: (pass: string) => /[@$!%*?&]/.test(pass) },
+        { label: `${texts[language].register.reqSpecial}`, test: (pass: string) => /[!@#$%^&*()_+=[\]{};':"\\|,.<>/?`~-]/.test(pass) },
     ];
 
     const isFormValid =
