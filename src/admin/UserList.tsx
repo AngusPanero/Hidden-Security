@@ -9,6 +9,11 @@ import ClaimsManager from "./ClaimsManager"
 interface UserMetadata {
   creationTime: string
   lastSignInTime: string
+  // Firebase Admin SDK lo expone como metadata.lastRefreshTime: se actualiza
+  // cada vez que se refresca el token (sesiones persistidas), así que refleja
+  // mejor la "última conexión" que lastSignInTime. Opcional: si el backend
+  // no lo manda, se usa lastSignInTime.
+  lastRefreshTime?: string | null
 }
 
 interface User {
@@ -26,6 +31,7 @@ interface User {
 }
 
 type RoleFilter = "admin" | "enterprise" | "partner" | "user";
+type SortDir = "desc" | "asc";
 
 const ROLE_ORDER: RoleFilter[] = ["admin", "enterprise", "partner", "user"];
 
@@ -51,6 +57,20 @@ function getUserRole(user: User): RoleFilter {
   return "user";
 }
 
+// Timestamp seguro: fechas vacías o inválidas valen 0 (quedan al final en "desc")
+const toTime = (dateString?: string | null) => {
+    if (!dateString) return 0;
+    const t = new Date(dateString).getTime();
+    return isNaN(t) ? 0 : t;
+}
+
+// Última conexión: el más reciente entre refresh de token y sign-in
+const getLastSeen = (user: User): string | undefined => {
+    const refresh = user.metadata?.lastRefreshTime ?? undefined;
+    const signIn  = user.metadata?.lastSignInTime;
+    return toTime(refresh) > toTime(signIn) ? refresh : signIn;
+}
+
 const formatDate = (dateString?: string) => {
     if (!dateString) return "—";
     const date = new Date(dateString);
@@ -66,6 +86,22 @@ const formatDateTime = (dateString?: string) => {
         day: "2-digit", month: "2-digit", year: "numeric",
         hour: "2-digit", minute: "2-digit",
     });
+}
+
+// "hace 5 min", "hace 3 h", "hace 2 días"; más de 30 días → fecha
+const formatRelative = (dateString?: string) => {
+    const t = toTime(dateString);
+    if (!t) return "Nunca";
+    const diff = Math.max(0, Date.now() - t);
+    const min  = Math.floor(diff / 60_000);
+    if (min < 1)   return "Recién";
+    if (min < 60)  return `Hace ${min} min`;
+    const h = Math.floor(min / 60);
+    if (h < 24)    return `Hace ${h} h`;
+    const d = Math.floor(h / 24);
+    if (d === 1)   return "Ayer";
+    if (d < 30)    return `Hace ${d} días`;
+    return formatDate(dateString);
 }
 
 // Minúsculas y sin tildes, para que "ADMIN" o "usuário" matcheen igual
@@ -113,8 +149,9 @@ const UserSheet = ({ user, theme, onClose, onManageClaims, onBan, onUnban }: Use
         startY.current = null;
     };
 
-    const role = getUserRole(user);
-    const tone = user.isBanned ? "error" : "ok";
+    const role     = getUserRole(user);
+    const tone     = user.isBanned ? "error" : "ok";
+    const lastSeen = getLastSeen(user);
 
     return createPortal(
         <div className={`ul-modal-root ${theme}`} onClick={onClose}>
@@ -167,7 +204,11 @@ const UserSheet = ({ user, theme, onClose, onManageClaims, onBan, onUnban }: Use
                         <div className="ul-detail-block">
                             <span className="ul-detail-title">Actividad</span>
                             <div className="ul-detail-row"><span>Creado</span><strong>{formatDateTime(user.metadata?.creationTime)}</strong></div>
-                            <div className="ul-detail-row"><span>Último acceso</span><strong>{formatDateTime(user.metadata?.lastSignInTime)}</strong></div>
+                            <div className="ul-detail-row"><span>Último inicio de sesión</span><strong>{formatDateTime(user.metadata?.lastSignInTime)}</strong></div>
+                            <div className="ul-detail-row">
+                                <span>Última conexión</span>
+                                <strong>{formatRelative(lastSeen)}{toTime(lastSeen) ? ` · ${formatDateTime(lastSeen)}` : ""}</strong>
+                            </div>
                             <div className={`ul-detail-row ${user.isBanned ? "ul-red" : "ul-green"}`}>
                                 <span>Estado</span><strong>{user.isBanned ? "Baneado" : "Activo"}</strong>
                             </div>
@@ -216,9 +257,11 @@ const UserList = () => {
     const { getUsers, users } = UseUsers()
     const { handleBanUser, handleUnbanUser } = UseSession()
 
-    const [page, setPage]             = useState(1);
+    const [page, setPage]               = useState(1);
     const [selectedUid, setSelectedUid] = useState<string | null>(null);
-    const [search, setSearch]         = useState("");
+    const [search, setSearch]           = useState("");
+    // "desc" = más nuevos primero (por defecto), "asc" = más viejos primero
+    const [sortDir, setSortDir]         = useState<SortDir>("desc");
 
     const [activeRoles, setActiveRoles] = useState<Set<RoleFilter>>(
         new Set(ROLE_ORDER)
@@ -242,17 +285,23 @@ const UserList = () => {
 
     const bannedCount = useMemo(() => allUsers.filter(u => u.isBanned).length, [allUsers]);
 
-    // Filtro por rol + búsqueda por nombre, email o rol
+    // Filtro por rol + búsqueda + orden por fecha de creación
     const filteredUsers = useMemo(() => {
         const q = normalize(search.trim());
-        return allUsers.filter((u: User) => {
+        const list = allUsers.filter((u: User) => {
             const role = getUserRole(u);
             if (!activeRoles.has(role)) return false;
             if (!q) return true;
             return [u.displayName, u.email, ROLE_LABELS[role], role]
                 .some(field => normalize(field).includes(q));
         });
-    }, [allUsers, activeRoles, search]);
+        const factor = sortDir === "desc" ? -1 : 1;
+        // copia antes de ordenar: filter ya devuelve un array nuevo,
+        // así que no se muta el estado del contexto
+        return list.sort((a, b) =>
+            factor * (toTime(a.metadata?.creationTime) - toTime(b.metadata?.creationTime))
+        );
+    }, [allUsers, activeRoles, search, sortDir]);
 
     const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
     const pageUsers  = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -263,11 +312,7 @@ const UserList = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [activeRoles]);
-
-    useEffect(() => {
-        setPage(1);
-    }, [search]);
+    }, [activeRoles, search, sortDir]);
 
     const toggleRole = (role: RoleFilter) => {
         setActiveRoles(prev => {
@@ -277,6 +322,8 @@ const UserList = () => {
             return next;
         });
     };
+
+    const toggleSort = () => setSortDir(d => (d === "desc" ? "asc" : "desc"));
 
     const closeSheet = useCallback(() => setSelectedUid(null), []);
 
@@ -325,8 +372,8 @@ const UserList = () => {
                 ))}
             </div>
 
-            {/* ── Búsqueda ── */}
-            <div className="ul-search">
+            {/* ── Búsqueda + orden ── */}
+            <div className="ul-toolbar">
                 <input
                     type="search"
                     className="ul-search-input"
@@ -335,6 +382,16 @@ const UserList = () => {
                     onChange={e => setSearch(e.target.value)}
                     aria-label="Buscar usuarios"
                 />
+                <button
+                    type="button"
+                    className="ul-sort-btn"
+                    onClick={toggleSort}
+                    aria-label={`Ordenar por fecha de creación: ${sortDir === "desc" ? "más nuevos primero" : "más viejos primero"}. Tocar para invertir.`}
+                    title="Invertir orden"
+                >
+                    <span className={`ul-sort-arrow${sortDir === "asc" ? " ul-sort-arrow--up" : ""}`} aria-hidden="true">↓</span>
+                    {sortDir === "desc" ? "Más nuevos" : "Más viejos"}
+                </button>
             </div>
 
             {/* ── Lista ── */}
@@ -346,8 +403,9 @@ const UserList = () => {
             ) : (
                 <div className="ul-list">
                     {pageUsers.map((user: User) => {
-                        const role = getUserRole(user);
-                        const tone = user.isBanned ? "error" : "ok";
+                        const role     = getUserRole(user);
+                        const tone     = user.isBanned ? "error" : "ok";
+                        const lastSeen = getLastSeen(user);
 
                         return (
                             <div key={user.uid} className={`ul-wrapper ul-tone-${tone}`}>
@@ -362,7 +420,16 @@ const UserList = () => {
                                         <span className="ul-row-date">[{formatDate(user.metadata?.creationTime)}]</span>
                                         <div className="ul-row-title-group">
                                             <span className="ul-row-email">{user.email}</span>
-                                            <span className="ul-row-uid">ID: {user.uid.substring(0, 8)}…</span>
+                                            <span className="ul-row-meta">
+                                                <span className="ul-row-uid">ID: {user.uid.substring(0, 8)}…</span>
+                                                <span className="ul-row-sep" aria-hidden="true">·</span>
+                                                <span
+                                                    className="ul-row-last"
+                                                    title={toTime(lastSeen) ? formatDateTime(lastSeen) : undefined}
+                                                >
+                                                    Última conexión: {formatRelative(lastSeen)}
+                                                </span>
+                                            </span>
                                         </div>
                                     </div>
                                     <div className="ul-row-right">

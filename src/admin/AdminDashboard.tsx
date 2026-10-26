@@ -8,6 +8,7 @@ import { UseSession } from "../contexts/SessionContext";
 import { UseShopping } from "../contexts/ShoppingContext";
 import { UseUsers } from "../contexts/UsersContext";
 import { UseTheme } from "../contexts/ThemeContext";
+import LearningProgress from "./LearningProgress";
 
 const TABS = [
   {
@@ -25,6 +26,10 @@ const TABS = [
   {
     id: "coupons", label: "CUPONES",
     icon: (<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/><path d="M7 10h6M10 7v6"/></svg>)
+  },
+  {
+    id: "progress", label: "PROGRESOS",
+    icon: (<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3a7 7 0 11-7 7"/><path d="M3 10a7 7 0 017-7" strokeDasharray="1.5 2.5"/><path d="M7.5 10.2l1.8 1.8 3.4-3.6"/></svg>)
   },
 ];
 
@@ -210,6 +215,7 @@ const AdminDashboard = () => {
         {activeTab === "sales"   && <SalesHistory allTickets={allTickets} />}
         {activeTab === "users"   && <UserList /* users={users} handleBanUser={handleBanUser} handleUnbanUser={handleUnbanUser} */ />}
         {activeTab === "coupons" && <CouponCreator />}
+        {activeTab === "progress" && <LearningProgress />}
       </main>
 
     </div>

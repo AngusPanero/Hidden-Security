@@ -5,13 +5,23 @@ import { UseSession } from "../contexts/SessionContext";
 import { UseTheme } from "../contexts/ThemeContext";
 import { HS_SKILLS } from "../skills/Skills";
 import "./postuladosTab.css";
+import {
+  fetchVacancyMatches, ScoreBadge, MatchBreakdown, RequestedSkills, SuggestedTalent,
+  type MatchCandidate, type MatchesData,
+} from "./VacancyMatches";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Applicant {
-  userId:    string;
-  status:    string;
-  appliedAt: string;
+  userId:          string;
+  status:          string;
+  appliedAt:       string;
+  applicantName?:  string;
+  applicantEmail?: string;
+  applicantPhone?: string;
 }
+
+// Compatibilidad por vacante: se pide al abrirla y queda en memoria
+type MatchState = { status: "loading" } | { status: "error" } | { status: "ok"; data: MatchesData };
 
 interface VacancySummary {
   _id:        string;
@@ -575,6 +585,40 @@ export default function PostuladosTab() {
   const [filterStatus,   setFilterStatus]   = useState(""); // "" = todos
   const [filterSearch,   setFilterSearch]   = useState(""); // nombre / email
 
+  // Compatibilidad: { vacancyId: estado } · orden de postulados dentro de la vacante
+  const [matches,        setMatches]        = useState<Record<string, MatchState>>({});
+  const [sortByMatch,    setSortByMatch]    = useState(true);
+  // Fila con el detalle de compatibilidad abierto ("vacancyId-userId")
+  const [detailKey,      setDetailKey]      = useState<string | null>(null);
+
+  const matchesRef = useRef(matches);
+  useEffect(() => { matchesRef.current = matches; }, [matches]);
+
+  const loadMatches = useCallback((vacancyId: string, force = false) => {
+    const current = matchesRef.current[vacancyId];
+    if (!force && current && current.status !== "error") return; // ya está o se está pidiendo
+    matchesRef.current = { ...matchesRef.current, [vacancyId]: { status: "loading" } };
+    setMatches(p => ({ ...p, [vacancyId]: { status: "loading" } }));
+    fetchVacancyMatches(vacancyId)
+      .then(data => setMatches(p => ({
+        ...p,
+        [vacancyId]: data ? { status: "ok", data } : { status: "error" },
+      })))
+      .catch(() => setMatches(p => ({ ...p, [vacancyId]: { status: "error" } })));
+  }, []);
+
+  // Compatibilidad de un postulado (si ya se calculó la de su vacante)
+  const getApplicantMatch = (vacancyId: string, userId: string): MatchCandidate | null | undefined => {
+    const st = matches[vacancyId];
+    if (!st || st.status !== "ok") return undefined;
+    return st.data.applicants.find(a => a.userId === userId) ?? null;
+  };
+
+  const toggleVacancy = (vacancyId: string, isOpen: boolean) => {
+    setExpanded(isOpen ? null : vacancyId);
+    if (!isOpen) loadMatches(vacancyId);
+  };
+
   const fetchVacancies = () => {
     axios
       .get(`${import.meta.env.VITE_API_URL}/api/vacancies`, { withCredentials: true })
@@ -684,6 +728,9 @@ export default function PostuladosTab() {
   // ── Cómputos ──────────────────────────────────────────────────
   const totalApplicants = vacancies.reduce((acc, v) => acc + (v.applicants?.length ?? 0), 0);
   const withApplicants  = vacancies.filter((v) => (v.applicants?.length ?? 0) > 0);
+  // Se listan las que tienen postulados y también las activas sin postulados,
+  // para poder ver talento sugerido aunque nadie se haya postulado todavía
+  const visibleVacancies = vacancies.filter((v) => (v.applicants?.length ?? 0) > 0 || v.status === "active");
 
   // Aplana todos los postulantes con referencia a su vacante para los filtros globales
   type FlatApplicant = Applicant & { vacancyId: string; vacancyTitle: string };
@@ -727,11 +774,16 @@ export default function PostuladosTab() {
     const email       = applicant.applicantEmail || "";
     const phone       = applicant.applicantPhone || "";
     const isRejected  = applicant.status === "rejected";
+    const matchState  = matches[vacancyId];
+    const matchInfo   = getApplicantMatch(vacancyId, applicant.userId);
+    const rowKey      = `${vacancyId}-${applicant.userId}`;
+    const hasScore    = !!matchState && matchState.status !== "error";
+    const detailOpen  = detailKey === rowKey && !!matchInfo?.match;
 
     return (
       <li
-        key={`${vacancyId}-${applicant.userId}`}
-        className="pp-row"
+        key={rowKey}
+        className={`pp-row${hasScore ? " vm-has-score" : ""}${detailOpen ? " vm-detail-open" : ""}`}
         style={{ "--pp-status": statusInfo.color } as React.CSSProperties}
       >
         <span className="pp-avatar" aria-hidden="true">{initials(applicant.applicantName || "")}</span>
@@ -747,6 +799,15 @@ export default function PostuladosTab() {
             {applicant.appliedAt && <span>Se postuló el {fmtDate(applicant.appliedAt)}</span>}
           </div>
         </div>
+
+        {hasScore && (
+          <ScoreBadge
+            loading={matchState?.status === "loading"}
+            candidate={matchInfo}
+            open={detailOpen}
+            onToggle={() => setDetailKey(detailOpen ? null : rowKey)}
+          />
+        )}
 
         <label className="pp-status">
           <span className="pp-visually-hidden">Estado de {name}</span>
@@ -781,6 +842,10 @@ export default function PostuladosTab() {
             </button>
           )}
         </div>
+
+        {detailOpen && matchInfo?.match && (
+          <div className="vm-row-detail"><MatchBreakdown m={matchInfo.match} /></div>
+        )}
       </li>
     );
   };
@@ -879,23 +944,33 @@ export default function PostuladosTab() {
           </ul>
         )
       ) : (
-        withApplicants.length === 0 ? (
+        visibleVacancies.length === 0 ? (
           <div className="pp-empty">
             <span className="pp-empty-icon" aria-hidden="true">◫</span>
             <p className="pp-empty-title">Sin postulaciones aún</p>
-            <p className="pp-empty-text">Cuando alguien se postule a una de tus vacantes, aparecerá acá.</p>
+            <p className="pp-empty-text">Cuando publiques una vacante, vas a ver acá a los postulados y el talento sugerido.</p>
           </div>
         ) : (
           <div className="pp-groups">
-            {withApplicants.map((v) => {
+            {visibleVacancies.map((v) => {
               const isOpen = expanded === v._id;
               const count  = v.applicants?.length ?? 0;
               const breakdown = statusEntries
                 .map(s => ({ ...s, n: v.applicants.filter(a => a.status === s.key).length }))
                 .filter(s => s.n > 0);
+              const mState = matches[v._id];
+              const mData  = mState?.status === "ok" ? mState.data : null;
+
+              // Postulados ordenados por compatibilidad (los sin CV al final)
+              const scoreOf = (userId: string) =>
+                mData?.applicants.find(a => a.userId === userId)?.match?.score ?? -1;
+              const orderedApplicants = sortByMatch && mData
+                ? [...v.applicants].sort((a, b) => scoreOf(b.userId) - scoreOf(a.userId))
+                : v.applicants;
+
               return (
                 <section key={v._id} className={`pp-group${isOpen ? " open" : ""}`}>
-                  <button type="button" className="pp-group-head" onClick={() => setExpanded(isOpen ? null : v._id)} aria-expanded={isOpen}>
+                  <button type="button" className="pp-group-head" onClick={() => toggleVacancy(v._id, isOpen)} aria-expanded={isOpen}>
                     <span className="pp-group-info">
                       <span className="pp-eyebrow">Posición</span>
                       <span className="pp-group-title">{v.title}</span>
@@ -915,9 +990,50 @@ export default function PostuladosTab() {
                     </span>
                   </button>
                   {isOpen && (
-                    <ul className="pp-rows">
-                      {v.applicants.map((applicant, i) => renderApplicantRow(applicant, v._id, i, false))}
-                    </ul>
+                    <>
+                      {/* (1) Lo que pide la vacante */}
+                      <div className="vm-section">
+                        {mState?.status === "loading" && (
+                          <div className="vm-state"><span className="pp-live-dot" /> Calculando compatibilidad…</div>
+                        )}
+                        {mState?.status === "error" && (
+                          <div className="vm-state vm-state--error">
+                            No se pudo calcular la compatibilidad.
+                            <button type="button" className="pp-btn pp-btn--sm" onClick={() => loadMatches(v._id, true)}>Reintentar</button>
+                          </div>
+                        )}
+                        {mData && <RequestedSkills data={mData} />}
+                      </div>
+
+                      {/* (2) Postulados: siempre todos, con cualquier porcentaje */}
+                      <div className="vm-section">
+                        <div className="vm-section-head">
+                          <h4 className="vm-section-title">Postulados <b>{count}</b></h4>
+                          {count > 1 && mData?.hasRequirements && (
+                            <div className="vm-sort">
+                              <span className="vm-sort-label">Ordenar por</span>
+                              <div className="vm-sort-group" role="group" aria-label="Ordenar postulados">
+                                <button type="button" className={`vm-sort-btn${sortByMatch ? " is-active" : ""}`} aria-pressed={sortByMatch} onClick={() => setSortByMatch(true)}>Compatibilidad</button>
+                                <button type="button" className={`vm-sort-btn${!sortByMatch ? " is-active" : ""}`} aria-pressed={!sortByMatch} onClick={() => setSortByMatch(false)}>Fecha</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {count > 0 ? (
+                          <ul className="pp-rows">
+                            {orderedApplicants.map((applicant, i) => renderApplicantRow(applicant, v._id, i, false))}
+                          </ul>
+                        ) : (
+                          <p className="vm-note">Todavía nadie se postuló a esta vacante.</p>
+                        )}
+                      </div>
+
+                      {/* (3) Talento sugerido: pestaña desplegable, aparte */}
+                      {mData && (
+                        <SuggestedTalent data={mData} onViewCv={openCV} onDownloadCv={downloadCV} />
+                      )}
+                    </>
                   )}
                 </section>
               );
