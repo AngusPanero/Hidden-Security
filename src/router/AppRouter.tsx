@@ -26,11 +26,13 @@ import PartnerDashboard from "../partner/PartnerDashboard";
 import TerminosCondiciones from "../terminosCondiciones/TerminosCondiciones";
 import PoliticasPrivacidad from "../privacidad/PoliticasPrivacidad";
 import CertificateView from "../certifications/Certificateview";
+import PresenceHeartbeat from "../admin/PresenceHeartbeat";
 
 const AppRouter = () => {
     return (
         <Router>
             <SessionProvider>
+            <PresenceHeartbeat />
                 <CartProvider>
                             <CookieBanner />
                             <NavBarMinimal />

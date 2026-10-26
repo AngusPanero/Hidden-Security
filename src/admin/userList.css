@@ -69,7 +69,7 @@
 ════════════════════════════════════════════════ */
 .ul-stats {
   display:               grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap:                   2px;
   margin-bottom:         28px;
   border-top:            3px solid var(--ul-accent);
@@ -107,6 +107,42 @@
 .ul-stat-accent .ul-stat-value { color: var(--ul-accent); }
 .ul-stat-value--danger         { color: var(--ul-error); }
 .ul-stat-value--partner        { color: var(--ul-partner); }
+.ul-stat-value--online         { color: var(--ul-ok); }
+
+/* Contador "En línea": también filtra la lista al tocarlo */
+.ul-stat--online {
+  border:      none;
+  color:       inherit;
+  font-family: inherit;
+  text-align:  left;
+  cursor:      pointer;
+  transition:  background 0.2s, box-shadow 0.2s;
+}
+.ul-stat--online:hover     { background: var(--ul-surface-2); }
+.ul-stat--online.is-active { box-shadow: inset 0 -2px 0 var(--ul-ok); background: rgba(34, 197, 94, 0.06); }
+.ul-stat--online .ul-stat-label { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Punto verde de "en línea" */
+@keyframes ul-online-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  50%      { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+}
+.ul-online-dot {
+  display:       inline-block;
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  background:    var(--ul-ok);
+  flex-shrink:   0;
+  animation:     ul-online-pulse 2s ease-in-out infinite;
+}
+.ul-online-text {
+  display:     inline-flex;
+  align-items: center;
+  gap:         6px;
+  color:       var(--ul-ok) !important;
+  font-weight: 700;
+}
 
 /* ════════════════════════════════════════════════
    FILTROS (como dm-tabs, multi-selección)
@@ -698,6 +734,7 @@ input.ul-search-input {
 .ul-filter:focus-visible,
 .ul-btn:focus-visible,
 .ul-sort-btn:focus-visible,
+.ul-stat--online:focus-visible,
 .ul-sheet-close:focus-visible,
 .ul-page-btn:focus-visible { outline: 1px solid var(--ul-accent); outline-offset: 2px; }
 
@@ -705,6 +742,7 @@ input.ul-search-input {
   .ul-stats, .ul-filters, .ul-list, .ul-detail,
   .ul-modal-root, .ul-sheet { animation: none; }
   .ul-sort-arrow { transition: none; }
+  .ul-online-dot { animation: none; }
 }
 
 /* ════════════════════════════════════════════════
@@ -724,7 +762,7 @@ input.ul-search-input {
   .user-list-container { padding: 20px 14px; }
 
   /* Resumen compacto: una sola fila de 4, números chicos */
-  .ul-stats       { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-bottom: 18px; border-top-width: 2px; }
+  .ul-stats       { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; margin-bottom: 18px; border-top-width: 2px; }
   .ul-stat        { padding: 10px 8px; gap: 4px; min-width: 0; }
   .ul-stat-accent { border-left: none; border-right: none; }
   .ul-stat-value  { font-size: 17px; font-weight: 800; }

@@ -287,6 +287,44 @@
 .pp-results b { color: var(--pp-text); font-weight: 900; }
 .pp-results .pp-link { font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800; }
 
+/* Botón "Ocultar no seleccionados" (se guarda en localStorage) */
+.pp-hide-toggle {
+  display:     inline-flex;
+  align-items: center;
+  gap:         8px;
+  min-height:  44px;
+  flex-shrink: 0;
+}
+.pp-hide-toggle b {
+  padding:     1px 6px;
+  border:      1px solid currentColor;
+  font-size:   0.6rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+.pp-hide-box {
+  width:       10px;
+  height:      10px;
+  border:      1.5px solid currentColor;
+  flex-shrink: 0;
+  transition:  background 0.15s;
+}
+.pp-hide-toggle.is-active {
+  border-color: color-mix(in srgb, var(--pp-danger) 55%, transparent);
+  color:        var(--pp-danger);
+  background:   color-mix(in srgb, var(--pp-danger) 8%, transparent);
+}
+.pp-hide-toggle.is-active:hover:not(:disabled) { border-color: var(--pp-danger); color: var(--pp-danger); }
+.pp-hide-toggle.is-active .pp-hide-box { background: currentColor; }
+
+.pp-hidden-note {
+  font-size:      0.62rem;
+  font-weight:    700;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color:          var(--pp-dim);
+}
+
 /* ════════════════════════════════════════════════
    GRUPOS POR VACANTE
 ════════════════════════════════════════════════ */
@@ -960,6 +998,7 @@
 
   .pp-toolbar { flex-direction: column; gap: 8px; }
   .pp-select  { width: 100%; min-width: 0; font-size: 16px; }
+  .pp-hide-toggle { width: 100%; justify-content: center; }
 
   .pp-group-head { padding: 14px 14px 14px 16px; gap: 10px; }
   .pp-group-title { font-size: 0.92rem; }

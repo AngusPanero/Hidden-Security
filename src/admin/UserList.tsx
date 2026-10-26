@@ -108,9 +108,44 @@ const formatRelative = (dateString?: string) => {
 const normalize = (s?: string) =>
     (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+// ─── Presencia: quién está en línea ahora (el backend ya excluye admins) ──────
+const PRESENCE_POLL_MS = 30 * 1000;
+
+function useOnlineUsers() {
+    const [online, setOnline] = useState<Set<string>>(new Set());
+    const [ready, setReady]   = useState(false);
+
+    useEffect(() => {
+        let alive = true;
+        const load = async () => {
+            if (document.visibilityState !== "visible") return;
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/presence`, { credentials: "include" });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (alive) {
+                    setOnline(new Set((data.online ?? []).map((o: { uid: string }) => o.uid)));
+                    setReady(true);
+                }
+            } catch { /* se reintenta en el próximo ciclo */ }
+        };
+        load();
+        const timer = setInterval(load, PRESENCE_POLL_MS);
+        document.addEventListener("visibilitychange", load);
+        return () => {
+            alive = false;
+            clearInterval(timer);
+            document.removeEventListener("visibilitychange", load);
+        };
+    }, []);
+
+    return { online, ready };
+}
+
 // ─── Detalle del usuario: bottom sheet en mobile, modal centrado en desktop ──
 interface UserSheetProps {
     user:          User
+    isOnline:      boolean
     theme:         string
     onClose:       () => void
     onManageClaims:(user: User) => void
@@ -118,7 +153,7 @@ interface UserSheetProps {
     onUnban:       (uid: string) => void
 }
 
-const UserSheet = ({ user, theme, onClose, onManageClaims, onBan, onUnban }: UserSheetProps) => {
+const UserSheet = ({ user, isOnline, theme, onClose, onManageClaims, onBan, onUnban }: UserSheetProps) => {
     const closeRef = useRef<HTMLButtonElement>(null);
     const startY   = useRef<number | null>(null);
     const [dragY, setDragY] = useState(0);
@@ -207,7 +242,9 @@ const UserSheet = ({ user, theme, onClose, onManageClaims, onBan, onUnban }: Use
                             <div className="ul-detail-row"><span>Último inicio de sesión</span><strong>{formatDateTime(user.metadata?.lastSignInTime)}</strong></div>
                             <div className="ul-detail-row">
                                 <span>Última conexión</span>
-                                <strong>{formatRelative(lastSeen)}{toTime(lastSeen) ? ` · ${formatDateTime(lastSeen)}` : ""}</strong>
+                                {isOnline
+                                    ? <strong className="ul-online-text"><span className="ul-online-dot" aria-hidden="true" />En línea ahora</strong>
+                                    : <strong>{formatRelative(lastSeen)}{toTime(lastSeen) ? ` · ${formatDateTime(lastSeen)}` : ""}</strong>}
                             </div>
                             <div className={`ul-detail-row ${user.isBanned ? "ul-red" : "ul-green"}`}>
                                 <span>Estado</span><strong>{user.isBanned ? "Baneado" : "Activo"}</strong>
@@ -270,6 +307,10 @@ const UserList = () => {
     // Usuario abierto en el gestor de claims (null = modal cerrado)
     const [claimsTarget, setClaimsTarget] = useState<User | null>(null);
 
+    // En línea (sin admins) · filtro "solo en línea" al tocar el contador
+    const { online, ready: presenceReady } = useOnlineUsers();
+    const [onlyOnline, setOnlyOnline] = useState(false);
+
     useEffect(() => {
         getUsers()
     }, [])
@@ -291,6 +332,7 @@ const UserList = () => {
         const list = allUsers.filter((u: User) => {
             const role = getUserRole(u);
             if (!activeRoles.has(role)) return false;
+            if (onlyOnline && !online.has(u.uid)) return false;
             if (!q) return true;
             return [u.displayName, u.email, ROLE_LABELS[role], role]
                 .some(field => normalize(field).includes(q));
@@ -301,7 +343,7 @@ const UserList = () => {
         return list.sort((a, b) =>
             factor * (toTime(a.metadata?.creationTime) - toTime(b.metadata?.creationTime))
         );
-    }, [allUsers, activeRoles, search, sortDir]);
+    }, [allUsers, activeRoles, search, sortDir, onlyOnline, online]);
 
     const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
     const pageUsers  = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -312,7 +354,7 @@ const UserList = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [activeRoles, search, sortDir]);
+    }, [activeRoles, search, sortDir, onlyOnline]);
 
     const toggleRole = (role: RoleFilter) => {
         setActiveRoles(prev => {
@@ -350,6 +392,16 @@ const UserList = () => {
                     <span className="ul-stat-label">Partners</span>
                     <span className="ul-stat-value ul-stat-value--partner">{roleCounts.partner}</span>
                 </div>
+                <button
+                    type="button"
+                    className={`ul-stat ul-stat--online${onlyOnline ? " is-active" : ""}`}
+                    onClick={() => setOnlyOnline(v => !v)}
+                    aria-pressed={onlyOnline}
+                    title={onlyOnline ? "Mostrar todos" : "Mostrar solo los usuarios en línea"}
+                >
+                    <span className="ul-stat-label"><span className="ul-online-dot" aria-hidden="true" />En línea</span>
+                    <span className="ul-stat-value ul-stat-value--online">{presenceReady ? online.size : "—"}</span>
+                </button>
                 <div className="ul-stat">
                     <span className="ul-stat-label">Baneados</span>
                     <span className={`ul-stat-value${bannedCount > 0 ? " ul-stat-value--danger" : ""}`}>{bannedCount}</span>
@@ -406,6 +458,7 @@ const UserList = () => {
                         const role     = getUserRole(user);
                         const tone     = user.isBanned ? "error" : "ok";
                         const lastSeen = getLastSeen(user);
+                        const isOnline = online.has(user.uid);
 
                         return (
                             <div key={user.uid} className={`ul-wrapper ul-tone-${tone}`}>
@@ -423,12 +476,18 @@ const UserList = () => {
                                             <span className="ul-row-meta">
                                                 <span className="ul-row-uid">ID: {user.uid.substring(0, 8)}…</span>
                                                 <span className="ul-row-sep" aria-hidden="true">·</span>
-                                                <span
-                                                    className="ul-row-last"
-                                                    title={toTime(lastSeen) ? formatDateTime(lastSeen) : undefined}
-                                                >
-                                                    Última conexión: {formatRelative(lastSeen)}
-                                                </span>
+                                                {isOnline ? (
+                                                    <span className="ul-row-last ul-online-text">
+                                                        <span className="ul-online-dot" aria-hidden="true" />En línea
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className="ul-row-last"
+                                                        title={toTime(lastSeen) ? formatDateTime(lastSeen) : undefined}
+                                                    >
+                                                        Última conexión: {formatRelative(lastSeen)}
+                                                    </span>
+                                                )}
                                             </span>
                                         </div>
                                     </div>
@@ -476,6 +535,7 @@ const UserList = () => {
             {selectedUser && (
                 <UserSheet
                     user={selectedUser}
+                    isOnline={online.has(selectedUser.uid)}
                     theme={theme}
                     onClose={closeSheet}
                     onManageClaims={openClaims}

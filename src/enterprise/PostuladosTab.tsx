@@ -147,6 +147,13 @@ function getValidations(cv: any) {
   return { certified, courses, courseSkills };
 }
 
+// Preferencia "ocultar no seleccionados" — persiste en este navegador
+const HIDE_REJECTED_KEY = "hs_pp_hide_rejected";
+
+const readHideRejected = () => {
+  try { return localStorage.getItem(HIDE_REJECTED_KEY) === "1"; } catch { return false; }
+};
+
 const DECLARED_PAGE_SIZE = 20;
 const COURSE_PAGE_SIZE   = 24;
 
@@ -584,6 +591,16 @@ export default function PostuladosTab() {
   // Filtros globales
   const [filterStatus,   setFilterStatus]   = useState(""); // "" = todos
   const [filterSearch,   setFilterSearch]   = useState(""); // nombre / email
+  // Ocultar postulados en estado "No seleccionado" (guardado en localStorage)
+  const [hideRejected,   setHideRejected]   = useState<boolean>(readHideRejected);
+
+  const toggleHideRejected = () => {
+    setHideRejected(prev => {
+      const next = !prev;
+      try { localStorage.setItem(HIDE_REJECTED_KEY, next ? "1" : "0"); } catch { /* modo privado */ }
+      return next;
+    });
+  };
 
   // Compatibilidad: { vacancyId: estado } · orden de postulados dentro de la vacante
   const [matches,        setMatches]        = useState<Record<string, MatchState>>({});
@@ -742,6 +759,7 @@ export default function PostuladosTab() {
     const name  = (a as any).applicantName  ?? "";
     const email = (a as any).applicantEmail ?? "";
     if (filterStatus && a.status !== filterStatus) return false;
+    if (hideRejected && filterStatus !== "rejected" && a.status === "rejected") return false;
     if (filterSearch) {
       const q = filterSearch.toLowerCase();
       if (!name.toLowerCase().includes(q) && !email.toLowerCase().includes(q)) return false;
@@ -749,7 +767,8 @@ export default function PostuladosTab() {
     return true;
   });
 
-  const hasFilters = filterStatus || filterSearch;
+  const hasFilters    = filterStatus || filterSearch;
+  const rejectedTotal = allFlat.filter((a) => a.status === "rejected").length;
   const themeClass = theme === "light" ? " light" : "";
 
   // Sin plan activo: solo el bloque con el link a /pricing, nada más
@@ -919,6 +938,17 @@ export default function PostuladosTab() {
             <option key={val} value={val}>{label}</option>
           ))}
         </select>
+        <button
+          type="button"
+          className={`pp-btn pp-hide-toggle${hideRejected ? " is-active" : ""}`}
+          onClick={toggleHideRejected}
+          aria-pressed={hideRejected}
+          title={hideRejected ? "Volver a mostrar los no seleccionados" : "Ocultar los postulados marcados como no seleccionados"}
+        >
+          <span className="pp-hide-box" aria-hidden="true" />
+          Ocultar no seleccionados
+          {rejectedTotal > 0 && <b>{rejectedTotal}</b>}
+        </button>
       </div>
 
       {hasFilters && (
@@ -964,9 +994,13 @@ export default function PostuladosTab() {
               // Postulados ordenados por compatibilidad (los sin CV al final)
               const scoreOf = (userId: string) =>
                 mData?.applicants.find(a => a.userId === userId)?.match?.score ?? -1;
-              const orderedApplicants = sortByMatch && mData
+              const sortedApplicants = sortByMatch && mData
                 ? [...v.applicants].sort((a, b) => scoreOf(b.userId) - scoreOf(a.userId))
                 : v.applicants;
+              const orderedApplicants = hideRejected
+                ? sortedApplicants.filter(a => a.status !== "rejected")
+                : sortedApplicants;
+              const hiddenCount = count - orderedApplicants.length;
 
               return (
                 <section key={v._id} className={`pp-group${isOpen ? " open" : ""}`}>
@@ -1008,8 +1042,15 @@ export default function PostuladosTab() {
                       {/* (2) Postulados: siempre todos, con cualquier porcentaje */}
                       <div className="vm-section">
                         <div className="vm-section-head">
-                          <h4 className="vm-section-title">Postulados <b>{count}</b></h4>
-                          {count > 1 && mData?.hasRequirements && (
+                          <h4 className="vm-section-title">
+                            Postulados <b>{orderedApplicants.length}</b>
+                            {hiddenCount > 0 && (
+                              <span className="pp-hidden-note">
+                                · {hiddenCount} no seleccionado{hiddenCount !== 1 ? "s" : ""} oculto{hiddenCount !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </h4>
+                          {orderedApplicants.length > 1 && mData?.hasRequirements && (
                             <div className="vm-sort">
                               <span className="vm-sort-label">Ordenar por</span>
                               <div className="vm-sort-group" role="group" aria-label="Ordenar postulados">
@@ -1020,10 +1061,15 @@ export default function PostuladosTab() {
                           )}
                         </div>
 
-                        {count > 0 ? (
+                        {orderedApplicants.length > 0 ? (
                           <ul className="pp-rows">
                             {orderedApplicants.map((applicant, i) => renderApplicantRow(applicant, v._id, i, false))}
                           </ul>
+                        ) : count > 0 ? (
+                          <p className="vm-note">
+                            Todos los postulados de esta vacante están como no seleccionados.{" "}
+                            <button type="button" className="pp-link" onClick={toggleHideRejected}>Mostrarlos</button>
+                          </p>
                         ) : (
                           <p className="vm-note">Todavía nadie se postuló a esta vacante.</p>
                         )}
