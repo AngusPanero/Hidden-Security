@@ -27,10 +27,13 @@ import TerminosCondiciones from "../terminosCondiciones/TerminosCondiciones";
 import PoliticasPrivacidad from "../privacidad/PoliticasPrivacidad";
 import CertificateView from "../certifications/Certificateview";
 import PresenceHeartbeat from "../admin/PresenceHeartbeat";
+import MaintenanceGate from "../maintenance/MaintenanceGate";
+/* import ExternalCoursePlayer from "../externalCourses/_core/ExternalCoursePlayer" */
 
 const AppRouter = () => {
     return (
         <Router>
+            <MaintenanceGate>
             <SessionProvider>
             <PresenceHeartbeat />
                 <CartProvider>
@@ -54,6 +57,7 @@ const AppRouter = () => {
                                 <Route path="/admin" element={<PrivateRoute role="admin"><AdminDashboard /></PrivateRoute>} />
                                 <Route path="/partner" element={<PrivateRoute role="partner"><PartnerDashboard /></PrivateRoute>} />
                                 <Route path="/enterprise" element={<PrivateRoute role="enterprise"><EnterpriseDashboard /></PrivateRoute>} /> 
+                                {/* <Route path="/cursos/:partnerSlug/:courseSlug" element={<PrivateRoute role="user"><ExternalCoursePlayer /></PrivateRoute>} /> */}
                                 <Route path="/certifications"           element={<Certifications />} />
                                 <Route path="/certifications/:certSlug" element={<CertificationsRelative />} />
                                 <Route path="/certifications/:slug/:credentialId" element={<CertificateView />} />
@@ -62,6 +66,7 @@ const AppRouter = () => {
                             <FooterMinimal />
                 </CartProvider> 
             </SessionProvider>
+            </MaintenanceGate>
         </Router>
     );  
 }

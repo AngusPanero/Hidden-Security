@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -16,13 +16,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  ESTRUCTURA DEL CURSO
-//  Los PDFs y videos viven en /public/pdf/modernSocCurso/pdf/ModuloX/ y se
-//  sirven en /pdf/modernSocCurso/pdf/ModuloX/… (lo que está en /public no se
-//  importa: se referencia por URL).
+//  Los PDFs NO están en /public: los sirve el backend en
+//  GET /api/course/soc1/content/:stepIndex (requiere sesión + membresía y que
+//  el step esté desbloqueado). El front solo conoce el stepIndex.
+//  Los videos con URL absoluta (Cloudinary) se usan tal cual.
 //  Tipos de step: "intro" | "video" | "pdf" | "quiz"
 // ══════════════════════════════════════════════════════════════════════════════
 const COURSE_ID = "soc1";
 const API_URL   = import.meta.env.VITE_API_URL;
+// Solo para videos locales en /public (los PDFs ya no se sirven desde acá)
 const PDF_BASE  = `${import.meta.env.BASE_URL}pdf/modernSocCurso/pdf`;
 
 // contents   → cantidad de PDFs "socN" del módulo (sin socIntro ni socFinal)
@@ -45,7 +47,6 @@ interface CourseStep {
   title:         string;
   description?:  string;
   src?:          string; // video
-  pdfSrc?:       string; // pdf
   moduleNumber?: number; // quiz — las preguntas las sirve el backend
 }
 
@@ -58,13 +59,13 @@ function buildModuleSteps(moduleNumber: number, contents: number, introVideo?: s
     ...(introVideo
       ? [{ type: "video" as const, title: `Módulo ${moduleNumber} — Video introductorio`, src: resolve(introVideo) }]
       : []),
-    { type: "pdf", title: `Módulo ${moduleNumber} — Introducción`, pdfSrc: file("socIntro.pdf") },
+    // El archivo de cada PDF lo resuelve el backend a partir del stepIndex
+    { type: "pdf", title: `Módulo ${moduleNumber} — Introducción` },
     ...Array.from({ length: contents }, (_, i): CourseStep => ({
-      type:   "pdf",
-      title:  `Módulo ${moduleNumber} — Contenido ${i + 1}`,
-      pdfSrc: file(`soc${i + 1}.pdf`),
+      type:  "pdf",
+      title: `Módulo ${moduleNumber} — Contenido ${i + 1}`,
     })),
-    { type: "pdf",  title: `Módulo ${moduleNumber} — Cierre`,     pdfSrc: file("socFinal.pdf") },
+    { type: "pdf",  title: `Módulo ${moduleNumber} — Cierre` },
     { type: "quiz", title: `Módulo ${moduleNumber} — Quiz final`, moduleNumber },
   ];
 }
@@ -243,6 +244,9 @@ function PdfViewer({ src, title }: { src: string; title: string }) {
   const goPrev = useCallback(() => setPage(p => Math.max(1, p - 1)), []);
   const goNext = useCallback(() => setPage(p => Math.min(numPages || 1, p + 1)), [numPages]);
 
+  // El PDF se pide al backend con la cookie de sesión (no está en /public)
+  const file = useMemo(() => ({ url: src, withCredentials: true }), [src]);
+
   // ── Ancho del contenedor inline ────────────────────────────────────────
   useEffect(() => {
     const el = wrapRef.current;
@@ -378,7 +382,7 @@ function PdfViewer({ src, title }: { src: string; title: string }) {
       <div className="sc-pdf-error">
         <span>No se pudo cargar el PDF.</span>
         <span style={{ fontSize: "0.72rem", opacity: 0.5 }}>
-          Verificá que el archivo esté en <code>public/pdf/</code>.
+          Verificá tu conexión o tu membresía.
         </span>
       </div>
     );
@@ -416,7 +420,7 @@ function PdfViewer({ src, title }: { src: string; title: string }) {
           </div>
         )}
 
-        <Document file={src} onLoadSuccess={onLoadSuccess} onLoadError={onLoadError} loading="">
+        <Document file={file} onLoadSuccess={onLoadSuccess} onLoadError={onLoadError} loading="">
           {!isFs && width > 0 && (
             <Page
               pageNumber={page}
@@ -1031,8 +1035,12 @@ export default function Soc1Course() {
                           <VideoViewer key={activeStep} src={step.src} />
                         )}
 
-                        {step?.type === "pdf" && step.pdfSrc && (
-                          <PdfViewer key={activeStep} src={step.pdfSrc} title={step.title} />
+                        {step?.type === "pdf" && (
+                          <PdfViewer
+                            key={activeStep}
+                            src={`${API_URL}/api/course/${COURSE_ID}/content/${activeStep}`}
+                            title={step.title}
+                          />
                         )}
 
                         {step?.type === "quiz" && (
