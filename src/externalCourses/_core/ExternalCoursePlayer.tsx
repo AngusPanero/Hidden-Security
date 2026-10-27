@@ -55,7 +55,7 @@ const formatDuration = (min: number | null) => {
 const ExternalCoursePlayer = () => {
     const { partnerSlug, courseSlug } = useParams();
     const navigate = useNavigate();
-    const theme = UseTheme();
+    const { theme } = UseTheme();
     const course = useExternalCourse(partnerSlug, courseSlug);
     const { structure, progress, steps, loading, error, busy } = course;
 

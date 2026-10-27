@@ -23,7 +23,7 @@ const formatDuration = (min: number | null) => {
 };
 
 const ExternalCourseCatalog = ({ title = "CURSOS DE PARTNERS", embedded = false }: Props) => {
-    const theme = UseTheme();
+    const { theme } = UseTheme();
     const [courses, setCourses] = useState<CatalogCourse[] | null>(null);
     const [error, setError] = useState(false);
 
