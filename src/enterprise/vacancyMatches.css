@@ -8,7 +8,7 @@
   --vm-mid:       #eab308;
   --vm-low:       #f43f5e;
   --vm-verified:  #f5a524;
-  --vm-suggested: #00d9ff;
+  --vm-suggested: #ccff00;
 }
 
 .pp-wrap.light {
@@ -221,7 +221,7 @@
   width:          100%;
   padding:        8px 10px;
   background:     transparent;
-  border:         1px solid var(--pp-border);
+  border:         none;
   color:          var(--pp-text);
   font-family:    var(--pp-font);
   text-align:     left;
@@ -233,7 +233,7 @@ button.vm-score:hover,
 button.vm-score.is-open { border-color: currentColor; }
 
 .vm-score-value {
-  font-size:      1.3rem;
+  font-size:      0.7rem;
   font-weight:    900;
   letter-spacing: -0.03em;
   line-height:    1;
@@ -352,13 +352,13 @@ button.vm-score.is-open { border-color: currentColor; }
 .vm-suggested.open .vm-suggested-head {
   border-bottom: 1px solid color-mix(in srgb, var(--vm-suggested) 25%, transparent);
 }
-.vm-suggested .vm-eyebrow { color: var(--vm-suggested); }
+.vm-suggested .vm-eyebrow { font-size: 9px; color: var(--vm-suggested); }
 .vm-suggested .pp-chevron--lg { color: var(--vm-suggested); }
 .vm-suggested.open .vm-suggested-head .pp-chevron { transform: rotate(-135deg) translate(-2px, -2px); }
 
 .vm-suggested-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .vm-suggested-title {
-  font-size:      0.95rem;
+  font-size:      0.75rem;
   font-weight:    900;
   text-transform: uppercase;
 }

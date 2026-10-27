@@ -117,9 +117,9 @@ export function ScoreBadge({
       title={open ? "Ocultar detalle de compatibilidad" : "Ver detalle de compatibilidad"}
     >
       <span className="vm-score-value">{m.score}%</span>
-      <span className="vm-score-bar" aria-hidden="true"><span style={{ width: `${m.score}%` }} /></span>
+      {/* <span className="vm-score-bar" aria-hidden="true"><span style={{ width: `${m.score}%` }} /></span> */}
       <span className="vm-score-label">
-        Compatible <span className="pp-chevron" aria-hidden="true" />
+        Ver más<span className="pp-chevron" aria-hidden="true" />
       </span>
     </button>
   );

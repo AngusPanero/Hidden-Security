@@ -853,11 +853,20 @@ export default function PostuladosTab() {
           {isRejected && (
             <button
               type="button"
-              className="pp-btn pp-btn--danger"
+              className="pp-btn pp-btn--danger pp-btn--icon"
               disabled={isDeleting}
               onClick={() => handleDelete(vacancyId, applicant.userId)}
+              aria-label={`Eliminar a ${name}`}
+              title="Eliminar postulante"
             >
-              {isDeleting ? "…" : "Eliminar"}
+              {isDeleting ? "…" : (
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3.5 5.5h13" />
+                  <path d="M8 5.5V4a1 1 0 011-1h2a1 1 0 011 1v1.5" />
+                  <path d="M5 5.5l.8 10.6a1.5 1.5 0 001.5 1.4h5.4a1.5 1.5 0 001.5-1.4L15 5.5" />
+                  <path d="M8.5 9v5M11.5 9v5" />
+                </svg>
+              )}
             </button>
           )}
         </div>
@@ -890,11 +899,11 @@ export default function PostuladosTab() {
       {/* Distribución por estado — tocá un estado para filtrar */}
       {totalApplicants > 0 && (
         <div className="pp-pipeline">
-          <div className="pp-pipeline-bar" aria-hidden="true">
+          {/* <div className="pp-pipeline-bar" aria-hidden="true">
             {statusEntries.filter(s => s.count > 0).map(s => (
               <span key={s.key} style={{ flexGrow: s.count, background: s.color }} />
             ))}
-          </div>
+          </div> */}
           <div className="pp-pipeline-chips">
             {statusEntries.filter(s => s.count > 0).map(s => (
               <button
