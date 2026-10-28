@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from "react";
-import { auth } from "../firebase/firebase.ts"
-import { sendPasswordResetEmail } from "firebase/auth";
+// Sin SDK cliente de Firebase: todo pasa por el backend (Admin SDK).
+// Así la API key de Firebase ya no viaja en el bundle del frontend.
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { UseLanguage } from "./LanguageContext.tsx";
@@ -16,7 +16,8 @@ interface SessionContextType {
     handleLogin: (email: string, password: string, acceptedLegal?: boolean) => Promise<boolean | undefined>; 
     legalRequired: boolean;
     handleLogout: () => Promise<void>;
-    handleResetPassword: (email: string) => Promise<void>;
+    // silent = true → no muestra alerts (para mostrar el estado en la UI). Devuelve si se envió.
+    handleResetPassword: (email: string, opts?: { silent?: boolean }) => Promise<boolean>;
     resendVerificationEmail: (email: string) => Promise<void>;
     error: string | boolean | null | number;
     setError: React.Dispatch<React.SetStateAction<string | boolean | null | number>>;
@@ -209,7 +210,6 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             setLoading(true);
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/logout`, { }, { withCredentials: true });
             if (response.status === 200) {
-                await auth.signOut()
                 setUser(null)
                 navigate("/");
             }
@@ -222,30 +222,30 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     }
 
     // Reset Password
-    const handleResetPassword = async (email: string) => {
+    const handleResetPassword = async (email: string, opts: { silent?: boolean } = {}) => {
+        const notify = (msg: string) => { if (!opts.silent) alert(msg); };
         try {
             if(!email){
-                alert(texts[language].sessionErrors.resetEmailRequired);
-                return;
-            } else {
-                await sendPasswordResetEmail(auth, email);
-                alert(texts[language].sessionErrors.resetEmailSent);
+                notify(texts[language].sessionErrors.resetEmailRequired);
+                return false;
             }
+            // El backend genera el link con el Admin SDK y lo manda por Brevo.
+            // Siempre responde igual exista o no el email (evita enumerar cuentas).
+            await axios.post(`${import.meta.env.VITE_API_URL}/reset-password`, { email });
+            notify(texts[language].sessionErrors.resetEmailSent);
+            return true;
         } catch (error: any) {
-            console.error("Error al enviar el email:", error.code);
-            switch (error.code) {
-                case "auth/user-not-found":
-                    alert(texts[language].sessionErrors.resetUserNotFound);
-                    break;
-                case "auth/invalid-email":
-                    alert(texts[language].sessionErrors.resetInvalidEmail);
-                    break;
-                case "auth/too-many-requests":
-                    alert(texts[language].sessionErrors.resetTooManyRequests);
-                    break;
-                default:
-                    alert("Default Error.");
+            const status = error.response?.status;
+            const code   = error.response?.data?.code;
+            console.error("Error al enviar el email:", code || status);
+            if (code === "auth/invalid-email" || status === 400) {
+                notify(texts[language].sessionErrors.resetInvalidEmail);
+            } else if (status === 429) {
+                notify(texts[language].sessionErrors.resetTooManyRequests);
+            } else {
+                notify("Default Error.");
             }
+            return false;
         }
     }
 
@@ -283,10 +283,14 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         }
     }
 
+    // El rol se pregunta al servidor (token verificado), no al SDK cliente
     const verifyIsAdmin = async () => {
-        const customClaims = await auth.currentUser?.getIdTokenResult();
-        const isAdmin = !!customClaims?.claims.admin;
-        if(isAdmin){ setIsAdmin(true) } else { setIsAdmin(false) }
+        try {
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/me`, { withCredentials: true });
+            setIsAdmin(data?.user?.admin === true);
+        } catch {
+            setIsAdmin(false);
+        }
     }
 
         // ── Carga la sesión desde la cookie (/check-auth) ─────────────────────────

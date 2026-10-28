@@ -1932,3 +1932,89 @@
   .dm-nt-unread   { top: 17px; right: 14px; }
   .dm-nt-head-title { font-size: 0.62rem; letter-spacing: 0.14em; }
 }
+/* ══════════════════════════════════════════════════════════════
+   MI CUENTA — CAMBIO DE CONTRASEÑA (dm-pass-*)
+   Tipografía: solo Montserrat
+══════════════════════════════════════════════════════════════ */
+.dm-pass-card {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             20px;
+  flex-wrap:       wrap;
+  padding:         20px 16px;
+  margin-bottom:   20px;
+  background:      var(--dm-surface);
+  border:          1px solid var(--dm-border);
+  border-left:     3px solid var(--dm-accent);
+  font-family:     'Montserrat', sans-serif;
+}
+
+.dm-pass-info {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  flex:           1;
+  min-width:      240px;
+}
+
+.dm-pass-title {
+  font-size:      1rem;
+  font-weight:    800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color:          var(--dm-text);
+}
+
+.dm-pass-text {
+  font-size:   0.78rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color:       var(--dm-text-mid);
+  max-width:   560px;
+}
+.dm-pass-text strong { color: var(--dm-text); font-weight: 700; word-break: break-all; }
+
+.dm-pass-msg {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-top:  4px;
+  padding:     8px 12px;
+  font-size:   0.74rem;
+  font-weight: 600;
+  line-height: 1.5;
+  border-left: 3px solid;
+}
+.dm-pass-msg--ok    { color: #22c55e; background: rgba(34, 197, 94, 0.08); border-left-color: #22c55e; }
+.dm-pass-msg--error { color: #f43f5e; background: rgba(244, 63, 94, 0.08); border-left-color: #f43f5e; }
+
+.dm-pass-btn {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.7rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space:    nowrap;
+  padding:        12px 22px;
+  color:          var(--dm-accent);
+  background:     transparent;
+  border:         1px solid var(--dm-accent);
+  cursor:         pointer;
+  transition:     background 0.2s, color 0.2s, opacity 0.2s;
+}
+.dm-pass-btn:hover:not(:disabled) { background: var(--dm-accent); color: #000; }
+.dm-pass-btn:focus-visible        { outline: 2px solid var(--dm-accent); outline-offset: 3px; }
+.dm-pass-btn:disabled             { opacity: 0.45; cursor: not-allowed; }
+
+/* Light mode — mismo naranja que el resto del dashboard */
+.dm-container.light .dm-pass-card                     { background: #fff; border-left-color: #ff5500; }
+.dm-container.light .dm-pass-btn                      { color: #ff5500; border-color: #ff5500; }
+.dm-container.light .dm-pass-btn:hover:not(:disabled) { background: #ff5500; color: #fff; }
+.dm-container.light .dm-pass-btn:focus-visible        { outline-color: #ff5500; }
+.dm-container.light .dm-pass-msg--ok                  { color: #15803d; }
+
+@media (max-width: 768px) {
+  .dm-pass-card { padding: 16px 14px; }
+  .dm-pass-btn  { width: 100%; text-align: center; }
+}

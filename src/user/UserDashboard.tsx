@@ -251,10 +251,13 @@ function getTicketMessage(t: PurchaseTicket): TicketMessage {
     }
 }
 
+// Cambio de contraseña: espera entre envíos del link (evita spam de mails)
+const PASS_RESET_COOLDOWN_S = 60;
+
 // ─── UserDashboard ────────────────────────────────────────────────────────────
 const UserDashboard = () => {
     const session = UseSession();
-    const { user, loading: sessionLoading } = session;
+    const { user, loading: sessionLoading, handleResetPassword } = session;
     // refreshUser (si el SessionContext lo expone) actualiza el user global
     const refreshUser = (session as { refreshUser?: () => Promise<void> }).refreshUser;
     const { purchased, getPurchased, loading: loadingPurchases } = UseShopping();
@@ -271,6 +274,10 @@ const UserDashboard = () => {
     const [unreadCount,   setUnreadCount]   = useState(0);
     const [toast,         setToast]         = useState<{ msg: string; color: string; bg: string } | null>(null);
     const [cvProfile,     setCvProfile]     = useState<{ firstName: string; lastName: string; photo: string } | null>(null);
+
+    // ── Cambio de contraseña (link por mail vía POST /reset-password) ─────────
+    const [passStatus,   setPassStatus]   = useState<"idle" | "sending" | "sent" | "error">("idle");
+    const [passCooldown, setPassCooldown] = useState(0);
 
     // Claims frescas desde Firebase: se piden en cada recarga del dashboard.
     // El user de la sesión puede venir de una cookie con claims viejas
@@ -360,6 +367,23 @@ const UserDashboard = () => {
     };
 
     useEffect(() => { fetchCvProfile(); }, [user]); // eslint-disable-line
+
+    // Cuenta regresiva para poder volver a pedir el link de contraseña
+    useEffect(() => {
+        if (passCooldown <= 0) return;
+        const t = setTimeout(() => setPassCooldown((s) => s - 1), 1000);
+        return () => clearTimeout(t);
+    }, [passCooldown]);
+
+    // Envía el link de cambio de contraseña al email de la cuenta.
+    // Usa la misma lógica del SessionContext (POST /reset-password en el backend).
+    const handlePasswordChange = async () => {
+        if (!user?.email || passStatus === "sending" || passCooldown > 0) return;
+        setPassStatus("sending");
+        const ok = await handleResetPassword(user.email, { silent: true });
+        setPassStatus(ok ? "sent" : "error");
+        if (ok) setPassCooldown(PASS_RESET_COOLDOWN_S);
+    };
 
     // Inicializar AudioContext en el primer click — requerido por los browsers
     useEffect(() => {
@@ -534,7 +558,7 @@ const UserDashboard = () => {
                 </div>
                 <div className="dm-hero-right">
                         <HeroCredentialBadge user={{ ...user, completedCourses }} theme={theme} />
-                    
+
                     {canUseJobs && (
                         <span className="dm-live-badge">
                             <span className="dm-live-dot" />
@@ -640,7 +664,7 @@ const UserDashboard = () => {
                 <button className={`dm-tab ${activeTab === "bolsa" ? "active" : ""}`} onClick={() => handleTabChange("bolsa")}>
                     BOLSA DE TRABAJO
                 </button>
-                
+
                 {canUseJobs && (
                     <button className={`dm-tab dm-tab--notif ${activeTab === "notif" ? "active" : ""}`} onClick={() => handleTabChange("notif")}>
                         NOTIFICACIONES
@@ -942,6 +966,43 @@ const UserDashboard = () => {
                             </span>
                         </div>
                     </div>
+
+                    {/* ── SEGURIDAD: cambio de contraseña por link al email ── */}
+                    <div className="dm-pass-card">
+                        <div className="dm-pass-info">
+                            <span className="dm-account-card-label">SEGURIDAD</span>
+                            <span className="dm-pass-title">Cambiar contraseña</span>
+                            <span className="dm-pass-text">
+                                Te enviamos un link a <strong>{user.email}</strong> para que elijas una contraseña nueva.
+                                Al cambiarla se cierran tus sesiones abiertas y vas a tener que volver a ingresar.
+                            </span>
+                            {passStatus === "sent" && (
+                                <span className="dm-pass-msg dm-pass-msg--ok" role="status">
+                                    Link enviado. Revisá tu casilla de correo y también la carpeta de spam.
+                                </span>
+                            )}
+                            {passStatus === "error" && (
+                                <span className="dm-pass-msg dm-pass-msg--error" role="alert">
+                                    No pudimos enviar el link. Esperá unos minutos y volvé a intentar.
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            className="dm-pass-btn"
+                            onClick={handlePasswordChange}
+                            disabled={passStatus === "sending" || passCooldown > 0}
+                        >
+                            {passStatus === "sending"
+                                ? "ENVIANDO…"
+                                : passCooldown > 0
+                                    ? `REENVIAR EN ${passCooldown}s`
+                                    : passStatus === "sent"
+                                        ? "REENVIAR LINK"
+                                        : "ENVIAR LINK →"}
+                        </button>
+                    </div>
+
                     {purchases.some(p => p.status === "approved" && !p.invoiceSent) && (
                         <div className="dm-notice">
                             <span className="dm-notice-dot" />
