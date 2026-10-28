@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import axios from "axios";
 import "./adminDashboard.css";
+import Loader from "../loader/Loader";
 import Charts from "./Charts";
 import UserList from "./UserList";
 import SalesHistory from "./SalesHistory";
@@ -40,8 +42,48 @@ const NOTES = [
   { freq: 1046.5, delay: 0.39 },
 ];
 
+// "checking" → esperando al servidor · "ok" → admin real
+// "threat"   → el servidor detectó que NO es admin (incidente registrado + ban)
+// "denied"   → sin sesión válida o error de red: no se muestra nada
+type AccessStatus = "checking" | "ok" | "threat" | "denied";
+
 const AdminDashboard = () => {
   const { user/* , handleUnbanUser, handleBanUser */ } = UseSession();
+
+  // ── Verificación de acceso contra el servidor ─────────────────────────────
+  // El panel NO se renderiza (ni pide datos) hasta que el servidor confirme
+  // con el token firmado que el usuario es admin. El user del contexto no
+  // alcanza: se puede falsear con un proxy (Burp).
+  const [access, setAccess]         = useState<AccessStatus>("checking");
+  const [incidentId, setIncidentId] = useState<string | null>(null);
+  const verifyStartedRef            = useRef(false);
+
+  useEffect(() => {
+    // Evita el doble pedido de React StrictMode en desarrollo
+    if (verifyStartedRef.current) return;
+    verifyStartedRef.current = true;
+
+    axios.post(
+      `${import.meta.env.VITE_API_URL}/admin/verify-access`,
+      {
+        path: window.location.pathname,
+        tab:  localStorage.getItem("hs_admin_tab") ?? "charts",
+      },
+      { withCredentials: true, timeout: 10000 }
+    )
+      .then((res) => {
+        setAccess(res.data?.ok === true ? "ok" : "denied");
+      })
+      .catch((err) => {
+        const data = err.response?.data;
+        if (data?.code === "SECURITY_THREAT") {
+          setIncidentId(data.incidentId ?? null);
+          setAccess("threat");
+          return;
+        }
+        setAccess("denied");
+      });
+  }, []);
   const { allTickets, getAllTickets }             = UseShopping();
   const { /* users, */ getUsers }                      = UseUsers();
   const { theme }                                = UseTheme();
@@ -98,12 +140,13 @@ const AdminDashboard = () => {
   };
   useEffect(() => { showToastRef.current = showToast; });
 
+  // Los datos solo se piden cuando el servidor confirmó que es admin
   useEffect(() => {
-    if (user?.admin === true) { getAllTickets(); getUsers(); }
-  }, [user]); // eslint-disable-line
+    if (access === "ok") { getAllTickets(); getUsers(); }
+  }, [access]); // eslint-disable-line
 
   useEffect(() => {
-    if (!user?.admin) return;
+    if (access !== "ok") return;
     const connect = () => {
       if (sseRef.current) sseRef.current.close();
       const es = new EventSource(
@@ -123,9 +166,25 @@ const AdminDashboard = () => {
     };
     connect();
     return () => { sseRef.current?.close(); sseRef.current = null; };
-  }, [user]); // eslint-disable-line
+  }, [access]); // eslint-disable-line
 
-  if (!user?.admin) return (
+  // ── Esperando confirmación del servidor: no se muestra nada del panel ─────
+  if (access === "checking") return <Loader />;
+
+  // ── Amenaza detectada: el servidor ya registró el incidente y baneó ───────
+  if (access === "threat") return (
+    <div className={`hs-admin ${theme}`}>
+      <div className="hs-unauthorized">
+        <span className="hs-mono">// AMENAZA_DE_SEGURIDAD_DETECTADA</span>
+        <h1 className="hs-401">403</h1>
+        <p>Se detectó un intento de acceso no autorizado al panel de administración.</p>
+        <p>El incidente fue registrado con los datos de tu sesión y tu cuenta fue suspendida.</p>
+        {incidentId && <span className="hs-mono">// INCIDENTE_ID: {incidentId}</span>}
+      </div>
+    </div>
+  );
+
+  if (access !== "ok") return (
     <div className={`hs-admin ${theme}`}>
       <div className="hs-unauthorized">
         <span className="hs-mono">// ACCESO_DENEGADO</span>

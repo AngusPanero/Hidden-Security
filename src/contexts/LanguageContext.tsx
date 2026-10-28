@@ -637,7 +637,7 @@ export const LanguageProvider = ({ children }: ProviderProps) => {
             answerManage: "Podés configurar tu navegador para aceptar o rechazar cookies. Tené en cuenta que desactivar ciertas cookies puede afectar la funcionalidad del sitio."
         },
         sessionErrors: {
-            loginBanned: "Usuario baneado. Contactate con DeepDev.",
+            loginBanned: "Usuario baneado. Contactate con Hidden Security.",
             loginTooManyAttempts: "Tu cuenta fue bloqueada por demasiados intentos fallidos.",
             loginInvalidCredentials: "Credenciales inválidas.",
             loginAttemptsLeft: "Credenciales inválidas. Te quedan intento(s).",

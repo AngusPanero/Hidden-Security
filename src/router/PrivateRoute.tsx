@@ -16,11 +16,16 @@ const getUserRole = (user: any): "user" | "admin" | "enterprise" | "partner" => 
     return "user";
 };
 
+// IMPORTANTE: este guard es solo UX. La seguridad real está en el backend:
+// todo endpoint admin/enterprise/partner tiene que validar el rol con el token
+// verificado en el servidor (adminMiddleware, etc.). Una respuesta HTTP se puede
+// modificar con un proxy (Burp), así que el frontend nunca es una barrera.
 const PrivateRoute = ({ children, role }: PrivateRouteProps) => {
     const { user, loading } = UseSession();
     const [status, setStatus] = useState<string>("loading");
 
     useEffect(() => {
+        let cancelled = false;
         setStatus("loading");
 
         if (loading) return;
@@ -32,21 +37,36 @@ const PrivateRoute = ({ children, role }: PrivateRouteProps) => {
 
         const verifyAccess = async () => {
             try {
-                const actualRole = getUserRole(user);
-
-                if (actualRole !== role) {
-                    setStatus(`wrong-role-${actualRole}`);
-                    return;
-                }
-
+                // El rol se toma SIEMPRE de lo que devuelve el servidor (/me),
+                // nunca del user guardado en el contexto (que viene de /login
+                // o /check-auth y pudo haber sido manipulado).
                 const response = await axios.get(`${import.meta.env.VITE_API_URL}/me`, {
                     withCredentials: true
                 });
 
-                if (response.status === 200) {
-                    setStatus("ok");
+                if (cancelled) return;
+
+                const serverUser = response.data?.user;
+                if (response.status !== 200 || !serverUser?.uid) {
+                    setStatus("unauth");
+                    return;
                 }
+
+                // Si el uid del servidor no coincide con el del contexto, algo está mal
+                if (serverUser.uid !== (user as any)?.uid) {
+                    setStatus("unauth");
+                    return;
+                }
+
+                const serverRole = getUserRole(serverUser);
+                if (serverRole !== role) {
+                    setStatus(`wrong-role-${serverRole}`);
+                    return;
+                }
+
+                setStatus("ok");
             } catch (error: any) {
+                if (cancelled) return;
                 if (error.response?.status === 403) {
                     setStatus("banned");
                 } else {
@@ -56,6 +76,10 @@ const PrivateRoute = ({ children, role }: PrivateRouteProps) => {
         };
 
         verifyAccess();
+
+        return () => {
+            cancelled = true;
+        };
     }, [user, loading, role]);
 
     if (loading || status === "loading") return <Loader />;
