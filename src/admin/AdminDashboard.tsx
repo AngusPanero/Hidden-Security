@@ -63,8 +63,7 @@ const AdminDashboard = () => {
     if (verifyStartedRef.current) return;
     verifyStartedRef.current = true;
 
-    axios.post(
-      `${import.meta.env.VITE_API_URL}/admin/verify-access`,
+    axios.post(`${import.meta.env.VITE_API_URL}/admin/verify-access`,
       {
         path: window.location.pathname,
         tab:  localStorage.getItem("hs_admin_tab") ?? "charts",
@@ -84,7 +83,10 @@ const AdminDashboard = () => {
         setAccess("denied");
       });
   }, []);
-  const { allTickets, getAllTickets }             = UseShopping();
+  const { allTickets: rawTickets, getAllTickets } = UseShopping();
+  // Si el pedido de tickets falla, el contexto puede quedar con un objeto de
+  // error en vez de un array → se normaliza para que el panel no se rompa
+  const allTickets: any[] = Array.isArray(rawTickets) ? rawTickets : [];
   const { /* users, */ getUsers }                      = UseUsers();
   const { theme }                                = UseTheme();
 
