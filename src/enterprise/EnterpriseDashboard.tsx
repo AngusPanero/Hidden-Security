@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import axios from "axios";
 import "./enterpriseDashboard.css";
+import Loader from "../loader/Loader";
 import { UseSession } from "../contexts/SessionContext";
 import { UseShopping } from "../contexts/ShoppingContext";
 import { UseTheme } from "../contexts/ThemeContext";
@@ -34,9 +36,49 @@ function ApplicantBadge({ count }: { count: number }) {
   );
 }
 
+// "checking" → esperando al servidor · "ok" → enterprise real
+// "threat"   → el servidor detectó que NO es enterprise (incidente registrado + ban)
+// "denied"   → sin sesión válida o error de red: no se muestra nada
+type AccessStatus = "checking" | "ok" | "threat" | "denied";
+
 // ─── EnterpriseDashboard ──────────────────────────────────────────────────────
 const EnterpriseDashboard = () => {
   const { user }                         = UseSession();
+
+  // ── Verificación de acceso contra el servidor ─────────────────────────────
+  // El panel (vacantes, postulados, base de usuarios) NO se renderiza ni pide
+  // datos hasta que el servidor confirme con el token firmado que la cuenta
+  // es enterprise. El user del contexto se puede falsear con un proxy (Burp).
+  const [access, setAccess]         = useState<AccessStatus>("checking");
+  const [incidentId, setIncidentId] = useState<string | null>(null);
+  const verifyStartedRef            = useRef(false);
+
+  useEffect(() => {
+    // Evita el doble pedido de React StrictMode en desarrollo
+    if (verifyStartedRef.current) return;
+    verifyStartedRef.current = true;
+
+    axios.post(
+      `${import.meta.env.VITE_API_URL}/security/verify-enterprise-access`,
+      {
+        path: window.location.pathname,
+        tab:  localStorage.getItem("hs_enterprise_tab") ?? "vacancy",
+      },
+      { withCredentials: true, timeout: 10000 }
+    )
+      .then((res) => {
+        setAccess(res.data?.ok === true ? "ok" : "denied");
+      })
+      .catch((err) => {
+        const data = err.response?.data;
+        if (data?.code === "SECURITY_THREAT") {
+          setIncidentId(data.incidentId ?? null);
+          setAccess("threat");
+          return;
+        }
+        setAccess("denied");
+      });
+  }, []);
   const { getAllTickets }     = UseShopping();
   const { theme }                        = UseTheme();
 
@@ -135,7 +177,7 @@ const EnterpriseDashboard = () => {
 
   // ── SSE ventas ────────────────────────────────────────────────
   useEffect(() => {
-    if (!user?.admin) return;
+    if (access !== "ok" || !user?.admin) return;
     const connect = () => {
       if (sseSalesRef.current) sseSalesRef.current.close();
       const es = new EventSource(
@@ -159,11 +201,11 @@ const EnterpriseDashboard = () => {
     };
     connect();
     return () => { sseSalesRef.current?.close(); sseSalesRef.current = null; };
-  }, [user]); // eslint-disable-line
+  }, [user, access]); // eslint-disable-line
 
-  // ── SSE postulaciones ─────────────────────────────────────────
+  // ── SSE postulaciones (solo con acceso confirmado por el servidor) ──
   useEffect(() => {
-    if (!user?.isEnterprise) return;
+    if (access !== "ok") return;
     const connect = () => {
       if (sseApplicantsRef.current) sseApplicantsRef.current.close();
       const es = new EventSource(
@@ -200,7 +242,7 @@ const EnterpriseDashboard = () => {
     };
     connect();
     return () => { sseApplicantsRef.current?.close(); sseApplicantsRef.current = null; };
-  }, [user, playSound]); // eslint-disable-line
+  }, [access, playSound]); // eslint-disable-line
 
   // Limpiar badge al entrar al tab de postulados y persistir en localStorage
   const handleTabChange = (id: string) => {
@@ -209,7 +251,23 @@ const EnterpriseDashboard = () => {
     if (id === "postulados") setApplicantCount(0);
   };
 
-  if (!user?.isEnterprise) return (
+  // ── Esperando confirmación del servidor: no se muestra nada del panel ─────
+  if (access === "checking") return <Loader />;
+
+  // ── Amenaza detectada: el servidor ya registró el incidente y baneó ───────
+  if (access === "threat") return (
+    <div className={`hs-admin ${theme}`}>
+      <div className="hs-unauthorized">
+        <span className="hs-mono">// AMENAZA_DE_SEGURIDAD_DETECTADA</span>
+        <h1 className="hs-401">403</h1>
+        <p>Se detectó un intento de acceso no autorizado al panel de empresas.</p>
+        <p>El incidente fue registrado con los datos de tu sesión y tu cuenta fue suspendida.</p>
+        {incidentId && <span className="hs-mono">// INCIDENTE_ID: {incidentId}</span>}
+      </div>
+    </div>
+  );
+
+  if (access !== "ok") return (
     <div className={`hs-admin ${theme}`}>
       <div className="hs-unauthorized">
         <span className="hs-mono">// ACCESO_DENEGADO</span>
