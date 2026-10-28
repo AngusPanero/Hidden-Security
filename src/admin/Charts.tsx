@@ -1,13 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
 import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
     CartesianGrid, Tooltip, PieChart, Pie, Cell,
 } from 'recharts';
+import { Lock, KeyRound, AlertCircle } from 'lucide-react';
 import "./chaarts.css";
 import { UseTheme } from '../contexts/ThemeContext';
 
 interface DashboardChartsProps {
-    allTickets: any[];
+    // Ya no se usa: los tickets se piden acá adentro con la clave de firma.
+    // Queda opcional para no romper el componente padre.
+    allTickets?: any[];
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -257,8 +261,60 @@ const EmptyState = ({ text }: { text: string }) => (
 // ══════════════════════════════════════════════════════════════
 //  COMPONENTE PRINCIPAL
 // ══════════════════════════════════════════════════════════════
-const Charts: React.FC<DashboardChartsProps> = ({ allTickets }) => {
+const Charts: React.FC<DashboardChartsProps> = () => {
     const { theme } = UseTheme();
+
+    // ── Clave de firma (signPin) ──────────────────────────────
+    // Los tickets se piden recién con la clave: el backend la valida con checkSignPin
+    const [tickets,    setTickets]    = useState<any[]>([]);
+    const [unlocked,   setUnlocked]   = useState(false);
+    const [pin,        setPin]        = useState('');
+    const [pinError,   setPinError]   = useState('');
+    const [pinLoading, setPinLoading] = useState(false);
+    const [pinLocked,  setPinLocked]  = useState(false);
+    const pinInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (unlocked) return;
+        const t = setTimeout(() => pinInputRef.current?.focus(), 50);
+        return () => clearTimeout(t);
+    }, [unlocked]);
+
+    const handleUnlock = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (pinLoading || pinLocked) return;
+
+        if (!/^\d{4}$/.test(pin)) {
+            setPinError('La clave tiene 4 dígitos.');
+            return;
+        }
+
+        setPinLoading(true);
+        setPinError('');
+
+        try {
+            const { data } = await axios.post(
+                `${import.meta.env.VITE_API_URL}/all-tickets`,
+                { pin },
+                { withCredentials: true }
+            );
+            setTickets(Array.isArray(data) ? data : []);
+            setPin('');
+            setUnlocked(true);
+        } catch (err: any) {
+            const code = err.response?.data?.code;
+            const msg  = err.response?.data?.message || 'Error al cargar las métricas 🔴';
+            setPin('');
+            setPinError(msg);
+            if (code === 'CLAVE_BLOQUEADA') {
+                setPinLocked(true);
+            } else {
+                setTimeout(() => pinInputRef.current?.focus(), 0);
+            }
+        } finally {
+            setPinLoading(false);
+        }
+    };
 
     const [timeRange,   setTimeRange]   = useState<TimeRange>('month');
     const [startDate,   setStartDate]   = useState('');
@@ -271,13 +327,13 @@ const Charts: React.FC<DashboardChartsProps> = ({ allTickets }) => {
 
     // ── Normalización ─────────────────────────────────────────
     const sales = useMemo<Sale[]>(() => {
-        if (!Array.isArray(allTickets)) return [];
-        return allTickets
+        if (!Array.isArray(tickets)) return [];
+        return tickets
             .filter(t => !INTERNAL_STATUSES.includes(String(t?.status ?? '').toLowerCase()))
             .map(normalizeSale)
             .filter(s => !isNaN(s.date.getTime()))
             .filter(s => includeTest || !s.isTest);
-    }, [allTickets, includeTest]);
+    }, [tickets, includeTest]);
 
     const plans = useMemo(() => Array.from(new Set(sales.map(s => s.plan))).sort(), [sales]);
 
@@ -443,6 +499,54 @@ const Charts: React.FC<DashboardChartsProps> = ({ allTickets }) => {
         : `${fmtPct(ivaRate)} ${ivaIncluded ? 'INCLUIDO EN PRECIO' : 'SOBRE TOTAL'}`;
 
     const effectiveFee = totals.gross ? totals.fees / totals.gross : 0;
+
+    // ══════════════════════════════════════════════════════════
+    //  BLOQUEO: hasta validar la clave no se muestra nada
+    // ══════════════════════════════════════════════════════════
+    if (!unlocked) {
+        return (
+            <div className={`dc-wrapper dc-wrapper--locked ${theme}`}>
+                <form className="dc-gate" onSubmit={handleUnlock} aria-labelledby="dc-gate-title">
+                    <span className="dc-eyebrow">// ACCESO_RESTRINGIDO</span>
+                    <h2 id="dc-gate-title" className="dc-title dc-gate-title">
+                        <Lock size={20} strokeWidth={2.5} />
+                        PANEL <span>FINANCIERO</span>
+                    </h2>
+                    <p className="dc-gate-text">Ingresá tu clave de firma para ver las métricas de ventas.</p>
+
+                    <label className="dc-control-label" htmlFor="dc-gate-pin">CLAVE DE FIRMA</label>
+                    <input
+                        id="dc-gate-pin"
+                        ref={pinInputRef}
+                        className="dc-gate-pin"
+                        type="password"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        maxLength={4}
+                        value={pin}
+                        disabled={pinLoading || pinLocked}
+                        onChange={e => { setPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(''); }}
+                        placeholder="••••"
+                    />
+
+                    {pinError && (
+                        <div className="dc-gate-error" role="alert">
+                            <AlertCircle size={14} /> {pinError}
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        className="dc-gate-btn"
+                        disabled={pinLoading || pinLocked || pin.length !== 4}
+                    >
+                        <KeyRound size={14} strokeWidth={2.5} />
+                        {pinLoading ? 'VERIFICANDO...' : pinLocked ? 'BLOQUEADO' : 'DESBLOQUEAR'}
+                    </button>
+                </form>
+            </div>
+        );
+    }
 
     return (
         <div className={`dc-wrapper ${theme}`}>
