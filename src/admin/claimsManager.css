@@ -569,7 +569,7 @@
   justify-content: center;
   background:      var(--cm-accent-s);
   color:           var(--cm-accent);
-  font-family:     'JetBrains Mono', monospace;
+  font-family:     'Montserrat', 'JetBrains Mono', monospace;
   font-weight:     800;
 }
 
@@ -639,7 +639,7 @@
 
 .cm-pin-field { width: 140px; flex-shrink: 0; }
 .cm-pin-field input {
-  font-family:    'JetBrains Mono', monospace;
+  font-family:    'Montserrat', 'JetBrains Mono', monospace;
   letter-spacing: 10px;
   text-align:     center;
 }

@@ -20,10 +20,13 @@ interface ClaimsSnapshot {
     enterprisePlanExpiry: string | null
     vacancyLimit:         number | null
     vacanciesUsed:        number
+    banned:               boolean
+    bannedAt:             number | null
+    bannedReason:         string | null
     otherClaims:          string[]
 }
 
-type Action = "grant_user_plan" | "set_enterprise" | "make_partner" | "clear_purchases" | "clear_all"
+type Action = "grant_user_plan" | "set_enterprise" | "make_partner" | "clear_purchases" | "clear_all" | "ban_user" | "unban_user"
 type Tone   = "ok" | "warn" | "error" | "neutral"
 
 interface Props {
@@ -52,19 +55,37 @@ const ACTIONS: { id: Action; label: string; danger?: boolean }[] = [
     { id: "make_partner",    label: "Partner" },
     { id: "clear_purchases", label: "Limpiar compras", danger: true },
     { id: "clear_all",       label: "Reset total",     danger: true },
+    { id: "ban_user",        label: "Banear",          danger: true },
+    { id: "unban_user",      label: "Desbanear" },
 ]
 
-const MAX_LOGO_BYTES = 2 * 1024 * 1024
+const MAX_LOGO_BYTES = 8 * 1024 * 1024
+const BAN_REASON_MAX = 200
 
 // Distancia (px) que hay que arrastrar hacia abajo para cerrar el sheet
 const DISMISS_DISTANCE = 110
 
+// Subida FIRMADA: el backend (solo admins) genera una firma de un solo uso con el
+// API secret de Cloudinary. Sin esa firma, Cloudinary rechaza la subida.
 const uploadToCloudinary = async (file: File): Promise<string> => {
+    const { data: sig } = await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/upload-signature`,
+        {},
+        { withCredentials: true }
+    )
+
+    // Tienen que viajar exactamente los mismos parámetros que se firmaron
     const imgData = new FormData()
-    imgData.append("file", file)
-    imgData.append("upload_preset", "product-images")
+    imgData.append("file",            file)
+    imgData.append("api_key",         sig.apiKey)
+    imgData.append("timestamp",       String(sig.timestamp))
+    imgData.append("signature",       sig.signature)
+    imgData.append("upload_preset",   sig.upload_preset)
+    imgData.append("folder",          sig.folder)
+    imgData.append("allowed_formats", sig.allowed_formats)
+
     const response = await axios.post(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
         imgData
     )
     return response.data.secure_url
@@ -118,6 +139,7 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
     const [logoFile,       setLogoFile]       = useState<File | null>(null)
     const [logoUrl,        setLogoUrl]        = useState("")
     const [confirmDanger,  setConfirmDanger]  = useState(false)
+    const [banReason,      setBanReason]      = useState("")
 
     const [pin,        setPin]        = useState("")
     const [submitting, setSubmitting] = useState(false)
@@ -201,7 +223,7 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
             return
         }
         if (file.size > MAX_LOGO_BYTES) {
-            setFeedback({ ok: false, title: "ARCHIVO_DEMASIADO_GRANDE", text: "El logo no puede superar los 2 MB." })
+            setFeedback({ ok: false, title: "ARCHIVO_DEMASIADO_GRANDE", text: "El logo no puede superar los 8 MB." })
             e.target.value = ""
             return
         }
@@ -220,6 +242,21 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
     const stateRows = useMemo<StateRow[]>(() => {
         if (!claims) return []
         const rows: StateRow[] = []
+
+        if (claims.banned) {
+            rows.push({
+                id:     "banned",
+                title:  "CUENTA BANEADA",
+                left:   `[${claims.bannedAt ? formatDate(new Date(claims.bannedAt).toISOString()) : "—"}]`,
+                tone:   "error",
+                status: "BANEADO",
+                note:   "No puede iniciar sesión ni usar la plataforma",
+                details: [
+                    { label: "Desde",  value: claims.bannedAt ? new Date(claims.bannedAt).toLocaleString("es-AR") : "—" },
+                    { label: "Motivo", value: claims.bannedReason || "—" },
+                ],
+            })
+        }
 
         const plans = [...new Set(claims.purchases.filter(p => p !== "voucher"))]
         for (const planId of plans) {
@@ -301,8 +338,24 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
 
     const roleLabel = claims?.admin ? "ADMIN" : claims?.isEnterprise ? "ENTERPRISE" : "USUARIO"
 
+    // Banear solo si no está baneado; desbanear solo si lo está
+    const visibleActions = ACTIONS.filter(a =>
+        a.id === "ban_user"   ? !claims?.banned :
+        a.id === "unban_user" ?  !!claims?.banned :
+        true
+    )
+
+    // Si cambia el estado de ban (por ejemplo, después de banear), no dejar
+    // seleccionada una acción que ya no aplica
+    useEffect(() => {
+        if (!claims) return
+        if (action === "ban_user"   &&  claims.banned) setAction("unban_user")
+        if (action === "unban_user" && !claims.banned) setAction("ban_user")
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [claims?.banned])
+
     // ── Validación local (solo UX, el backend decide) ─────────────────────────
-    const isDanger = action === "clear_all" || action === "clear_purchases"
+    const isDanger = action === "clear_all" || action === "clear_purchases" || action === "ban_user"
 
     const canSubmit =
         !submitting &&
@@ -310,6 +363,7 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
         /^\d{4}$/.test(pin) &&
         (!isDanger || confirmDanger) &&
         (action !== "set_enterprise" || companyName.trim().length >= 2) &&
+        (action !== "ban_user" || (banReason.length <= BAN_REASON_MAX && !/[<>]/.test(banReason))) &&
         !claims?.admin
 
     const changeAction = (next: Action) => {
@@ -330,6 +384,7 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
             const body: Record<string, unknown> = { action, pin }
 
             if (action === "grant_user_plan") body.plan = userPlan
+            if (action === "ban_user")        body.reason = banReason.trim()
 
             if (action === "set_enterprise") {
                 let finalLogo: string | null = logoUrl.trim() || null
@@ -347,8 +402,13 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
 
             setClaims(data.claims)
             setExpandedId(null)
-            setFeedback({ ok: true, title: "CLAIMS_ACTUALIZADAS", text: "El cambio ya está aplicado en Firebase." })
+            setFeedback(
+                action === "ban_user"   ? { ok: true, title: "USUARIO_BANEADO",    text: "Se cerraron sus sesiones. Conserva compras y roles." } :
+                action === "unban_user" ? { ok: true, title: "USUARIO_DESBANEADO", text: "Ya puede volver a iniciar sesión." } :
+                                          { ok: true, title: "CLAIMS_ACTUALIZADAS", text: "El cambio ya está aplicado en Firebase." }
+            )
             setConfirmDanger(false)
+            if (action === "ban_user") setBanReason("")
             if (logoFile) {
                 setLogoFile(null)
                 setLogoUrl(data.claims.companyLogo || "")
@@ -469,7 +529,7 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
 
                             {/* ── Tabs de acción ── */}
                             <div className="cm-tabs" role="tablist">
-                                {ACTIONS.map(a => (
+                                {visibleActions.map(a => (
                                     <button
                                         key={a.id}
                                         type="button"
@@ -598,8 +658,58 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
                                 </div>
                             )}
 
+                            {/* ── 6) Banear ── */}
+                            {action === "ban_user" && (
+                                <div className="cm-block">
+                                    <span className="cm-detail-title cm-detail-title--danger">Banear usuario</span>
+                                    <div className="cm-message cm-message--error">
+                                        <strong>SUSPENDER_CUENTA</strong>
+                                        <span>
+                                            Cierra todas sus sesiones al instante y no va a poder volver a ingresar.
+                                            Conserva sus compras, roles y certificaciones: se puede desbanear después.
+                                        </span>
+                                    </div>
+                                    <label className="cm-field">
+                                        <span>Motivo (opcional, queda registrado)</span>
+                                        <input
+                                            type="text"
+                                            value={banReason}
+                                            maxLength={BAN_REASON_MAX}
+                                            onChange={e => setBanReason(e.target.value)}
+                                            placeholder="Ej: intento de acceso indebido"
+                                            disabled={submitting}
+                                        />
+                                    </label>
+                                    <label className="cm-check">
+                                        <input
+                                            type="checkbox"
+                                            checked={confirmDanger}
+                                            onChange={e => setConfirmDanger(e.target.checked)}
+                                        />
+                                        Confirmo que quiero banear a {user.email}
+                                    </label>
+                                </div>
+                            )}
+
+                            {/* ── 7) Desbanear ── */}
+                            {action === "unban_user" && (
+                                <div className="cm-block">
+                                    <span className="cm-detail-title">Desbanear usuario</span>
+                                    <div className="cm-message cm-message--warn">
+                                        <strong>REACTIVAR_CUENTA</strong>
+                                        <span>
+                                            {claims?.bannedReason
+                                                ? `Motivo del ban: ${claims.bannedReason}. `
+                                                : ""}
+                                            Quita el ban, resetea sus intentos fallidos de login y conserva el resto de sus claims.
+                                            Va a tener que volver a iniciar sesión.
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* ── 4 / 5) Destructivas ── */}
-                            {isDanger && (
+                            {(action === "clear_all" || action === "clear_purchases") && (
                                 <div className="cm-block">
                                     <span className="cm-detail-title cm-detail-title--danger">
                                         {action === "clear_all" ? "Reset total" : "Limpiar compras"}
@@ -651,7 +761,11 @@ const ClaimsManager = ({ user, onClose, onUpdated }: Props) => {
                                     className={`cm-submit${isDanger ? " danger" : ""}`}
                                     disabled={!canSubmit}
                                 >
-                                    {submitting ? "Aplicando…" : "Firmar y aplicar"}
+                                    {submitting
+                                        ? "Aplicando…"
+                                        : action === "ban_user"   ? "Firmar y banear"
+                                        : action === "unban_user" ? "Firmar y desbanear"
+                                        : "Firmar y aplicar"}
                                 </button>
                             </div>
 

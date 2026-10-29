@@ -108,6 +108,25 @@ const BLANK_CV: CVData = {
   },
 };
 
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+
+// Escapa texto para meterlo en el HTML del export a PDF (document.write).
+// Sin esto, un CV con comillas o < > en los campos rompe/inyecta código.
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+   .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+function escapeDeep<T>(value: T): T {
+  if (typeof value === "string") return escapeHtml(value) as unknown as T;
+  if (Array.isArray(value))      return value.map(escapeDeep) as unknown as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = escapeDeep(v);
+    return out as T;
+  }
+  return value;
+}
+
 const TABS_DEF = [
   { id:"personal",  label:"Datos personales" },
   { id:"experience",label:"Experiencia"      },
@@ -520,12 +539,30 @@ export default function CVBuilder() {
   const [uploading, setUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
+  // Subida FIRMADA: el backend genera una firma con el API secret de Cloudinary
+  // que solo sirve para la carpeta de este usuario (cv-photos/<uid>) y para
+  // imágenes. Sin esa firma, Cloudinary rechaza la subida.
   const uploadToCloudinary = async (file: File): Promise<string> => {
+    const { data: sig } = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/cv/photo-signature`,
+      {},
+      { withCredentials: true }
+    );
+
+    // Tienen que viajar exactamente los mismos parámetros que se firmaron
     const imgData = new FormData();
-    imgData.append("file", file);
-    imgData.append("upload_preset", "product-images");
+    imgData.append("file",            file);
+    imgData.append("api_key",         sig.apiKey);
+    imgData.append("timestamp",       String(sig.timestamp));
+    imgData.append("signature",       sig.signature);
+    imgData.append("upload_preset",   sig.upload_preset);
+    imgData.append("public_id",       sig.public_id);
+    imgData.append("overwrite",       sig.overwrite);
+    imgData.append("invalidate",      sig.invalidate);
+    imgData.append("allowed_formats", sig.allowed_formats);
+
     const response = await axios.post(
-      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
       imgData
     );
     return response.data.secure_url;
@@ -534,6 +571,17 @@ export default function CVBuilder() {
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Control rápido en el navegador (Cloudinary y el backend validan igual)
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      notify("La foto tiene que ser JPG, PNG o WEBP", "error");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      notify("La foto no puede superar los 8 MB", "error");
+      e.target.value = "";
+      return;
+    }
     setPhotoFile(file);
     setUploading(true);
     try {
@@ -544,6 +592,7 @@ export default function CVBuilder() {
       notify("Error al subir la foto", "error");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -593,7 +642,9 @@ export default function CVBuilder() {
 
   // Exportar PDF via print
   const exportPDF = () => {
-    const p    = cv.personalInfo;
+    // Copia del CV con todo el texto escapado: es lo único que se mete en el HTML
+    const cvx = escapeDeep(cv);
+    const p    = cvx.personalInfo;
     const name = `${p.firstName}_${p.lastName}`.replace(/\s+/g, "_");
 
     // ── Helpers de sección ──────────────────────────────────────
@@ -614,12 +665,12 @@ export default function CVBuilder() {
     const skillTag = (s: string) =>
       `<span style="display:inline-block;border:1.5px solid #111;color:#111;font-family:'Montserrat',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 11px;margin:3px;">${s}</span>`;
 
-    const rolesTagsHTML        = cv.skills.roles.map(skillTag).join("");
-    const habilidadesTagsHTML  = cv.skills.habilidades.map(skillTag).join("");
-    const herramientasTagsHTML = cv.skills.herramientas.map(skillTag).join("");
+    const rolesTagsHTML        = cvx.skills.roles.map(skillTag).join("");
+    const habilidadesTagsHTML  = cvx.skills.habilidades.map(skillTag).join("");
+    const herramientasTagsHTML = cvx.skills.herramientas.map(skillTag).join("");
 
     // ── Experiencia ─────────────────────────────────────────────
-    const experienceHTML = cv.experience.map(e => entryBlock(`
+    const experienceHTML = cvx.experience.map(e => entryBlock(`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
         <div>
           <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:-0.3px;color:#000;">${e.position}</div>
@@ -633,7 +684,7 @@ export default function CVBuilder() {
     `)).join("");
 
     // ── Educación ───────────────────────────────────────────────
-    const educationHTML = cv.education.map(e => entryBlock(`
+    const educationHTML = cvx.education.map(e => entryBlock(`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
         <div>
           <div style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${e.degree}${e.field ? ` — ${e.field}` : ""}</div>
@@ -647,7 +698,7 @@ export default function CVBuilder() {
     `)).join("");
 
     // ── Certificaciones ─────────────────────────────────────────
-    const certsHTML = cv.certifications.map(c => entryBlock(`
+    const certsHTML = cvx.certifications.map(c => entryBlock(`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div>
           <span style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:900;color:#000;">${c.name}</span>
@@ -660,7 +711,7 @@ export default function CVBuilder() {
 
     // ── Idiomas ─────────────────────────────────────────────────
     const langsHTML = `<div style="display:flex;flex-wrap:wrap;gap:28px;">` +
-      cv.languages.map(l => `
+      cvx.languages.map(l => `
         <div style="page-break-inside:avoid;">
           <div style="font-family:'Montserrat',sans-serif;font-size:14px;font-weight:900;text-transform:uppercase;color:#000;">${l.language}</div>
           <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;color:#777;text-transform:uppercase;margin-top:2px;">${l.level}</div>
@@ -668,7 +719,7 @@ export default function CVBuilder() {
       ).join("") + `</div>`;
 
     // ── Proyectos ───────────────────────────────────────────────
-    const projectsHTML = cv.projects.map(proj => entryBlock(`
+    const projectsHTML = cvx.projects.map(proj => entryBlock(`
       <div style="border-left:3px solid #000;padding-left:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:5px;">
           <span style="font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;color:#000;">${proj.name}</span>
@@ -685,11 +736,11 @@ export default function CVBuilder() {
     // ── Disponibilidad ──────────────────────────────────────────
     const dispHTML = `
       <div style="page-break-inside:avoid;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-        <span style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;color:#000;">${cv.availability}</span>
-        ${(cv.workPreferences.modality.length > 0) ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;">${cv.workPreferences.modality.join(" · ")}</span>` : ""}
-        ${(cv.workPreferences.salaryMin || cv.workPreferences.salaryMax) ? `
+        <span style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;color:#000;">${cvx.availability}</span>
+        ${(cvx.workPreferences.modality.length > 0) ? `<span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:#666;">${cvx.workPreferences.modality.join(" · ")}</span>` : ""}
+        ${(cvx.workPreferences.salaryMin || cvx.workPreferences.salaryMax) ? `
           <span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:#555;">
-            ${cv.workPreferences.currency} ${cv.workPreferences.salaryMin?.toLocaleString("es-AR") ?? ""}${cv.workPreferences.salaryMin && cv.workPreferences.salaryMax ? " — " : ""}${cv.workPreferences.salaryMax?.toLocaleString("es-AR") ?? ""}
+            ${cvx.workPreferences.currency} ${cvx.workPreferences.salaryMin?.toLocaleString("es-AR") ?? ""}${cvx.workPreferences.salaryMin && cvx.workPreferences.salaryMax ? " — " : ""}${cvx.workPreferences.salaryMax?.toLocaleString("es-AR") ?? ""}
           </span>` : ""}
       </div>`;
 
@@ -743,27 +794,27 @@ export default function CVBuilder() {
   ${p.summary ? section("PERFIL PROFESIONAL", `<p style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;color:#222;line-height:1.85;border-left:3px solid #000;padding-left:16px;">${p.summary}</p>`) : ""}
 
   <!-- EXPERIENCIA ─────────────────────────────────── -->
-  ${cv.experience.length > 0 ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
+  ${cvx.experience.length > 0 ? section("EXPERIENCIA LABORAL", experienceHTML) : ""}
 
   <!-- EDUCACIÓN ───────────────────────────────────── -->
-  ${cv.education.length > 0 ? section("EDUCACIÓN", educationHTML) : ""}
+  ${cvx.education.length > 0 ? section("EDUCACIÓN", educationHTML) : ""}
 
   <!-- SKILLS — separadas por rama ─────────────────── -->
-  ${cv.skills.roles.length > 0 ? section("ÁREAS Y ROLES", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${rolesTagsHTML}</div>`) : ""}
-  ${cv.skills.habilidades.length > 0 ? section("HABILIDADES", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${habilidadesTagsHTML}</div>`) : ""}
-  ${cv.skills.herramientas.length > 0 ? section("HERRAMIENTAS", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${herramientasTagsHTML}</div>`) : ""}
+  ${cvx.skills.roles.length > 0 ? section("ÁREAS Y ROLES", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${rolesTagsHTML}</div>`) : ""}
+  ${cvx.skills.habilidades.length > 0 ? section("HABILIDADES", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${habilidadesTagsHTML}</div>`) : ""}
+  ${cvx.skills.herramientas.length > 0 ? section("HERRAMIENTAS", `<div style="display:flex;flex-wrap:wrap;gap:4px;">${herramientasTagsHTML}</div>`) : ""}
 
   <!-- PROYECTOS ───────────────────────────────────── -->
-  ${cv.projects.length > 0 ? section("PROYECTOS", projectsHTML) : ""}
+  ${cvx.projects.length > 0 ? section("PROYECTOS", projectsHTML) : ""}
 
   <!-- CERTIFICACIONES ─────────────────────────────── -->
-  ${cv.certifications.length > 0 ? section("CERTIFICACIONES", certsHTML) : ""}
+  ${cvx.certifications.length > 0 ? section("CERTIFICACIONES", certsHTML) : ""}
 
   <!-- IDIOMAS ─────────────────────────────────────── -->
-  ${cv.languages.length > 0 ? section("IDIOMAS", langsHTML) : ""}
+  ${cvx.languages.length > 0 ? section("IDIOMAS", langsHTML) : ""}
 
   <!-- DISPONIBILIDAD ──────────────────────────────── -->
-  ${cv.availability ? section("DISPONIBILIDAD", dispHTML) : ""}
+  ${cvx.availability ? section("DISPONIBILIDAD", dispHTML) : ""}
 
 </div>
 
