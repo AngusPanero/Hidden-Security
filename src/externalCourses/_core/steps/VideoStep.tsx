@@ -1,44 +1,50 @@
-import { CheckCircle2, Loader2 } from "lucide-react";
 import type { CourseStep } from "../api/externalCoursesApi";
 
 interface Props {
     step: CourseStep;
-    completed: boolean;
-    busy: boolean;
-    onComplete: () => void;
 }
 
-// Video embebido desde la URL del course.config.js (YouTube, Vimeo, etc.)
+// Mismo visor que Soc1Course (VideoViewer).
+// Un .mp4 directo (Cloudinary, etc.) se reproduce con <video> sin botón de descarga.
+// Un link de plataforma (YouTube, Vimeo) se embebe en un iframe.
 
-const VideoStep = ({ step, completed, busy, onComplete }: Props) => {
+const isDirectVideo = (url: string) => /\.(mp4|webm|mov)(\?|#|$)/i.test(url) || /\/video\/upload\//i.test(url);
+
+const VideoStep = ({ step }: Props) => {
+    if (!step.url) {
+        return (
+            <div className="xs-pdf-error">
+                <span>Video no disponible.</span>
+            </div>
+        );
+    }
+
+    if (isDirectVideo(step.url)) {
+        return (
+            <div className="xs-video-wrap xs-protected">
+                <video
+                    className="xs-video"
+                    controls
+                    controlsList="nodownload"
+                    disablePictureInPicture
+                    onContextMenu={(e) => e.preventDefault()}
+                    preload="metadata"
+                >
+                    <source src={step.url} type="video/mp4" />
+                    Tu navegador no soporta reproducción de video.
+                </video>
+            </div>
+        );
+    }
+
     return (
-        <div className="xc-step xc-step--video">
-            <div className="xc-video-frame">
-                {step.url ? (
-                    <iframe
-                        src={step.url}
-                        title={step.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                        allowFullScreen
-                    />
-                ) : (
-                    <div className="xc-pdf-state">VIDEO NO DISPONIBLE</div>
-                )}
-            </div>
-
-            <div className="xc-step-actions">
-                {completed ? (
-                    <span className="xc-done-chip">
-                        <CheckCircle2 size={16} />
-                        VISTO
-                    </span>
-                ) : (
-                    <button className="xc-btn xc-btn--primary" onClick={onComplete} disabled={busy}>
-                        {busy ? <Loader2 className="xc-spin" size={16} /> : <CheckCircle2 size={16} />}
-                        MARCAR COMO VISTO
-                    </button>
-                )}
-            </div>
+        <div className="xs-video-wrap xs-video-wrap--embed">
+            <iframe
+                src={step.url}
+                title={step.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+            />
         </div>
     );
 };

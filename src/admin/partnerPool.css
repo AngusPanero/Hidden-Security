@@ -1,0 +1,688 @@
+/* ══════════════════════════════════════════════════════════════
+   PartnerPool.css — Hidden Security · métricas de empresas partner
+   Misma estética que soc1Course.css · prefijo pp-
+══════════════════════════════════════════════════════════════ */
+
+.pp-wrap {
+  --pp-accent:  #ccff00;
+  --pp-danger:  #f43f5e;
+  --pp-success: #22c55e;
+  --pp-border:  rgba(255,255,255,0.1);
+  --pp-surface: rgba(255,255,255,0.025);
+  --pp-muted:   rgba(255,255,255,0.45);
+  --pp-text:    #ffffff;
+  --pp-bg:      #000000;
+  --pp-accent-soft: rgba(204,255,0,0.06);
+
+  width:       100%;
+  box-sizing:  border-box;
+  color:       var(--pp-text);
+  font-family: 'Montserrat', 'JetBrains Mono', sans-serif;
+  font-style:  normal;
+  display:     flex;
+  flex-direction: column;
+  gap:         24px;
+}
+
+.pp-wrap.light {
+  --pp-accent:  #ff5500;
+  --pp-border:  rgba(0,0,0,0.12);
+  --pp-surface: rgba(0,0,0,0.025);
+  --pp-muted:   rgba(0,0,0,0.45);
+  --pp-text:    #000000;
+  --pp-bg:      #f5f5f5;
+  --pp-accent-soft: rgba(255,85,0,0.06);
+}
+
+.pp-wrap *,
+.pp-wrap *::before,
+.pp-wrap *::after { box-sizing: border-box; }
+
+/* ── Helpers ─────────────────────────────────────────────────── */
+.pp-eyebrow,
+.pp-field-label,
+.pp-kpi-label,
+.pp-stat-label,
+.pp-body-title {
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color:          var(--pp-accent);
+  display:        block;
+}
+
+.pp-muted { color: var(--pp-muted); font-weight: 600; }
+
+.pp-btn {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.68rem;
+  font-weight:    900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding:        10px 18px;
+  border:         1px solid;
+  cursor:         pointer;
+  transition:     all 0.2s;
+  white-space:    nowrap;
+}
+.pp-btn--ghost {
+  background:   transparent;
+  border-color: var(--pp-border);
+  color:        var(--pp-muted);
+}
+.pp-btn--ghost:hover:not(:disabled) { border-color: var(--pp-accent); color: var(--pp-accent); }
+.pp-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Loading ─────────────────────────────────────────────────── */
+.pp-loading {
+  display:         flex;
+  justify-content: center;
+  align-items:     center;
+  gap:             8px;
+  padding:         60px 0;
+}
+.pp-loading-dot {
+  width:      8px;
+  height:     8px;
+  background: var(--pp-accent);
+  animation:  pp-pulse 1.2s ease-in-out infinite;
+}
+.pp-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.pp-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pp-pulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40%           { opacity: 1;   transform: scale(1);   }
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.pp-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-end;
+  gap:             20px;
+  padding-bottom:  20px;
+  border-bottom:   2px solid var(--pp-accent);
+  flex-wrap:       wrap;
+}
+
+.pp-title {
+  font-size:      clamp(1.2rem, 2.6vw, 1.6rem);
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  margin:         6px 0 0;
+}
+
+.pp-sub {
+  margin:      6px 0 0;
+  font-size:   0.78rem;
+  font-weight: 500;
+  opacity:     0.6;
+}
+
+.pp-controls {
+  display:     flex;
+  align-items: flex-end;
+  gap:         12px;
+  flex-wrap:   wrap;
+}
+
+.pp-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.pp-input {
+  background:  transparent;
+  border:      1px solid var(--pp-border);
+  color:       var(--pp-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.78rem;
+  font-weight: 700;
+  padding:     9px 12px;
+  min-width:   170px;
+  outline:     none;
+  color-scheme: dark;
+  transition:  border-color 0.2s;
+}
+.pp-wrap.light .pp-input { color-scheme: light; }
+.pp-input:focus { border-color: var(--pp-accent); }
+.pp-input::placeholder { color: var(--pp-muted); }
+
+/* ── Error / vacío ───────────────────────────────────────────── */
+.pp-error {
+  padding:     40px 24px;
+  border:      1px solid rgba(244,63,94,0.25);
+  background:  rgba(244,63,94,0.04);
+  color:       var(--pp-danger);
+  font-size:   0.82rem;
+  font-weight: 700;
+  text-align:  center;
+}
+
+.pp-empty {
+  padding:     50px 24px;
+  border:      1px solid var(--pp-border);
+  text-align:  center;
+  font-size:   0.82rem;
+  font-weight: 600;
+  opacity:     0.6;
+}
+
+/* ── KPIs ────────────────────────────────────────────────────── */
+.pp-kpis {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap:                   12px;
+}
+
+.pp-kpi {
+  border:         1px solid var(--pp-border);
+  background:     var(--pp-surface);
+  padding:        18px 20px;
+  display:        flex;
+  flex-direction: column;
+  gap:            8px;
+}
+.pp-kpi--accent { border-color: var(--pp-accent); background: var(--pp-accent-soft); }
+
+.pp-kpi-label { opacity: 0.75; }
+
+.pp-kpi-value {
+  font-size:      1.7rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  line-height:    1;
+  color:          var(--pp-accent);
+}
+.pp-kpi-value small,
+.pp-stat-value small {
+  font-size:   0.55em;
+  font-weight: 700;
+  color:       var(--pp-muted);
+  letter-spacing: 0;
+}
+
+.pp-note {
+  margin:       0;
+  font-size:    0.72rem;
+  font-weight:  500;
+  line-height:  1.7;
+  opacity:      0.6;
+  border-left:  3px solid var(--pp-accent);
+  padding-left: 14px;
+}
+
+/* ── Empresas ────────────────────────────────────────────────── */
+.pp-partners {
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+}
+
+.pp-partner {
+  border:     1px solid var(--pp-border);
+  background: var(--pp-surface);
+  transition: border-color 0.2s;
+}
+.pp-partner.expanded { border-color: rgba(204,255,0,0.35); }
+.pp-wrap.light .pp-partner.expanded { border-color: rgba(255,85,0,0.35); }
+.pp-partner.disabled { opacity: 0.6; }
+
+.pp-partner-header {
+  width:       100%;
+  display:     flex;
+  align-items: center;
+  gap:         24px;
+  padding:     22px 26px;
+  background:  transparent;
+  border:      none;
+  cursor:      pointer;
+  text-align:  left;
+  color:       inherit;
+  font-family: 'Montserrat', sans-serif;
+}
+.pp-partner-header:hover { background: var(--pp-accent-soft); }
+
+.pp-partner-id {
+  flex:        1;
+  min-width:   0;
+  display:     flex;
+  align-items: center;
+  gap:         16px;
+}
+.pp-partner-id img {
+  height:     34px;
+  width:      34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.pp-partner-icon {
+  font-size:  1.3rem;
+  color:      var(--pp-accent);
+  width:      34px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.pp-partner-name {
+  display:        block;
+  font-size:      clamp(1rem, 2vw, 1.25rem);
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+.pp-partner-code {
+  display:        block;
+  margin-top:     4px;
+  font-size:      0.58rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--pp-muted);
+}
+
+.pp-share {
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-end;
+  gap:            6px;
+  width:          220px;
+  flex-shrink:    0;
+}
+.pp-share-value {
+  font-size:      1.4rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  line-height:    1;
+  color:          var(--pp-accent);
+}
+.pp-share-bar {
+  width:      100%;
+  height:     4px;
+  background: var(--pp-border);
+  overflow:   hidden;
+  display:    block;
+}
+.pp-share-fill {
+  display:    block;
+  height:     100%;
+  background: var(--pp-accent);
+  transition: width 0.4s ease;
+}
+.pp-share-money {
+  font-size:   0.7rem;
+  font-weight: 800;
+  color:       var(--pp-text);
+  opacity:     0.8;
+}
+
+.pp-chevron {
+  font-size:   0.65rem;
+  opacity:     0.5;
+  flex-shrink: 0;
+}
+
+/* Métricas rápidas de la empresa */
+.pp-stats {
+  display:               grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-top:            1px solid var(--pp-border);
+}
+.pp-stat {
+  padding:        14px 18px;
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  border-right:   1px solid var(--pp-border);
+}
+.pp-stat:last-child { border-right: none; }
+.pp-stat-label { font-size: 0.54rem; opacity: 0.7; }
+.pp-stat-value {
+  font-size:      1.15rem;
+  font-weight:    900;
+  letter-spacing: -0.5px;
+}
+
+/* Detalle por curso */
+.pp-partner-body {
+  border-top:  1px solid rgba(204,255,0,0.35);
+  background:  var(--pp-bg);
+  padding:     20px 26px 22px;
+  animation:   pp-drop 0.2s ease;
+  transform-origin: top;
+}
+.pp-wrap.light .pp-partner-body { border-top-color: rgba(255,85,0,0.35); }
+
+@keyframes pp-drop {
+  from { opacity: 0; transform: scaleY(0.96) translateY(-4px); }
+  to   { opacity: 1; transform: scaleY(1)    translateY(0);    }
+}
+
+.pp-body-title { margin: 0 0 12px; opacity: 0.7; }
+
+.pp-table-wrap {
+  width:      100%;
+  overflow-x: auto;
+  border:     1px solid var(--pp-border);
+}
+
+.pp-table {
+  width:           100%;
+  border-collapse: collapse;
+  font-size:       0.74rem;
+  font-weight:     600;
+  min-width:       820px;
+}
+.pp-table th {
+  text-align:     left;
+  font-size:      0.56rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color:          var(--pp-accent);
+  padding:        12px 14px;
+  border-bottom:  1px solid var(--pp-border);
+  white-space:    nowrap;
+}
+.pp-table td {
+  padding:       12px 14px;
+  border-bottom: 1px solid var(--pp-border);
+  white-space:   nowrap;
+}
+.pp-table tbody tr:last-child td { border-bottom: none; }
+.pp-table tbody tr:hover td { background: var(--pp-surface); }
+
+.pp-course-title {
+  display:     block;
+  font-weight: 800;
+  white-space: normal;
+  min-width:   180px;
+}
+.pp-course-id {
+  display:        block;
+  margin-top:     3px;
+  font-size:      0.58rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  color:          var(--pp-muted);
+}
+
+.pp-legend {
+  margin:    10px 0 0;
+  font-size: 0.64rem;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .pp-stats { grid-template-columns: repeat(3, 1fr); }
+  .pp-stat:nth-child(3n) { border-right: none; }
+  .pp-stat:nth-child(-n+3) { border-bottom: 1px solid var(--pp-border); }
+}
+
+@media (max-width: 768px) {
+  .pp-header { flex-direction: column; align-items: stretch; }
+  .pp-controls { flex-direction: column; align-items: stretch; }
+  .pp-input { min-width: 0; width: 100%; }
+
+  .pp-partner-header {
+    flex-wrap: wrap;
+    gap:       14px;
+    padding:   18px;
+  }
+  .pp-share {
+    order:       3;
+    width:       100%;
+    align-items: flex-start;
+  }
+  .pp-chevron { order: 2; }
+
+  .pp-stats { grid-template-columns: repeat(2, 1fr); }
+  .pp-stat { border-bottom: 1px solid var(--pp-border); }
+  .pp-stat:nth-child(3n) { border-right: 1px solid var(--pp-border); }
+  .pp-stat:nth-child(2n) { border-right: none; }
+  .pp-stat:nth-last-child(-n+2) { border-bottom: none; }
+
+  .pp-partner-body { padding: 16px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Pestañas, liquidaciones y auditoría
+══════════════════════════════════════════════════════════════ */
+
+.pp-btn--accent {
+  background:   var(--pp-accent);
+  border-color: var(--pp-accent);
+  color:        #000;
+}
+.pp-btn--accent:hover:not(:disabled) { opacity: 0.85; }
+
+.pp-btn--danger {
+  background:   transparent;
+  border-color: var(--pp-danger);
+  color:        var(--pp-danger);
+}
+.pp-btn--danger:hover:not(:disabled) { background: var(--pp-danger); color: #000; }
+
+.pp-btn--link {
+  background:      none;
+  border:          none;
+  padding:         0;
+  color:           var(--pp-muted);
+  font-size:       0.66rem;
+  letter-spacing:  1px;
+  text-decoration: underline;
+}
+.pp-btn--link:hover { color: var(--pp-danger); }
+
+/* Pestañas */
+.pp-tabs { display: flex; border: 1px solid var(--pp-border); }
+.pp-tab {
+  background:     transparent;
+  border:         none;
+  border-right:   1px solid var(--pp-border);
+  color:          var(--pp-muted);
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.66rem;
+  font-weight:    900;
+  letter-spacing: 2px;
+  padding:        11px 20px;
+  cursor:         pointer;
+  transition:     all 0.2s;
+}
+.pp-tab:last-child { border-right: none; }
+.pp-tab:hover { color: var(--pp-accent); }
+.pp-tab.active { background: var(--pp-accent); color: #000; }
+
+/* Barra bajo el header */
+.pp-toolbar {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-end;
+  gap:             16px;
+  flex-wrap:       wrap;
+}
+.pp-toolbar .pp-sub { margin: 0; }
+
+/* Chips de estado */
+.pp-chip {
+  display:        inline-block;
+  font-size:      0.54rem;
+  font-weight:    900;
+  letter-spacing: 1.5px;
+  padding:        3px 8px;
+  border:         1px solid var(--pp-border);
+  color:          var(--pp-muted);
+  vertical-align: middle;
+}
+.pp-chip--calculating,
+.pp-chip--calculated { border-color: var(--pp-accent); color: var(--pp-accent); }
+.pp-chip--approved   { border-color: var(--pp-accent); background: var(--pp-accent); color: #000; }
+.pp-chip--closed,
+.pp-chip--paid       { border-color: var(--pp-success); color: var(--pp-success); }
+.pp-chip--cancelled  { border-color: var(--pp-danger); color: var(--pp-danger); }
+
+/* Historial de períodos */
+.pp-history {
+  display:    flex;
+  gap:        10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.pp-history-item {
+  flex:           0 0 auto;
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-start;
+  gap:            6px;
+  min-width:      170px;
+  padding:        12px 14px;
+  background:     var(--pp-surface);
+  border:         1px solid var(--pp-border);
+  color:          inherit;
+  font-family:    'Montserrat', sans-serif;
+  text-align:     left;
+  cursor:         pointer;
+  transition:     border-color 0.2s;
+}
+.pp-history-item:hover,
+.pp-history-item.active { border-color: var(--pp-accent); }
+.pp-history-month {
+  font-size:      0.7rem;
+  font-weight:    900;
+  text-transform: uppercase;
+}
+.pp-history-amount { font-size: 0.82rem; font-weight: 900; color: var(--pp-accent); }
+.pp-history-paid   { font-size: 0.6rem; }
+
+/* Período */
+.pp-period {
+  border:         1px solid var(--pp-border);
+  background:     var(--pp-surface);
+  padding:        22px 24px;
+  display:        flex;
+  flex-direction: column;
+  gap:            18px;
+}
+.pp-period-head {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-start;
+  gap:             16px;
+  flex-wrap:       wrap;
+}
+.pp-period-title {
+  margin:         6px 0 10px;
+  font-size:      1.3rem;
+  font-weight:    900;
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+}
+.pp-period-date { font-size: 0.66rem; }
+
+.pp-actions {
+  display:   flex;
+  gap:       10px;
+  flex-wrap: wrap;
+}
+
+/* Cadena del cálculo: ingresos → pool habilitado */
+.pp-flow {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  border:                1px solid var(--pp-border);
+}
+.pp-flow .pp-stat {
+  border-right:  1px solid var(--pp-border);
+  border-bottom: none;
+}
+.pp-flow .pp-stat:last-child { border-right: none; }
+.pp-stat--accent { background: var(--pp-accent-soft); }
+.pp-stat--accent .pp-stat-value { color: var(--pp-accent); }
+
+.pp-warning {
+  padding:     12px 16px;
+  border:      1px solid rgba(245,158,11,0.4);
+  background:  rgba(245,158,11,0.06);
+  color:       #f59e0b;
+  font-size:   0.74rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.pp-section-head {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     baseline;
+  gap:             12px;
+  flex-wrap:       wrap;
+}
+.pp-section-total { font-size: 0.78rem; font-weight: 600; opacity: 0.8; }
+.pp-section-total strong { color: var(--pp-accent); font-size: 1rem; font-weight: 900; margin-left: 6px; }
+
+/* Formularios en línea */
+.pp-inline-form {
+  display:     flex;
+  gap:         10px;
+  flex-wrap:   wrap;
+  align-items: center;
+}
+.pp-inline-form .pp-input { flex: 1 1 220px; min-width: 0; }
+.pp-inline-form .pp-input--sm { flex: 0 1 160px; }
+select.pp-input { cursor: pointer; }
+select.pp-input option { background: #000; color: #fff; }
+.pp-wrap.light select.pp-input option { background: #fff; color: #000; }
+
+.pp-body-title--spaced { margin-top: 20px; }
+.pp-text-danger { color: var(--pp-danger) !important; }
+
+/* Auditoría */
+.pp-audit {
+  border:  1px solid var(--pp-border);
+  padding: 18px 22px;
+}
+.pp-audit-list {
+  list-style: none;
+  margin:     0;
+  padding:    0;
+  display:    flex;
+  flex-direction: column;
+}
+.pp-audit-item {
+  display:               grid;
+  grid-template-columns: 110px 1fr auto;
+  gap:                   14px;
+  align-items:           baseline;
+  padding:               9px 0;
+  border-bottom:         1px solid var(--pp-border);
+  font-size:             0.72rem;
+}
+.pp-audit-item:last-child { border-bottom: none; }
+.pp-audit-action {
+  font-weight:    900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color:          var(--pp-accent);
+  font-size:      0.64rem;
+}
+.pp-audit-detail { font-weight: 600; opacity: 0.85; word-break: break-word; }
+.pp-audit-date   { font-size: 0.62rem; color: var(--pp-muted); white-space: nowrap; }
+
+@media (max-width: 768px) {
+  .pp-tabs { width: 100%; }
+  .pp-tab  { flex: 1; }
+  .pp-toolbar { flex-direction: column; align-items: stretch; }
+  .pp-period  { padding: 16px; }
+  .pp-actions .pp-btn { flex: 1 1 auto; }
+  .pp-flow { grid-template-columns: repeat(2, 1fr); }
+  .pp-flow .pp-stat { border-bottom: 1px solid var(--pp-border); }
+  .pp-flow .pp-stat:nth-child(2n) { border-right: none; }
+  .pp-flow .pp-stat:last-child { grid-column: 1 / -1; border-bottom: none; }
+  .pp-audit { padding: 14px 16px; }
+  .pp-audit-item { grid-template-columns: 1fr; gap: 4px; }
+  .pp-inline-form .pp-input,
+  .pp-inline-form .pp-input--sm,
+  .pp-inline-form .pp-btn { flex: 1 1 100%; }
+}

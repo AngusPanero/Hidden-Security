@@ -11,10 +11,15 @@ import { UseShopping } from "../contexts/ShoppingContext";
 import { UseUsers } from "../contexts/UsersContext";
 import { UseTheme } from "../contexts/ThemeContext";
 import LearningProgress from "./LearningProgress";
+import PartnerPool from "./PartnerPool";
 
 const TABS = [
   {
     id: "charts", label: "MÉTRICAS",
+    icon: (<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17V10M7 17V6M11 17V9M15 17V3"/></svg>)
+  },
+  {
+    id: "pool", label: "PARTNER POOL",
     icon: (<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17V10M7 17V6M11 17V9M15 17V3"/></svg>)
   },
   {
@@ -87,7 +92,7 @@ const AdminDashboard = () => {
   // Si el pedido de tickets falla, el contexto puede quedar con un objeto de
   // error en vez de un array → se normaliza para que el panel no se rompa
   const allTickets: any[] = Array.isArray(rawTickets) ? rawTickets : [];
-  const { /* users, */ getUsers }                      = UseUsers();
+  const { getUsers }                      = UseUsers();
   const { theme }                                = UseTheme();
 
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -273,8 +278,9 @@ const AdminDashboard = () => {
       {/* ── CONTENIDO ── */}
       <main className="hs-content">
         {activeTab === "charts"  && <Charts allTickets={allTickets} />}
+        {activeTab === "pool"   && <PartnerPool />}
         {activeTab === "sales"   && <SalesHistory allTickets={allTickets} />}
-        {activeTab === "users"   && <UserList /* users={users} handleBanUser={handleBanUser} handleUnbanUser={handleUnbanUser} */ />}
+        {activeTab === "users"   && <UserList />}
         {activeTab === "coupons" && <CouponCreator />}
         {activeTab === "progress" && <LearningProgress />}
       </main>

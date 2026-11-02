@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Award, CheckCircle2, Loader2, RotateCcw, XCircle, ChevronRight, AlertTriangle } from "lucide-react";
 import {
     apiErrorMessage,
     type CourseStep,
     type QuizAnswers,
+    type QuizQuestion,
     type QuizResult,
     type QuizSubmitResponse,
 } from "../api/externalCoursesApi";
@@ -12,176 +12,191 @@ interface Props {
     step: CourseStep;
     result?: QuizResult;
     busy: boolean;
-    hasNext: boolean;
     onSubmit: (quizId: string, answers: QuizAnswers) => Promise<QuizSubmitResponse>;
-    onContinue: () => void;
 }
 
-// Quiz y examen final. La corrección es 100% del backend:
-// acá solo se eligen opciones y se muestra el resultado.
+// Mismo quiz que Soc1Course (QuizViewer). La corrección es 100% del backend:
+// acá solo se eligen opciones y se muestra el resultado. El orden de las
+// preguntas y el de las opciones se mezcla en cada intento.
+
+// Fisher–Yates — mezcla sin sesgo y sin mutar el original
+function shuffle<T>(items: T[]): T[] {
+    const arr = [...items];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+const shuffleQuiz = (questions: QuizQuestion[]) =>
+    shuffle(questions).map((q) => ({ ...q, options: shuffle(q.options) }));
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
-const QuizStep = ({ step, result, busy, hasNext, onSubmit, onContinue }: Props) => {
+const QuizStep = ({ step, result, busy, onSubmit }: Props) => {
     const quiz = step.quiz!;
-    const isFinal = step.type === "FINAL_EXAM";
 
+    const [questions, setQuestions] = useState<QuizQuestion[]>(() => shuffleQuiz(quiz.questions));
     const [answers, setAnswers] = useState<QuizAnswers>({});
     const [response, setResponse] = useState<QuizSubmitResponse | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [submitErr, setSubmitErr] = useState("");
+    const [showPrior, setShowPrior] = useState(!!result?.passed);
 
     useEffect(() => {
+        setQuestions(shuffleQuiz(quiz.questions));
         setAnswers({});
         setResponse(null);
-        setError(null);
+        setSubmitErr("");
+        setShowPrior(!!result?.passed);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [step.stepId]);
 
-    const attemptsUsed = response?.attempts ?? result?.attempts ?? 0;
-    const passed = response?.passed || result?.passed || false;
+    const attempts = response?.attempts ?? result?.attempts ?? 0;
+    const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
+    const allAnswered = questions.length > 0 && answeredCount === questions.length;
     const noAttemptsLeft =
-        !passed && quiz.maxAttempts != null && attemptsUsed >= quiz.maxAttempts;
-    const allAnswered = quiz.questions.every((q) => answers[q.id]);
+        !result?.passed && !response?.passed && quiz.maxAttempts != null && attempts >= quiz.maxAttempts;
+
+    const handleSelect = (questionId: string, optionId: string) => {
+        if (response) return;
+        setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+    };
 
     const handleSubmit = async () => {
-        setError(null);
+        if (!allAnswered || busy) return;
+        setSubmitErr("");
         try {
-            const r = await onSubmit(quiz.quizId, answers);
-            setResponse(r);
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            setResponse(await onSubmit(quiz.quizId, answers));
         } catch (err) {
-            setError(apiErrorMessage(err));
+            setSubmitErr(apiErrorMessage(err, "No se pudo enviar el quiz. Revisá tu conexión e intentá de nuevo."));
         }
     };
 
-    const retry = () => {
+    // Cada reintento vuelve a mezclar preguntas y opciones
+    const handleRetry = () => {
+        setQuestions(shuffleQuiz(quiz.questions));
         setAnswers({});
         setResponse(null);
-        setError(null);
+        setShowPrior(false);
+        setSubmitErr("");
     };
 
-    // ─── Aprobado ────────────────────────────────────────────────────
-    if (passed) {
-        const score = response ? response.score : result?.bestScore ?? 0;
+    const chosenText = (q: QuizQuestion) => q.options.find((o) => o.id === answers[q.id])?.text ?? "—";
+
+    // ─── Ya aprobado antes ───────────────────────────────────────────
+    if (showPrior && result?.passed) {
         return (
-            <div className="xc-step xc-step--quiz">
-                <div className="xc-result xc-result--pass">
-                    <Award size={34} />
-                    <h3>{isFinal ? "EVALUACIÓN FINAL APROBADA" : "EVALUACIÓN APROBADA"}</h3>
-                    <p className="xc-result-score">{pct(score)}</p>
-                    <p className="xc-result-meta">
-                        Mínimo para aprobar: {pct(quiz.passScore)} · Intentos: {attemptsUsed}
-                    </p>
-                    {hasNext && (
-                        <button className="xc-btn xc-btn--primary" onClick={onContinue}>
-                            CONTINUAR
-                            <ChevronRight size={16} />
-                        </button>
-                    )}
-                </div>
+            <div className="xs-quiz-result xs-quiz-result--passed">
+                <span className="xs-quiz-result-icon">✓</span>
+                <p className="xs-quiz-result-score">Aprobado con {pct(result.bestScore ?? result.score)}</p>
+                <p className="xs-quiz-result-sub">
+                    Intentos: {result.attempts} · Podés continuar al siguiente módulo.
+                </p>
+                <button className="xs-btn xs-btn--ghost" onClick={handleRetry}>
+                    Reintentar de todas formas
+                </button>
             </div>
         );
     }
 
     // ─── Sin intentos ────────────────────────────────────────────────
-    if (noAttemptsLeft) {
+    if (noAttemptsLeft && !response) {
         return (
-            <div className="xc-step xc-step--quiz">
-                <div className="xc-result xc-result--fail">
-                    <XCircle size={34} />
-                    <h3>SIN INTENTOS DISPONIBLES</h3>
-                    <p className="xc-result-meta">
-                        Usaste los {quiz.maxAttempts} intentos de esta evaluación. Contactá a soporte de Hidden
-                        Security.
-                    </p>
-                </div>
+            <div className="xs-quiz-result xs-quiz-result--failed">
+                <span className="xs-quiz-result-icon">✗</span>
+                <p className="xs-quiz-result-score">SIN INTENTOS DISPONIBLES</p>
+                <p className="xs-quiz-result-sub">
+                    Usaste los {quiz.maxAttempts} intentos de esta evaluación. Contactá a soporte de Hidden Security.
+                </p>
             </div>
         );
     }
 
-    // ─── Desaprobado (recién enviado) ────────────────────────────────
-    if (response && !response.passed) {
+    // ─── Resultado del intento ───────────────────────────────────────
+    if (response) {
+        const passed = response.passed;
+        const canRetry = !passed && (response.attemptsLeft == null || response.attemptsLeft > 0);
         return (
-            <div className="xc-step xc-step--quiz">
-                <div className="xc-result xc-result--fail">
-                    <XCircle size={34} />
-                    <h3>NO ALCANZASTE EL MÍNIMO</h3>
-                    <p className="xc-result-score">{pct(response.score)}</p>
-                    <p className="xc-result-meta">
-                        {response.correctCount}/{response.total} correctas · Mínimo: {pct(quiz.passScore)}
-                        {response.attemptsLeft != null && ` · Te quedan ${response.attemptsLeft} intentos`}
-                    </p>
-                    {(response.attemptsLeft == null || response.attemptsLeft > 0) && (
-                        <button className="xc-btn xc-btn--primary" onClick={retry}>
-                            <RotateCcw size={16} />
-                            REINTENTAR
-                        </button>
-                    )}
+            <div className={`xs-quiz-result${passed ? " xs-quiz-result--passed" : " xs-quiz-result--failed"}`}>
+                <span className="xs-quiz-result-icon">{passed ? "✓" : "✗"}</span>
+                <p className="xs-quiz-result-score">
+                    {pct(response.score)} — {passed ? "APROBADO" : "NO APROBADO"}
+                </p>
+                <p className="xs-quiz-result-sub">
+                    {passed
+                        ? "¡Excelente! Podés continuar al siguiente módulo."
+                        : `Necesitás al menos ${pct(quiz.passScore)} para aprobar. Intentá de nuevo.`}
+                </p>
+                <p className="xs-quiz-attempts">
+                    Intento #{attempts}
+                    {response.correctCount != null && response.total != null &&
+                        ` · ${response.correctCount}/${response.total} correctas`}
+                    {!passed && response.attemptsLeft != null && ` · Te quedan ${response.attemptsLeft} intentos`}
+                </p>
+
+                {/* Revisión — muestra lo elegido, nunca la correcta (vive en el backend) */}
+                <div className="xs-quiz-review">
+                    {questions.map((q, i) => (
+                        <div key={q.id} className="xs-quiz-review-item">
+                            <p className="xs-quiz-review-q">
+                                {i + 1}. {q.text}
+                            </p>
+                            <p className="xs-quiz-review-a">
+                                Tu respuesta: <strong>{chosenText(q)}</strong>
+                            </p>
+                        </div>
+                    ))}
                 </div>
+
+                {canRetry && (
+                    <button className="xs-btn xs-btn--accent" onClick={handleRetry}>
+                        REINTENTAR
+                    </button>
+                )}
             </div>
         );
     }
 
     // ─── Formulario ──────────────────────────────────────────────────
     return (
-        <div className="xc-step xc-step--quiz">
-            <div className="xc-quiz-info">
-                <span>{quiz.questionCount} PREGUNTAS</span>
-                <span>APROBÁS CON {pct(quiz.passScore)}</span>
-                <span>
-                    {quiz.maxAttempts != null
-                        ? `INTENTO ${attemptsUsed + 1} DE ${quiz.maxAttempts}`
-                        : `INTENTOS: ${attemptsUsed}`}
-                </span>
-            </div>
+        <div className="xs-quiz-wrap xs-protected" onCopy={(e) => e.preventDefault()}>
+            <p className="xs-quiz-subtitle">
+                Respondé todas las preguntas para aprobar. Mínimo {pct(quiz.passScore)}.
+                {attempts > 0 && <span className="xs-quiz-attempts"> · Intentos anteriores: {attempts}</span>}
+                {quiz.maxAttempts != null && (
+                    <span className="xs-quiz-attempts"> · Máximo {quiz.maxAttempts} intentos</span>
+                )}
+            </p>
 
-            <ol className="xc-questions">
-                {quiz.questions.map((q, qi) => (
-                    <li key={q.id} className="xc-question">
-                        <p className="xc-question-text">
-                            <span className="xc-question-num">{String(qi + 1).padStart(2, "0")}</span>
-                            {q.text}
-                        </p>
-                        <div className="xc-options">
-                            {q.options.map((o) => {
-                                const selected = answers[q.id] === o.id;
-                                return (
-                                    <button
-                                        key={o.id}
-                                        type="button"
-                                        className={`xc-option${selected ? " xc-option--selected" : ""}`}
-                                        onClick={() => setAnswers((a) => ({ ...a, [q.id]: o.id }))}
-                                        disabled={busy}
-                                    >
-                                        <span className="xc-option-dot" />
-                                        {o.text}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </li>
-                ))}
-            </ol>
+            {questions.map((q, qIdx) => (
+                <div key={q.id} className="xs-quiz-question">
+                    <p className="xs-quiz-q-text">
+                        {qIdx + 1}. {q.text}
+                    </p>
 
-            {error && (
-                <div className="xc-alert">
-                    <AlertTriangle size={16} />
-                    {error}
+                    <div className="xs-quiz-options">
+                        {q.options.map((opt, aIdx) => (
+                            <button
+                                key={opt.id}
+                                type="button"
+                                className={`xs-quiz-option${answers[q.id] === opt.id ? " selected" : ""}`}
+                                onClick={() => handleSelect(q.id, opt.id)}
+                                disabled={busy}
+                            >
+                                <span className="xs-quiz-option-letter">{String.fromCharCode(65 + aIdx)}</span>
+                                {opt.text}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            )}
+            ))}
 
-            <div className="xc-step-actions">
-                <span className="xc-muted">
-                    {Object.keys(answers).length}/{quiz.questionCount} respondidas
-                </span>
-                <button
-                    className="xc-btn xc-btn--primary"
-                    onClick={handleSubmit}
-                    disabled={!allAnswered || busy}
-                >
-                    {busy ? <Loader2 className="xc-spin" size={16} /> : <CheckCircle2 size={16} />}
-                    ENVIAR RESPUESTAS
-                </button>
-            </div>
+            {submitErr && <p className="xs-quiz-error">{submitErr}</p>}
+
+            <button className="xs-btn xs-btn--accent" onClick={handleSubmit} disabled={!allAnswered || busy}>
+                {busy ? "ENVIANDO..." : `ENVIAR RESPUESTAS (${answeredCount}/${questions.length})`}
+            </button>
         </div>
     );
 };

@@ -24,6 +24,7 @@
     font-style: normal;
     min-height: 100vh;
     box-sizing: border-box;
+    padding-top: 6rem;
 }
 
 .xc-root--light {
@@ -936,3 +937,1167 @@
         padding: 28px 16px;
     }
 }
+
+.xc-pdf-viewer { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.xc-pdf-canvas { display: flex; justify-content: center; min-height: 200px; }
+.xc-pdf-canvas canvas { max-width: 100%; height: auto !important; }
+.xc-pdf-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 0; }
+.xc-pdf-viewer--full { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; padding: 8px 16px; }
+.xc-pdf-viewer--full .xc-pdf-canvas { flex: 1; align-items: center; overflow: hidden; }
+@media print { .xc-pdf-viewer { display: none !important; } }
+
+/* ══════════════════════════════════════════════════════════════
+   Player de cursos de partners — misma estética que Soc1Course
+   Copia de soc1Course.css con prefijo xs- (para no pisar las sc-).
+   Pegar AL FINAL de externalCourses.css. Las clases xc- de arriba
+   las sigue usando ExternalCourseCatalog.
+══════════════════════════════════════════════════════════════ */
+
+.xs-wrap {
+  --xs-accent:  #ccff00;
+  --xs-danger:  #f43f5e;
+  --xs-success: #22c55e;
+  --xs-border:  rgba(255,255,255,0.1);
+  --xs-surface: rgba(255,255,255,0.025);
+  --xs-muted:   rgba(255,255,255,0.45);
+  --xs-text:    #ffffff;
+  --xs-bg:      #000000;
+
+  width:      100%;
+  box-sizing: border-box;
+  color:      var(--xs-text);
+  font-family: 'Montserrat', sans-serif;
+
+  padding-top: 9rem !important;
+}
+
+.xs-wrap.light {
+  --xs-accent:  #ff5500;
+  --xs-border:  rgba(0,0,0,0.12);
+  --xs-surface: rgba(0,0,0,0.025);
+  --xs-muted:   rgba(0,0,0,0.45);
+  --xs-text:    #000000;
+  --xs-bg:      #f5f5f5;
+}
+
+/* ── Loading ─────────────────────────────────────────────────── */
+.xs-loading {
+  display:         flex;
+  justify-content: center;
+  align-items:     center;
+  gap:             8px;
+  padding:         80px 0;
+}
+
+.xs-loading-dot {
+  width:     8px;
+  height:    8px;
+  background: var(--xs-accent);
+  animation: xs-pulse 1.2s ease-in-out infinite;
+}
+.xs-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.xs-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes xs-pulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40%            { opacity: 1;   transform: scale(1);   }
+}
+
+/* ── Helpers comunes ─────────────────────────────────────────── */
+.xs-eyebrow {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 3px;
+  color:          var(--xs-accent);
+  text-transform: uppercase;
+  display:        block;
+  margin-bottom:  6px;
+}
+
+.xs-btn {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.72rem;
+  font-weight:    900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding:        10px 20px;
+  border:         1px solid;
+  cursor:         pointer;
+  transition:     all 0.2s;
+  text-decoration: none;
+  display:        inline-block;
+}
+
+.xs-btn--accent {
+  background:   var(--xs-accent);
+  border-color: var(--xs-accent);
+  color:        #000;
+}
+.xs-btn--accent:hover:not(:disabled) { opacity: 0.85; }
+.xs-btn--accent:disabled             { opacity: 0.35; cursor: not-allowed; }
+
+.xs-btn--ghost {
+  background:   transparent;
+  border-color: var(--xs-border);
+  color:        var(--xs-muted);
+}
+.xs-btn--ghost:hover { border-color: var(--xs-accent); color: var(--xs-accent); }
+
+.xs-btn--lg { padding: 14px 28px; font-size: 0.82rem; }
+
+/* ── Sin membresía ───────────────────────────────────────────── */
+.xs-blocked {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  text-align:     center;
+  gap:            16px;
+  padding:        80px 24px;
+}
+
+.xs-blocked-icon  { font-size: 2.5rem; }
+
+.xs-blocked-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      1.6rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  margin:         0;
+}
+
+.xs-blocked-msg {
+  font-size:   0.85rem;
+  font-weight: 500;
+  opacity:     0.65;
+  max-width:   440px;
+  line-height: 1.6;
+  margin:      0;
+}
+
+/* ── Pantalla introductoria ──────────────────────────────────── */
+.xs-intro-page {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  text-align:     center;
+  gap:            40px;
+  padding:        40px 20px 60px;
+  max-width:      1100px;
+  margin:         0 auto;
+}
+
+.xs-intro-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      clamp(2rem, 5vw, 3.5rem);
+  font-weight:    900;
+  letter-spacing: -2px;
+  text-transform: uppercase;
+  line-height:    1;
+  margin:         0;
+}
+.xs-intro-title span { color: var(--xs-accent); }
+
+.xs-intro-grid {
+  display:               grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:                   20px;
+  width:                 100%;
+  text-align:            left;
+}
+
+.xs-intro-card {
+  border:      1px solid var(--xs-border);
+  background:  var(--xs-surface);
+  padding:     24px;
+  display:     flex;
+  flex-direction: column;
+  gap:         10px;
+}
+
+.xs-intro-card-icon { font-size: 1.8rem; }
+
+.xs-intro-card h3 {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.9rem;
+  font-weight:    900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin:         0;
+  color:          var(--xs-accent);
+}
+
+.xs-intro-card p {
+  font-size:   0.8rem;
+  font-weight: 500;
+  opacity:     0.72;
+  line-height: 1.7;
+  margin:      0;
+}
+
+.xs-intro-details {
+  display:   flex;
+  gap:       20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.xs-intro-detail-item {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            4px;
+  border:         1px solid var(--xs-border);
+  padding:        16px 24px;
+  min-width:      100px;
+}
+
+.xs-intro-detail-label {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.55rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--xs-accent);
+  opacity:        0.7;
+}
+
+.xs-intro-detail-value {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      1.6rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  color:          var(--xs-accent);
+}
+
+/* ── Header del curso ────────────────────────────────────────── */
+.xs-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-start;
+  gap:             20px;
+  padding:         24px 0 20px;
+  border-bottom:   2px solid var(--xs-accent);
+  margin-bottom:   32px;
+  flex-wrap:       wrap;
+  max-width:       980px;
+  margin-left:     auto;
+  margin-right:    auto;
+}
+
+.xs-header-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      clamp(1rem, 2.5vw, 1.4rem);
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  margin:         0;
+}
+
+/* ── Barra de progreso ───────────────────────────────────────── */
+.xs-progress-wrap {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  min-width:      200px;
+  flex:           1;
+  max-width:      320px;
+}
+
+.xs-progress-bar {
+  height:       4px;
+  background:   var(--xs-border);
+  overflow:     hidden;
+}
+
+.xs-progress-fill {
+  height:     100%;
+  background: var(--xs-accent);
+  transition: width 0.4s ease;
+}
+
+.xs-progress-label {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.58rem;
+  font-weight:    700;
+  letter-spacing: 1px;
+  color:          var(--xs-accent);
+  opacity:        0.7;
+  text-align:     right;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Módulos — acordeón horizontal centrado
+   Cada módulo es un bloque grande; al tocarlo se despliega y se
+   superpone (overlap) sobre los módulos siguientes en vez de
+   empujarlos hacia abajo.
+══════════════════════════════════════════════════════════════ */
+.xs-modules {
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+  width:          100%;
+  max-width:      1480px;
+  margin:         0 auto;
+}
+
+.xs-module {
+  border:     1px solid var(--xs-border);
+  background: var(--xs-surface);
+  transition: border-color 0.2s;
+}
+
+.xs-module.expanded {
+  border-color: rgba(204,255,0,0.35);
+}
+
+.xs-module-header {
+  width:          100%;
+  display:        flex;
+  align-items:    center;
+  gap:            18px;
+  padding:        24px 30px;
+  background:     transparent;
+  border:         none;
+  cursor:         pointer;
+  text-align:     left;
+  font-family:    'Montserrat', sans-serif;
+  color:          inherit;
+}
+.xs-module-header:hover { background: rgba(204,255,0,0.03); }
+
+.xs-module-icon {
+  font-size:   1.4rem;
+  color:       var(--xs-accent);
+  width:       36px;
+  flex-shrink: 0;
+  text-align:  center;
+}
+.xs-module.done .xs-module-icon { color: var(--xs-success); }
+
+.xs-module-title {
+  flex:           1;
+  font-size:      clamp(1.05rem, 2.2vw, 1.35rem);
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
+.xs-module-meta {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 1px;
+  color:          var(--xs-accent);
+  opacity:        0.7;
+  flex-shrink:    0;
+}
+
+.xs-module-chevron {
+  font-size:   0.65rem;
+  opacity:     0.5;
+  flex-shrink: 0;
+  transition:  transform 0.2s;
+}
+
+.xs-module-body {
+  display:     flex;
+  background:  var(--xs-bg);
+  border-top:  1px solid rgba(204,255,0,0.35);
+  animation:   xs-module-drop 0.2s ease;
+  transform-origin: top;
+}
+
+@keyframes xs-module-drop {
+  from { opacity: 0; transform: scaleY(0.96) translateY(-4px); }
+  to   { opacity: 1; transform: scaleY(1)    translateY(0);    }
+}
+
+.xs-module-aside {
+  width:        230px;
+  flex-shrink:  0;
+  border-right: 1px solid var(--xs-border);
+  padding:      20px;
+}
+
+.xs-module-aside-title {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--xs-accent);
+  opacity:        0.6;
+  margin:         0 0 12px;
+}
+
+.xs-module-aside-list {
+  list-style:     none;
+  padding:        0;
+  margin:         0;
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.xs-module-aside-item {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  padding:       9px 10px;
+  border:        1px solid transparent;
+  cursor:        pointer;
+  transition:    all 0.15s;
+  border-radius: 2px;
+}
+.xs-module-aside-item:hover:not(.locked) {
+  background:   var(--xs-surface);
+  border-color: var(--xs-border);
+}
+.xs-module-aside-item.active {
+  background:   rgba(204,255,0,0.06);
+  border-color: rgba(204,255,0,0.25);
+}
+.xs-module-aside-item.done .xs-module-aside-icon { color: var(--xs-success); }
+.xs-module-aside-item.locked { opacity: 0.3; cursor: not-allowed; }
+
+.xs-module-aside-icon {
+  font-size:   0.75rem;
+  color:       var(--xs-accent);
+  min-width:   14px;
+  text-align:  center;
+  flex-shrink: 0;
+}
+
+.xs-module-aside-label {
+  font-size:   0.7rem;
+  font-weight: 600;
+  line-height: 1.3;
+  opacity:     0.8;
+}
+
+.xs-module-stage {
+  flex:           1;
+  min-width:      0;
+  padding:        26px 30px;
+  display:        flex;
+  flex-direction: column;
+  gap:            22px;
+  max-height:     80vh;
+  overflow-y:     auto;
+}
+
+.xs-module-placeholder {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         70px 20px;
+  opacity:         0.5;
+  font-size:       0.82rem;
+  text-align:      center;
+}
+
+.xs-step-description {
+  font-size:    0.82rem;
+  font-weight:  500;
+  opacity:      0.65;
+  line-height:  1.7;
+  margin:       0;
+  border-left:  3px solid var(--xs-accent);
+  padding-left: 14px;
+}
+
+.xs-step-intro p {
+  font-size:   0.85rem;
+  font-weight: 500;
+  opacity:     0.7;
+  line-height: 1.7;
+}
+
+/* ── Video ───────────────────────────────────────────────────── */
+.xs-video-wrap {
+  width: 100%;
+  background: #000;
+  border: 1px solid var(--xs-border);
+}
+
+.xs-video {
+  width:      100%;
+  max-height: 480px;
+  display:    block;
+  background: #000;
+}
+
+/* ── PDF ─────────────────────────────────────────────────────── */
+.xs-pdf-wrap {
+  display:        flex;
+  flex-direction: column;
+  gap:            12px;
+}
+
+/* Barra debajo del PDF: paginación centrada + botón de pantalla completa */
+.xs-pdf-toolbar {
+  display:               grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items:           center;
+  gap:                   12px;
+}
+.xs-pdf-toolbar .xs-pdf-pagination { grid-column: 2; }
+.xs-pdf-toolbar .xs-pdf-fs-btn     { grid-column: 3; justify-self: end; }
+
+.xs-pdf-fs-btn {
+  background:     transparent;
+  border:         1px solid var(--xs-accent);
+  color:          var(--xs-accent);
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  padding:        6px 14px;
+  cursor:         pointer;
+  transition:     all 0.2s;
+  white-space:    nowrap;
+}
+.xs-pdf-fs-btn:hover { background: var(--xs-accent); color: #000; }
+
+.xs-pdf-pagination {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             16px;
+}
+
+.xs-pdf-page-btn {
+  background:     transparent;
+  border:         1px solid var(--xs-border);
+  color:          var(--xs-muted);
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  padding:        6px 14px;
+  cursor:         pointer;
+  transition:     all 0.2s;
+}
+.xs-pdf-page-btn:hover:not(:disabled) { border-color: var(--xs-accent); color: var(--xs-accent); }
+.xs-pdf-page-btn:disabled             { opacity: 0.3; cursor: not-allowed; }
+
+.xs-pdf-page-info {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.65rem;
+  font-weight:    700;
+  opacity:        0.55;
+}
+
+/* ── Quiz ────────────────────────────────────────────────────── */
+.xs-quiz-wrap {
+  display:        flex;
+  flex-direction: column;
+  gap:            24px;
+}
+
+.xs-quiz-subtitle {
+  font-size:   0.78rem;
+  font-weight: 600;
+  opacity:     0.55;
+  margin:      0;
+  border-left: 2px solid var(--xs-border);
+  padding-left: 12px;
+}
+
+.xs-quiz-attempts {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.62rem;
+  font-weight:    700;
+  color:          var(--xs-accent);
+  opacity:        0.6;
+}
+
+.xs-quiz-question {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  padding:        18px;
+  border:         1px solid var(--xs-border);
+  background:     var(--xs-surface);
+}
+
+.xs-quiz-q-text {
+  font-size:   0.85rem;
+  font-weight: 700;
+  margin:      0;
+  line-height: 1.5;
+}
+
+.xs-quiz-options {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.xs-quiz-option {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     10px 14px;
+  background:  transparent;
+  border:      1px solid var(--xs-border);
+  color:       var(--xs-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.78rem;
+  font-weight: 600;
+  text-align:  left;
+  cursor:      pointer;
+  transition:  all 0.15s;
+}
+
+.xs-quiz-option:hover { border-color: rgba(204,255,0,0.3); background: rgba(204,255,0,0.03); }
+
+.xs-quiz-option.selected {
+  border-color: var(--xs-accent);
+  background:   rgba(204,255,0,0.07);
+  color:        var(--xs-accent);
+}
+
+.xs-quiz-option-letter {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.65rem;
+  font-weight:    800;
+  color:          var(--xs-accent);
+  opacity:        0.7;
+  flex-shrink:    0;
+  min-width:      16px;
+}
+
+/* Resultado del quiz */
+.xs-quiz-result {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  text-align:     center;
+  gap:            12px;
+  padding:        40px 24px;
+  border:         1px solid;
+}
+
+.xs-quiz-result--passed {
+  border-color: rgba(34,197,94,0.3);
+  background:   rgba(34,197,94,0.04);
+}
+
+.xs-quiz-result--failed {
+  border-color: rgba(244,63,94,0.3);
+  background:   rgba(244,63,94,0.04);
+}
+
+.xs-quiz-result-icon {
+  font-size:   2rem;
+  font-weight: 900;
+}
+.xs-quiz-result--passed .xs-quiz-result-icon { color: var(--xs-success); }
+.xs-quiz-result--failed .xs-quiz-result-icon { color: var(--xs-danger);  }
+
+.xs-quiz-result-score {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      1.4rem;
+  font-weight:    900;
+  letter-spacing: -0.5px;
+  margin:         0;
+}
+.xs-quiz-result--passed .xs-quiz-result-score { color: var(--xs-success); }
+.xs-quiz-result--failed .xs-quiz-result-score { color: var(--xs-danger);  }
+
+.xs-quiz-result-sub {
+  font-size:   0.8rem;
+  opacity:     0.65;
+  margin:      0;
+  max-width:   440px;
+  line-height: 1.6;
+}
+
+.xs-quiz-saving {
+  font-family: 'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:   0.6rem;
+  opacity:     0.4;
+  margin:      0;
+}
+
+/* Revisión de respuestas */
+.xs-quiz-review {
+  width:       100%;
+  max-width:   560px;
+  display:     flex;
+  flex-direction: column;
+  gap:         10px;
+  text-align:  left;
+  margin-top:  8px;
+}
+
+.xs-quiz-review-item {
+  padding:     10px 14px;
+  border-left: 3px solid;
+}
+
+.xs-quiz-review-item.correct { border-left-color: var(--xs-success); background: rgba(34,197,94,0.04); }
+.xs-quiz-review-item.wrong   { border-left-color: var(--xs-danger);  background: rgba(244,63,94,0.04); }
+
+.xs-quiz-review-q {
+  font-size:   0.78rem;
+  font-weight: 700;
+  margin:      0 0 4px;
+}
+
+.xs-quiz-review-a {
+  font-size:   0.72rem;
+  font-weight: 500;
+  opacity:     0.7;
+  margin:      0;
+}
+
+.xs-quiz-review-correct { color: var(--xs-success); opacity: 1; }
+
+/* ── Navegación ──────────────────────────────────────────────── */
+.xs-nav {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             10px;
+  padding-top:     16px;
+  border-top:      1px solid var(--xs-border);
+  flex-wrap:       wrap;
+}
+
+/* ── Pantalla de finalización ────────────────────────────────── */
+.xs-completion {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  text-align:     center;
+  gap:            24px;
+  padding:        60px 24px 80px;
+  max-width:      700px;
+  margin:         0 auto;
+}
+
+.xs-completion-badge {
+  width:           80px;
+  height:          80px;
+  border:          3px solid var(--xs-accent);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       2rem;
+  font-weight:     900;
+  color:           var(--xs-accent);
+  animation:       xs-badge-in 0.5s ease;
+}
+
+@keyframes xs-badge-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.xs-completion-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      clamp(1.4rem, 4vw, 2.5rem);
+  font-weight:    900;
+  letter-spacing: -1.5px;
+  text-transform: uppercase;
+  margin:         0;
+  color:          var(--xs-accent);
+}
+
+.xs-completion-sub {
+  font-size:   0.9rem;
+  font-weight: 500;
+  opacity:     0.75;
+  margin:      0;
+  max-width:   480px;
+  line-height: 1.6;
+}
+
+.xs-completion-dates {
+  display:     flex;
+  align-items: center;
+  gap:         20px;
+  flex-wrap:   wrap;
+  justify-content: center;
+}
+
+.xs-completion-date-item {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            4px;
+  border:         1px solid var(--xs-border);
+  padding:        16px 24px;
+}
+
+.xs-completion-date-label {
+  font-family:    'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:      0.55rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--xs-accent);
+  opacity:        0.6;
+}
+
+.xs-completion-date-value {
+  font-size:   0.85rem;
+  font-weight: 700;
+}
+
+.xs-completion-date-sep {
+  font-size:   1.2rem;
+  opacity:     0.3;
+}
+
+.xs-completion-duration {
+  font-family: 'Montserrat', 'JetBrains Mono', sans-serif;
+  font-size:   0.7rem;
+  font-weight: 700;
+  opacity:     0.5;
+  margin:      0;
+}
+
+.xs-completion-msg {
+  max-width:   520px;
+  display:     flex;
+  flex-direction: column;
+  gap:         10px;
+}
+
+.xs-completion-msg p {
+  font-size:   0.82rem;
+  font-weight: 500;
+  opacity:     0.72;
+  line-height: 1.7;
+  margin:      0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .xs-module-aside { width: 190px; }
+}
+
+@media (max-width: 768px) {
+  .xs-intro-grid { grid-template-columns: 1fr; }
+  .xs-intro-title { font-size: 1.8rem; }
+
+  /* PDF: la barra se apila y el botón de pantalla completa ocupa todo el ancho */
+  .xs-pdf-toolbar { grid-template-columns: 1fr; }
+  .xs-pdf-toolbar .xs-pdf-pagination,
+  .xs-pdf-toolbar .xs-pdf-fs-btn { grid-column: 1; justify-self: stretch; }
+  .xs-pdf-fs-btn { padding: 10px 14px; }
+  .xs-pdf-pagination { gap: 10px; }
+  .xs-pdf-page-btn { padding: 8px 10px; }
+
+  .xs-completion-dates { flex-direction: column; gap: 8px; }
+  .xs-completion-date-sep { transform: rotate(90deg); }
+
+  .xs-header { flex-direction: column; gap: 12px; }
+  .xs-progress-wrap { max-width: 100%; }
+
+  .xs-module-header { padding: 18px 18px; gap: 12px; }
+  .xs-module-title { font-size: 0.95rem; }
+
+  .xs-module-body {
+    flex-direction: column;
+  }
+  .xs-module-aside {
+    width:        100%;
+    border-right: none;
+    border-bottom: 1px solid var(--xs-border);
+  }
+  .xs-module-aside-list { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .xs-module-aside-item { flex: 1 1 auto; min-width: 110px; }
+  .xs-module-stage { padding: 18px; max-height: none; }
+}
+
+/* ── PDF viewer (react-pdf) ──────────────────────────────────── */
+/* El bloque mide exactamente lo que mide la página renderizada.
+   La altura mínima existe SOLO mientras carga (para que no colapse el
+   spinner); antes estaba fija en 400px y en mobile quedaba un hueco blanco
+   debajo del PDF, porque una slide a 350px de ancho mide ~200px de alto. */
+.xs-pdf-canvas-container {
+  width:          100%;
+  background:     #fff;
+  border:         1px solid var(--xs-border);
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  position:       relative;
+  overflow:       hidden;
+  line-height:    0; /* evita el espacio fantasma debajo del canvas inline */
+}
+.xs-pdf-canvas-container.is-loading { min-height: 400px; }
+.xs-pdf-canvas-container.is-fs-open { background: var(--xs-surface); line-height: normal; }
+
+.xs-pdf-canvas-container .react-pdf__Document,
+.xs-pdf-canvas-container .react-pdf__Page {
+  width:      100% !important;
+  min-height: 0 !important;
+}
+.xs-pdf-canvas-container .react-pdf__Page canvas {
+  width:          100% !important;
+  height:         auto !important;
+  display:        block;
+  pointer-events: none; /* sin click derecho → "guardar imagen" */
+}
+
+.xs-pdf-fs-placeholder {
+  padding:     48px 20px;
+  font-size:   0.78rem;
+  font-weight: 600;
+  opacity:     0.55;
+  text-align:  center;
+}
+
+/* ── Protección de contenido ─────────────────────────────────── */
+.xs-protected,
+.xs-protected * {
+  user-select:           none;
+  -webkit-user-select:   none;
+  -webkit-touch-callout: none; /* iOS: sin menú "guardar / copiar" al mantener presionado */
+}
+.xs-protected canvas,
+.xs-protected img {
+  -webkit-user-drag: none;
+  user-drag:         none;
+}
+
+/* ── PDF en pantalla completa ────────────────────────────────── */
+.xs-pdf-fs {
+  position:       fixed;
+  inset:          0;
+  z-index:        9999;
+  display:        flex;
+  flex-direction: column;
+  width:          100vw;
+  height:         100vh;
+  height:         100dvh;
+  background:     var(--xs-bg);
+  color:          var(--xs-text);
+  padding:        env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  animation:      xs-fs-in 0.18s ease;
+}
+
+@keyframes xs-fs-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.xs-pdf-fs-top {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             16px;
+  padding:         12px 20px;
+  border-bottom:   1px solid var(--xs-border);
+  flex-shrink:     0;
+}
+
+.xs-pdf-fs-title {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.78rem;
+  font-weight:    900;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  overflow:       hidden;
+  text-overflow:  ellipsis;
+  white-space:    nowrap;
+}
+
+.xs-pdf-fs-close {
+  background:     transparent;
+  border:         1px solid var(--xs-border);
+  color:          var(--xs-text);
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 1.5px;
+  padding:        8px 14px;
+  cursor:         pointer;
+  flex-shrink:    0;
+  transition:     all 0.2s;
+}
+.xs-pdf-fs-close:hover { border-color: var(--xs-accent); color: var(--xs-accent); }
+
+/* El escenario ocupa todo el espacio libre; la página se encaja dentro
+   (el JS calcula el ancho para que entre completa sin scroll) */
+.xs-pdf-fs-stage {
+  flex:            1;
+  min-height:      0;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         16px;
+  overflow:        hidden;
+  touch-action:    pan-y pinch-zoom;
+}
+.xs-pdf-fs-stage .react-pdf__Page {
+  background: #fff;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+}
+.xs-pdf-fs-stage .react-pdf__Page canvas {
+  display:        block;
+  pointer-events: none;
+}
+
+.xs-pdf-pagination--fs {
+  padding:     12px 20px 6px;
+  border-top:  1px solid var(--xs-border);
+  flex-shrink: 0;
+}
+.xs-pdf-pagination--fs .xs-pdf-page-btn { padding: 10px 18px; }
+
+.xs-pdf-fs-hint {
+  margin:      0;
+  padding:     0 20px 10px;
+  text-align:  center;
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.58rem;
+  font-weight: 600;
+  opacity:     0.4;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .xs-pdf-canvas-container.is-loading { min-height: 220px; }
+  .xs-pdf-fs-top   { padding: 10px 14px; }
+  .xs-pdf-fs-stage { padding: 8px; }
+  .xs-pdf-fs-close-label { display: none; }
+  .xs-pdf-fs-hint  { display: none; } /* en mobile se navega con los botones o deslizando */
+}
+
+/* ── Sin impresión del material ──────────────────────────────── */
+@media print {
+  .xs-pdf-wrap,
+  .xs-pdf-fs,
+  .xs-quiz-wrap { display: none !important; }
+}
+
+/* ── Quiz: afirmación V/F, consigna y error de envío ─────────── */
+.xs-quiz-statement {
+  margin:      0;
+  padding:     10px 14px;
+  border-left: 3px solid var(--xs-accent);
+  background:  var(--xs-surface);
+  font-size:   0.8rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.xs-quiz-q-prompt {
+  margin:      0;
+  font-size:   0.76rem;
+  font-weight: 600;
+  opacity:     0.6;
+  line-height: 1.5;
+}
+
+.xs-quiz-error {
+  margin:      0;
+  font-size:   0.76rem;
+  font-weight: 700;
+  color:       var(--xs-danger);
+}
+
+.xs-pdf-loading {
+  position: absolute;
+  inset:    0;
+  display:  flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.04);
+}
+
+.xs-pdf-error {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  justify-content: center;
+  gap:            8px;
+  padding:        60px 24px;
+  border:         1px solid rgba(244,63,94,0.25);
+  background:     rgba(244,63,94,0.04);
+  font-size:      0.82rem;
+  font-weight:    600;
+  color:          #f43f5e;
+  text-align:     center;
+}
+/* ══════════════════════════════════════════════════════════════
+   Extras del player de partners (no existen en Soc1Course)
+══════════════════════════════════════════════════════════════ */
+
+/* Página propia (Soc1Course vive dentro del dashboard, este no) */
+.xs-wrap:not(.xs-pdf-fs) {
+  background: var(--xs-bg);
+  min-height: 100vh;
+  padding:    0 20px 60px;
+  font-style: normal;
+}
+
+.xs-partner {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            10px;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  opacity:        0.7;
+}
+.xs-partner img { height: 22px; width: auto; display: block; }
+.xs-partner--sm { margin-bottom: 8px; font-size: 0.96rem; }
+.xs-partner--sm img { height: 16px; }
+
+.xs-intro-cover {
+  width:      100%;
+  max-width:  720px;
+  aspect-ratio: 16 / 7;
+  object-fit: cover;
+  border:     1px solid var(--xs-border);
+}
+
+.xs-intro-desc {
+  font-size:   0.9rem;
+  font-weight: 500;
+  opacity:     0.7;
+  line-height: 1.7;
+  max-width:   640px;
+  margin:      -20px 0 0;
+}
+
+.xs-draft {
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  color:          var(--xs-danger);
+  border:         1px solid var(--xs-danger);
+  padding:        6px 12px;
+}
+
+.xs-blocked-eyebrow {
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 3px;
+  color:          var(--xs-accent);
+}
+
+.xs-header-desc {
+  flex-basis:  100%;
+  margin:      0;
+  font-size:   0.8rem;
+  font-weight: 500;
+  opacity:     0.65;
+  line-height: 1.7;
+}
+
+/* Enunciados con consigna o afirmación en párrafo aparte */
+.xs-quiz-q-text,
+.xs-quiz-review-q { white-space: pre-line; }
+
+/* Videos de YouTube / Vimeo */
+.xs-video-wrap--embed { aspect-ratio: 16 / 9; }
+.xs-video-wrap--embed iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+.xs-module-aside-item { list-style: none; }
