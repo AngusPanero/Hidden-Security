@@ -348,3 +348,94 @@
   background: var(--dm-accent);
   transition: width 0.4s ease;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Filtros, avance, resultado y certificado en la card
+   (mismo formato que certificationCatalog.css)
+   Solo agrega estilos nuevos, no modifica nada existente
+══════════════════════════════════════════════════════════════ */
+.cc-wrap { --cc-success: #22c55e; --cc-danger: #f43f5e; }
+
+/* Filtros */
+.cc-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
+.cc-filter {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'Montserrat', sans-serif; font-size: 0.62rem; font-weight: 800; letter-spacing: 1.5px;
+  padding: 9px 14px; background: transparent; color: var(--dm-text-mid);
+  border: 1px solid var(--dm-border); cursor: pointer; transition: all 0.2s;
+}
+.cc-filter:hover { border-color: var(--dm-accent); color: var(--dm-text); }
+.cc-filter.active { border-color: var(--dm-accent); color: var(--dm-accent); background: rgba(204,255,0,0.06); }
+.dm-container.light .cc-filter.active { background: rgba(255,85,0,0.06); }
+.cc-filter-count {
+  min-width: 18px; padding: 1px 5px; text-align: center;
+  background: var(--dm-border); color: var(--dm-text); font-size: 0.58rem;
+}
+.cc-filter.active .cc-filter-count { background: var(--dm-accent); color: #000; }
+.cc-filter--completed.active { border-color: var(--cc-success); color: var(--cc-success); background: rgba(34,197,94,0.06); }
+.cc-filter--completed.active .cc-filter-count { background: var(--cc-success); color: #000; }
+.cc-filter:focus-visible { outline: 2px solid var(--dm-accent); outline-offset: 3px; }
+
+.cc-empty { border: 1px dashed var(--dm-border); padding: 28px 22px; margin-bottom: 16px; }
+.cc-empty p { margin: 0; font-size: 0.82rem; opacity: 0.65; }
+
+/* Card de curso aprobado */
+.cc-card--completed { border-color: rgba(34,197,94,0.35); }
+.cc-card--completed:hover:not(.cc-card--soon) { border-color: var(--cc-success); }
+
+/* Bloque de avance (en proceso) */
+.cc-status,
+.cc-result {
+  border: 1px solid var(--dm-border); border-left-width: 3px;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+}
+.cc-status { border-left-color: var(--dm-accent); background: rgba(204,255,0,0.03); }
+.dm-container.light .cc-status { background: rgba(255,85,0,0.03); }
+.cc-status-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.cc-status-label {
+  font-family: 'Montserrat', sans-serif; font-size: 0.55rem; font-weight: 800;
+  letter-spacing: 1.5px; color: var(--dm-text-mid);
+}
+.cc-status-pct {
+  font-family: 'Montserrat', sans-serif; font-size: 1.6rem; font-weight: 900;
+  letter-spacing: -1px; line-height: 1; color: var(--dm-accent);
+}
+.cc-status-meta {
+  font-family: 'Montserrat', sans-serif; font-size: 0.55rem; font-weight: 700;
+  letter-spacing: 1px; color: var(--dm-text-dim); text-transform: uppercase; line-height: 1.6;
+}
+
+/* Bloque de resultado (completado) */
+.cc-result { border-left-color: var(--cc-success); background: rgba(34,197,94,0.04); }
+.cc-result-pct {
+  font-family: 'Montserrat', sans-serif; font-size: 1.6rem; font-weight: 900;
+  letter-spacing: -1px; line-height: 1; color: var(--cc-success);
+}
+.cc-result-bar { position: relative; height: 4px; background: var(--dm-border); }
+.cc-result-bar i { position: absolute; inset: 0 auto 0 0; background: var(--cc-success); }
+.cc-result-bar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--dm-text); opacity: 0.6; }
+
+/* Botón "Ver mi certificado" */
+.cc-cert-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; box-sizing: border-box; margin-top: 4px;
+  padding: 11px 14px;
+  font-family: 'Montserrat', sans-serif; font-size: 0.66rem; font-weight: 900;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: #000; background: var(--cc-success); border: 1px solid var(--cc-success);
+  cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+}
+.cc-cert-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.cc-cert-btn:hover:not(:disabled) { opacity: 0.88; }
+.cc-cert-btn:active:not(:disabled) { transform: translateY(1px); }
+.cc-cert-btn:disabled { opacity: 0.6; cursor: progress; }
+.cc-cert-btn:focus-visible { outline: 2px solid var(--cc-success); outline-offset: 3px; }
+.dm-container.light .cc-cert-btn { color: #fff; background: #16a34a; border-color: #16a34a; }
+
+.cc-cert-error { font-size: 0.7rem; font-weight: 600; line-height: 1.5; color: var(--cc-danger); }
+
+@media (max-width: 768px) {
+  .cc-filters { gap: 6px; }
+  .cc-filter  { flex: 1 1 calc(33% - 6px); justify-content: center; padding: 9px 8px; }
+  .cc-cert-btn { padding: 13px 14px; font-size: 0.7rem; }
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -73,7 +74,18 @@ function buildModuleSteps(moduleNumber: number, contents: number, introVideo?: s
 const COURSE_STEPS: CourseStep[] = MODULES_CONFIG.flatMap((m, i) => buildModuleSteps(i + 1, m.contents, m.introVideo));
 
 const TOTAL_STEPS   = COURSE_STEPS.length; // 88
-const PASSING_SCORE = 0.70;
+// Solo para mostrar: la nota mínima real (80%) la decide el backend y llega en
+// cada respuesta como passingScore.
+const PASSING_SCORE = 0.80;
+
+// Mensaje claro cuando el backend rechaza una acción (sesión vencida, etc.)
+function actionErrorMessage(err: any): string {
+  const status = err?.response?.status;
+  if (status === 401) return "Tu sesión venció. Volvé a iniciar sesión para seguir: tu progreso está guardado.";
+  if (status === 403) return err.response?.data?.detail ?? err.response?.data?.message ?? "No tenés acceso a esta etapa.";
+  if (status === 429) return err.response?.data?.message ?? "Demasiados intentos seguidos. Esperá unos minutos.";
+  return "No se pudo guardar. Revisá tu conexión e intentá de nuevo.";
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Agrupación visual de steps en módulos (solo presentación)
@@ -122,9 +134,17 @@ const STEP_ICONS: Record<CourseStep["type"], string> = {
 // ══════════════════════════════════════════════════════════════════════════════
 interface QuizResult {
   score:         number;
+  bestScore?:    number; // mejor nota (los reintentos nunca la bajan)
   passed:        boolean;
   attempts:      number;
   lastAttemptAt: string;
+}
+
+// Certificado de finalización del curso (lo emite el backend al completarlo)
+interface CourseCertificate {
+  credentialId:  string;
+  url:           string;
+  hasHolderName: boolean; // false → falta nombre y apellido en el CV
 }
 
 interface Progress {
@@ -153,10 +173,13 @@ interface QuizAnswer {
 }
 
 interface QuizSubmitResult {
-  score:   number;
-  passed:  boolean;
-  correct: number;
-  total:   number;
+  score:         number;
+  bestScore:     number;
+  passed:        boolean;
+  alreadyPassed: boolean;
+  correct:       number;
+  total:         number;
+  passingScore:  number;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -514,6 +537,8 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
   const [saving,     setSaving]     = useState(false);
   const [submitErr,  setSubmitErr]  = useState("");
   const [showPrior,  setShowPrior]  = useState(!!existingResult?.passed);
+  const [passingScore, setPassingScore] = useState(PASSING_SCORE);
+  const [lastResult, setLastResult] = useState<QuizSubmitResult | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -528,6 +553,7 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
         if (cancelled) return;
         rawQuestions.current = data.data.questions as QuizQuestion[];
         setQuestions(shuffleQuiz(rawQuestions.current));
+        if (typeof data.data.passingScore === "number") setPassingScore(data.data.passingScore);
       } catch (err: any) {
         if (cancelled) return;
         setLoadError(err.response?.data?.message ?? "No se pudo cargar el quiz.");
@@ -562,6 +588,7 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
 
     setScore(result.score);
     setPassed(result.passed);
+    setLastResult(result);
     setSubmitted(true);
     setAttempts(prev => prev + 1);
   };
@@ -573,6 +600,7 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
     setSubmitted(false);
     setScore(null);
     setPassed(false);
+    setLastResult(null);
     setShowPrior(false);
     setSubmitErr("");
   };
@@ -582,13 +610,13 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
       <div className="sc-quiz-result sc-quiz-result--passed">
         <span className="sc-quiz-result-icon">✓</span>
         <p className="sc-quiz-result-score">
-          Aprobado con {Math.round(existingResult.score * 100)}%
+          Aprobado con {Math.round(Math.max(existingResult.bestScore ?? 0, existingResult.score) * 100)}%
         </p>
         <p className="sc-quiz-result-sub">
           Intentos: {existingResult.attempts} · Podés continuar al siguiente módulo.
         </p>
         <button className="sc-btn sc-btn--ghost" onClick={handleRetry}>
-          Reintentar de todas formas
+          REINTENTAR PARA MEJORAR LA NOTA
         </button>
       </div>
     );
@@ -609,19 +637,25 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
   }
 
   if (submitted && score !== null) {
+    // Reintento de un quiz ya aprobado: sigue aprobado con la mejor nota
+    const keptApproval = !!lastResult?.alreadyPassed && !passed;
+    const ok   = passed || keptApproval;
+    const best = lastResult?.bestScore ?? score;
     return (
-      <div className={`sc-quiz-result${passed ? " sc-quiz-result--passed" : " sc-quiz-result--failed"}`}>
-        <span className="sc-quiz-result-icon">{passed ? "✓" : "✗"}</span>
+      <div className={`sc-quiz-result${ok ? " sc-quiz-result--passed" : " sc-quiz-result--failed"}`}>
+        <span className="sc-quiz-result-icon">{ok ? "✓" : "✗"}</span>
         <p className="sc-quiz-result-score">
-          {Math.round(score * 100)}% — {passed ? "APROBADO" : "NO APROBADO"}
+          {Math.round(score * 100)}% — {passed ? "APROBADO" : keptApproval ? "NO ALCANZÓ EL MÍNIMO" : "NO APROBADO"}
         </p>
         <p className="sc-quiz-result-sub">
-          {passed
+          {keptApproval
+            ? `El quiz sigue aprobado con tu mejor nota (${Math.round(best * 100)}%). Ese valor no se pierde.`
+            : passed
             ? "¡Excelente! Podés continuar al siguiente módulo."
-            : `Necesitás al menos ${Math.round(PASSING_SCORE * 100)}% para aprobar. Intentá de nuevo.`
+            : `Necesitás al menos ${Math.round(passingScore * 100)}% para aprobar. Podés intentarlo las veces que quieras.`
           }
         </p>
-        <p className="sc-quiz-attempts">Intento #{attempts}</p>
+        <p className="sc-quiz-attempts">Intento #{attempts} · Mejor nota: {Math.round(best * 100)}%</p>
         {/* Revisión — muestra lo elegido, nunca la correcta (vive en el backend) */}
         <div className="sc-quiz-review">
           {questions.map((q, i) => (
@@ -633,11 +667,9 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
             </div>
           ))}
         </div>
-        {!passed && (
-          <button className="sc-btn sc-btn--accent" onClick={handleRetry}>
-            REINTENTAR
-          </button>
-        )}
+        <button className={`sc-btn ${ok ? "sc-btn--ghost" : "sc-btn--accent"}`} onClick={handleRetry}>
+          {ok ? "REINTENTAR PARA MEJORAR LA NOTA" : "REINTENTAR"}
+        </button>
       </div>
     );
   }
@@ -645,7 +677,7 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
   return (
     <div className="sc-quiz-wrap sc-protected" onCopy={(e) => e.preventDefault()}>
       <p className="sc-quiz-subtitle">
-        Respondé todas las preguntas para aprobar. Mínimo {Math.round(PASSING_SCORE * 100)}%.
+        Respondé todas las preguntas para aprobar. Mínimo {Math.round(passingScore * 100)}%. Intentos ilimitados.
         {attempts > 0 && <span className="sc-quiz-attempts"> · Intentos anteriores: {attempts}</span>}
       </p>
 
@@ -684,7 +716,25 @@ function QuizViewer({ stepIndex, existingResult, onSubmit }: {
 }
 
 // ── Pantalla de finalización ──────────────────────────────────────────────────
-function CompletionScreen({ startedAt, completedAt }: { startedAt: string; completedAt: string }) {
+// Muestra la nota, el certificado de finalización y la opción de volver a
+// entrar al curso. Si el CV no tiene nombre y apellido, los pide para emitir
+// el certificado (se guardan con PUT /api/cv/me, la ruta que ya existe).
+const NAME_RE = /^[\p{L}][\p{L}' -]{1,59}$/u;
+
+function CompletionScreen({ startedAt, completedAt, score, certificate, onReview, onRefresh }: {
+  startedAt:   string;
+  completedAt: string;
+  score:       number | null;
+  certificate: CourseCertificate | null;
+  onReview:    () => void;
+  onRefresh:   () => Promise<void>;
+}) {
+  const navigate = useNavigate();
+  const [firstName, setFirstName] = useState("");
+  const [lastName,  setLastName]  = useState("");
+  const [saving,    setSaving]    = useState(false);
+  const [formError, setFormError] = useState("");
+
   const start   = new Date(startedAt);
   const end     = new Date(completedAt);
   const msTotal = end.getTime() - start.getTime();
@@ -693,6 +743,35 @@ function CompletionScreen({ startedAt, completedAt }: { startedAt: string; compl
 
   const fmt = (d: Date) => d.toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
 
+  // El link es absoluto (dominio público); adentro del sitio se navega por su ruta
+  const certPath = (() => {
+    if (!certificate?.url) return null;
+    try { return new URL(certificate.url, window.location.origin).pathname; } catch { return null; }
+  })();
+  const validName = NAME_RE.test(firstName.trim()) && NAME_RE.test(lastName.trim());
+
+  const saveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validName || saving) return;
+    setSaving(true);
+    setFormError("");
+    try {
+      // PUT /api/cv/me reemplaza personalInfo entero: se manda lo que ya tenía + el nombre
+      const { data } = await axios.get(`${API_URL}/api/cv/me`, { withCredentials: true });
+      const current = data?.data?.personalInfo ?? {};
+      await axios.put(
+        `${API_URL}/api/cv/me`,
+        { personalInfo: { ...current, firstName: firstName.trim(), lastName: lastName.trim() } },
+        { withCredentials: true },
+      );
+      await onRefresh(); // el backend completa el titular del certificado
+    } catch (err: any) {
+      setFormError(err.response?.data?.message ?? "No se pudo guardar tu nombre. Intentá de nuevo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="sc-completion">
       <div className="sc-completion-badge">✓</div>
@@ -700,6 +779,14 @@ function CompletionScreen({ startedAt, completedAt }: { startedAt: string; compl
       <p className="sc-completion-sub">
         Completaste el programa <strong>SOC Analyst Level 1</strong> de Hidden Security.
       </p>
+
+      {score !== null && (
+        <div className="sc-completion-score">
+          <span className="sc-completion-date-label">// NOTA (PROMEDIO DE LOS QUIZZES)</span>
+          <span className="sc-completion-score-value">{Math.round(score * 100)}%</span>
+        </div>
+      )}
+
       <div className="sc-completion-dates">
         <div className="sc-completion-date-item">
           <span className="sc-completion-date-label">// INICIO</span>
@@ -714,6 +801,50 @@ function CompletionScreen({ startedAt, completedAt }: { startedAt: string; compl
       <p className="sc-completion-duration">
         Duración total: <strong>{days > 0 ? `${days} días` : ""}{days > 0 && hours > 0 ? " y " : ""}{hours > 0 ? `${hours} horas` : days === 0 ? "menos de 1 hora" : ""}</strong>
       </p>
+
+      {/* ── Certificado de finalización ── */}
+      {certificate && certificate.hasHolderName && certPath && (
+        <div className="sc-completion-msg sc-completion-msg--center">
+          <p>Tu certificado de finalización ya está disponible. Es público y verificable: podés compartirlo, descargarlo o sumarlo a LinkedIn.</p>
+          <button className="sc-btn sc-btn--accent sc-btn--lg" onClick={() => navigate(certPath)}>
+            VER MI CERTIFICADO →
+          </button>
+        </div>
+      )}
+
+      {certificate && !certificate.hasHolderName && (
+        <form className="sc-name-form" onSubmit={saveName}>
+          <span className="sc-eyebrow">// DATOS_DEL_CERTIFICADO</span>
+          <p className="sc-name-form-text">
+            Para emitir tu certificado de finalización necesitamos tu nombre y apellido tal como querés que aparezcan.
+            También se guardan en tu CV.
+          </p>
+          <div className="sc-name-form-row">
+            <label className="sc-field">
+              <span>Nombre</span>
+              <input className="sc-input" value={firstName} maxLength={60} autoComplete="given-name"
+                onChange={e => setFirstName(e.target.value)} disabled={saving} />
+            </label>
+            <label className="sc-field">
+              <span>Apellido</span>
+              <input className="sc-input" value={lastName} maxLength={60} autoComplete="family-name"
+                onChange={e => setLastName(e.target.value)} disabled={saving} />
+            </label>
+          </div>
+          {formError && <p className="sc-quiz-error">{formError}</p>}
+          <button type="submit" className="sc-btn sc-btn--accent sc-btn--lg" disabled={!validName || saving}>
+            {saving ? "GENERANDO..." : "GENERAR CERTIFICADO"}
+          </button>
+        </form>
+      )}
+
+      {!certificate && (
+        <div className="sc-completion-msg sc-completion-msg--center">
+          <p>Estamos generando tu certificado de finalización. Si no aparece en unos segundos, actualizá.</p>
+          <button className="sc-btn sc-btn--ghost" onClick={() => onRefresh()}>↻ ACTUALIZAR</button>
+        </div>
+      )}
+
       <div className="sc-completion-msg">
         <p>
           Ya estás apto/a para rendir la <strong>Certificación Hidden Security SOC Analyst</strong>.
@@ -723,6 +854,10 @@ function CompletionScreen({ startedAt, completedAt }: { startedAt: string; compl
           Accedé a la bolsa de trabajo y empezá a construir tu camino en ciberseguridad.
         </p>
       </div>
+
+      <button className="sc-btn sc-btn--ghost" onClick={onReview}>
+        VOLVER A VER EL CURSO
+      </button>
     </div>
   );
 }
@@ -741,6 +876,11 @@ export default function Soc1Course() {
   const [saving,     setSaving]     = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [showIntro,  setShowIntro]  = useState(true);
+  // Curso terminado: certificado, nota y modo repaso (volver a entrar al curso)
+  const [certificate, setCertificate] = useState<CourseCertificate | null>(null);
+  const [courseScore, setCourseScore] = useState<number | null>(null);
+  const [reviewing,   setReviewing]   = useState(false);
+  const [actionError, setActionError] = useState("");
 
   // Módulos desplegados (pueden ser varios a la vez; solo UI, no toca progreso)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
@@ -766,6 +906,8 @@ export default function Soc1Course() {
         { withCredentials: true }
       );
       setProgress(data.data);
+      setCertificate(data.certificate ?? null);
+      setCourseScore(typeof data.score === "number" ? data.score : null);
       setActiveStep(Math.min(data.data.currentStep ?? 0, TOTAL_STEPS - 1));
       setBlocked(false);
     } catch (err: any) {
@@ -779,6 +921,33 @@ export default function Soc1Course() {
   }, [user]);
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
+
+  // Recarga sin spinner (después de cargar el nombre para el certificado)
+  const refreshCompletion = useCallback(async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/api/course/${COURSE_ID}/progress`, { withCredentials: true });
+      setProgress(data.data);
+      setCertificate(data.certificate ?? null);
+      setCourseScore(typeof data.score === "number" ? data.score : null);
+    } catch (err) {
+      console.error("Error actualizando progreso:", err);
+    }
+  }, []);
+
+  // Si el curso se completa recién:
+  //  - desde un PDF/video → pantalla final directo
+  //  - desde un quiz → primero se ve el resultado del quiz y el botón
+  //    "FINALIZAR CURSO" lleva a la pantalla final
+  const applyProgress = (data: any, fromQuiz = false) => {
+    const justCompleted = !progress?.isCompleted && data?.data?.isCompleted;
+    setProgress(data.data);
+    setActionError("");
+    if ("certificate" in (data || {})) setCertificate(data.certificate ?? null);
+    if (justCompleted) {
+      setReviewing(fromQuiz);
+      refreshCompletion(); // trae la nota del curso
+    }
+  };
 
   // ── Asegurar que el módulo del step activo esté desplegado ───────────────
   useEffect(() => {
@@ -805,10 +974,11 @@ export default function Soc1Course() {
         { stepIndex: activeStep },
         { withCredentials: true }
       );
-      setProgress(data.data);
+      applyProgress(data);
       setActiveStep(Math.min(activeStep + 1, TOTAL_STEPS - 1));
     } catch (err) {
       console.error("Error guardando step:", err);
+      setActionError(actionErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -823,10 +993,19 @@ export default function Soc1Course() {
         { stepIndex: activeStep, answers },
         { withCredentials: true }
       );
-      setProgress(data.data);
-      return { score: data.score, passed: data.passed, correct: data.correct, total: data.total };
+      applyProgress(data, true);
+      return {
+        score:         data.score,
+        bestScore:     data.bestScore ?? data.score,
+        passed:        data.passed,
+        alreadyPassed: !!data.alreadyPassed,
+        correct:       data.correct,
+        total:         data.total,
+        passingScore:  data.passingScore ?? PASSING_SCORE,
+      };
     } catch (err) {
       console.error("Error guardando quiz:", err);
+      setActionError(actionErrorMessage(err));
       return null;
     }
   };
@@ -847,6 +1026,18 @@ export default function Soc1Course() {
 
   const isLastStep = activeStep === TOTAL_STEPS - 1;
   const step       = COURSE_STEPS[activeStep];
+
+  // Lo que falta para terminar el curso (solo para mostrar: el backend decide).
+  // Un PDF/video falta si no está completado; un quiz, si no está aprobado.
+  const pendingSteps = progress
+    ? COURSE_STEPS.map((_, i) => i).filter(i =>
+        COURSE_STEPS[i].type === "quiz"
+          ? !progress.quizResults?.[String(i)]?.passed
+          : !progress.completedSteps.includes(i))
+    : [];
+  // Llegó al último quiz y lo aprobó, pero el curso no quedó completo
+  const stuckAtEnd = !!progress && !progress.isCompleted && isLastStep && step?.type === "quiz"
+    && !!progress.quizResults?.[String(activeStep)]?.passed && pendingSteps.length > 0;
 
   // ─────────────────────────────────────────────────────────────────────────
   if (loading) {
@@ -879,12 +1070,16 @@ export default function Soc1Course() {
   }
 
   // ── Curso completado ──────────────────────────────────────────────────────
-  if (progress?.isCompleted) {
+  if (progress?.isCompleted && !reviewing) {
     return (
       <div className={`sc-wrap ${theme}`}>
         <CompletionScreen
           startedAt={progress.startedAt}
           completedAt={progress.completedAt!}
+          score={courseScore}
+          certificate={certificate}
+          onReview={() => setReviewing(true)}
+          onRefresh={refreshCompletion}
         />
       </div>
     );
@@ -938,7 +1133,7 @@ export default function Soc1Course() {
             </div>
             <div className="sc-intro-detail-item">
               <span className="sc-intro-detail-label">// APROBACIÓN</span>
-              <span className="sc-intro-detail-value">70%</span>
+              <span className="sc-intro-detail-value">80%</span>
             </div>
           </div>
 
@@ -969,6 +1164,19 @@ export default function Soc1Course() {
         />
         <p>Curso desarrolado y creado por Hidden Security. <br /><br />Desarrollá las habilidades técnicas, operativas y analíticas que hoy demandan los Centros de Operaciones de Seguridad. Aprendé a investigar alertas, correlacionar eventos, responder incidentes y trabajar junto a herramientas de automatización e inteligencia artificial en escenarios inspirados en situaciones reales.</p>
       </div>
+
+      {/* Repasando un curso ya terminado */}
+      {progress?.isCompleted && (
+        <div className="sc-result-banner">
+          <span>
+            ✓ CURSO COMPLETADO{courseScore !== null && ` · NOTA ${Math.round(courseScore * 100)}%`}
+            <small> · Podés repasar y reintentar los quizzes: se guarda siempre tu mejor nota.</small>
+          </span>
+          <button className="sc-btn sc-btn--ghost" onClick={() => setReviewing(false)}>
+            VER RESULTADO Y CERTIFICADO
+          </button>
+        </div>
+      )}
 
       <div className="sc-modules" ref={contentRef}>
         {COURSE_MODULES.map((mod) => {
@@ -1052,6 +1260,33 @@ export default function Soc1Course() {
                           />
                         )}
 
+                        {/* Último quiz aprobado pero quedan etapas sin completar */}
+                        {stuckAtEnd && (
+                          <div className="sc-pending">
+                            <span className="sc-eyebrow">// TE FALTA PARA TERMINAR</span>
+                            <p className="sc-pending-text">
+                              Aprobaste el último quiz, pero para completar el curso y recibir tu certificado
+                              te {pendingSteps.length === 1 ? "falta esta etapa" : `faltan estas ${pendingSteps.length} etapas`}:
+                            </p>
+                            <ul className="sc-pending-list">
+                              {pendingSteps.slice(0, 8).map(i => (
+                                <li key={i}>
+                                  <button className="sc-pending-item" onClick={() => setActiveStep(i)}>
+                                    <span>{STEP_ICONS[COURSE_STEPS[i].type]}</span>
+                                    {COURSE_STEPS[i].title}
+                                    <span className="sc-pending-go">IR →</span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                            {pendingSteps.length > 8 && (
+                              <p className="sc-pending-text">y {pendingSteps.length - 8} más.</p>
+                            )}
+                          </div>
+                        )}
+
+                        {actionError && <p className="sc-quiz-error">{actionError}</p>}
+
                         <div className="sc-nav">
                           {activeStep > 0 && (
                             <button
@@ -1072,13 +1307,23 @@ export default function Soc1Course() {
                             </button>
                           )}
 
-                          {step?.type !== "quiz" && isLastStep && canAdvance() && (
+                          {step?.type !== "quiz" && isLastStep && canAdvance() && !progress?.isCompleted && (
                             <button
                               className="sc-btn sc-btn--accent sc-btn--lg"
                               onClick={handleNext}
                               disabled={saving}
                             >
                               {saving ? "GUARDANDO..." : "FINALIZAR CURSO ✓"}
+                            </button>
+                          )}
+
+                          {/* Curso completo y en el último paso: ir a la pantalla final */}
+                          {isLastStep && progress?.isCompleted && (
+                            <button
+                              className="sc-btn sc-btn--accent sc-btn--lg"
+                              onClick={() => setReviewing(false)}
+                            >
+                              FINALIZAR CURSO ✓
                             </button>
                           )}
 

@@ -821,6 +821,165 @@
   margin:      0;
 }
 
+/* ── Finalización: nota, certificado y repaso ────────────────── */
+.sc-completion-score {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            4px;
+  border:         1px solid var(--sc-accent);
+  background:     var(--sc-surface);
+  padding:        16px 36px;
+}
+
+.sc-completion-score-value {
+  font-family:    'Montserrat', sans-serif;
+  font-size:      2.4rem;
+  font-weight:    900;
+  letter-spacing: -1px;
+  color:          var(--sc-accent);
+  line-height:    1;
+}
+
+.sc-completion-msg--center { align-items: center; }
+
+/* Formulario de nombre y apellido para emitir el certificado */
+.sc-name-form {
+  width:          100%;
+  max-width:      520px;
+  display:        flex;
+  flex-direction: column;
+  align-items:    stretch;
+  gap:            14px;
+  text-align:     left;
+  border:         1px solid var(--sc-border);
+  background:     var(--sc-surface);
+  padding:        22px;
+}
+
+.sc-name-form .sc-btn { align-self: center; }
+
+.sc-name-form-text {
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.8rem;
+  font-weight: 500;
+  line-height: 1.6;
+  opacity:     0.72;
+  margin:      0;
+}
+
+.sc-name-form-row {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   12px;
+}
+
+.sc-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  font-family:    'Montserrat', sans-serif;
+  font-size:      0.62rem;
+  font-weight:    800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color:          var(--sc-muted);
+}
+
+.sc-input {
+  font-family:  'Montserrat', sans-serif;
+  font-size:    0.88rem;
+  font-weight:  600;
+  color:        var(--sc-text);
+  background:   transparent;
+  border:       1px solid var(--sc-border);
+  padding:      10px 12px;
+  outline:      none;
+  border-radius: 0;
+  transition:   border-color 0.2s;
+}
+.sc-input:focus    { border-color: var(--sc-accent); }
+.sc-input:disabled { opacity: 0.5; }
+
+/* Banner arriba del curso cuando se está repasando un curso terminado */
+.sc-result-banner {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             16px;
+  flex-wrap:       wrap;
+  border:          1px solid var(--sc-accent);
+  background:      var(--sc-surface);
+  padding:         12px 18px;
+  margin-bottom:   18px;
+  font-family:     'Montserrat', sans-serif;
+  font-size:       0.72rem;
+  font-weight:     900;
+  letter-spacing:  1.5px;
+  color:           var(--sc-accent);
+}
+.sc-result-banner small {
+  font-weight:    500;
+  letter-spacing: 0;
+  color:          var(--sc-muted);
+  font-size:      0.72rem;
+}
+
+/* Último quiz aprobado pero quedan etapas pendientes */
+.sc-pending {
+  border:      1px solid var(--sc-accent);
+  border-left: 4px solid var(--sc-accent);
+  background:  var(--sc-surface);
+  padding:     18px 20px;
+  display:     flex;
+  flex-direction: column;
+  gap:         10px;
+}
+
+.sc-pending-text {
+  margin:      0;
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.8rem;
+  font-weight: 600;
+  line-height: 1.6;
+  opacity:     0.8;
+}
+
+.sc-pending-list {
+  list-style: none;
+  margin:     0;
+  padding:    0;
+  display:    flex;
+  flex-direction: column;
+  gap:        6px;
+}
+
+.sc-pending-item {
+  width:       100%;
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding:     10px 14px;
+  background:  transparent;
+  border:      1px solid var(--sc-border);
+  color:       var(--sc-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size:   0.76rem;
+  font-weight: 700;
+  text-align:  left;
+  cursor:      pointer;
+  transition:  all 0.15s;
+}
+.sc-pending-item:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+
+.sc-pending-go {
+  margin-left:    auto;
+  font-size:      0.62rem;
+  font-weight:    900;
+  letter-spacing: 1.5px;
+  color:          var(--sc-accent);
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .sc-module-aside { width: 190px; }
@@ -840,6 +999,8 @@
 
   .sc-completion-dates { flex-direction: column; gap: 8px; }
   .sc-completion-date-sep { transform: rotate(90deg); }
+  .sc-name-form-row { grid-template-columns: 1fr; }
+  .sc-result-banner { flex-direction: column; align-items: stretch; text-align: center; }
 
   .sc-header { flex-direction: column; gap: 12px; }
   .sc-progress-wrap { max-width: 100%; }

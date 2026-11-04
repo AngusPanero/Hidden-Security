@@ -42,7 +42,7 @@ const MOBILE_MQ = "(max-width: 720px)";
  
 type PublicCertificate = {
   credentialId: string;
-  kind:         "hidden" | "external";
+  kind:         "hidden" | "external" | "course"; // course = curso propio de Hidden
   slug:         string;
   holderName:   string | null;
   title:        string;
@@ -52,7 +52,7 @@ type PublicCertificate = {
   status:       "active" | "revoked";
   revokedAt:    string | null;
   url:          string;
-  // Solo cursos de empresas partner (kind = "external")
+  // Solo cursos (kind "external" de partners o "course" de Hidden)
   partnerSlug?:    string;
   partnerName?:    string;
   partnerLogoUrl?: string | null;
@@ -110,8 +110,8 @@ const CertificateView = () => {
         // La URL tiene que coincidir con la credencial real (que nadie arme un link
         // de un curso con el certificado de otro)
         const matches = isExternalRoute
-          ? data.kind === "external" && data.partnerSlug === partnerSlug && data.courseSlug === courseSlug
-          : data.kind !== "external" && data.slug === slug;
+          ? (data.kind === "external" || data.kind === "course") && data.partnerSlug === partnerSlug && data.courseSlug === courseSlug
+          : data.kind !== "external" && data.kind !== "course" && data.slug === slug;
         if (!matches) { setState("notfound"); return; }
         setCert(data);
         setState("ready");
@@ -226,12 +226,16 @@ const CertificateView = () => {
   };
  
   const revoked = cert?.status === "revoked";
-  const external = cert?.kind === "external";
-  const partnerLogo = external ? safeLogo(cert?.partnerLogoUrl) : null;
+  // "external" = diseño de certificado de curso (partner o curso propio de Hidden)
+  const hiddenCourse = cert?.kind === "course";
+  const external = cert?.kind === "external" || hiddenCourse;
+  const partnerLogo = hiddenCourse ? logoHS : external ? safeLogo(cert?.partnerLogoUrl) : null;
   const facts = external ? (cert?.facts ?? []) : (cert ? EXAM_FACTS[cert.slug] ?? [] : []);
-  const kicker = external ? "CERTIFICADO DE CURSO APROBADO" : "CERTIFICADO DE APROBACIÓN";
+  const kicker = hiddenCourse ? "CERTIFICADO DE FINALIZACIÓN DE CURSO"
+    : external ? "CERTIFICADO DE CURSO APROBADO" : "CERTIFICADO DE APROBACIÓN";
   const verifyPath = cert
-    ? external ? `${ISSUER.web}/cursos/${cert.partnerSlug}/${cert.courseSlug}` : `${ISSUER.web}/certifications/${cert.slug}`
+    ? hiddenCourse ? cert.url.replace(/^https?:\/\//, "")
+    : external ? `${ISSUER.web}/cursos/${cert.partnerSlug}/${cert.courseSlug}` : `${ISSUER.web}/certifications/${cert.slug}`
     : "";
  
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -296,7 +300,11 @@ const CertificateView = () => {
               <span className="hcv-m-lead">Se certifica que</span>
               <h1 className="hcv-m-name">{cert.holderName ?? "Titular de la credencial"}</h1>
               <span className="hcv-m-bar" />
-              {external ? (
+              {hiddenCourse ? (
+                <p className="hcv-m-desc">
+                  completó el curso de <b>Hidden Security</b>, aprobando las evaluaciones de cada módulo del programa
+                </p>
+              ) : external ? (
                 <p className="hcv-m-desc">
                   completó y aprobó el curso de <b>{cert.partnerName}</b> dictado en la plataforma
                   Hidden Security, validando sus competencias mediante las evaluaciones del curso
@@ -384,7 +392,12 @@ const CertificateView = () => {
                       {cert.holderName ?? "Titular de la credencial"}
                     </h2>
                     <span className="hcv-name-bar" />
-                    {external ? (
+                    {hiddenCourse ? (
+                      <p className="hcv-desc">
+                        Esto certifica que el destinatario completó el curso de <b>Hidden Security</b> dictado en la
+                        plataforma Hidden Security, cursando todos sus módulos y aprobando las evaluaciones de cada uno.
+                      </p>
+                    ) : external ? (
                       <p className="hcv-desc">
                         Esto certifica que el destinatario completó y aprobó el curso de <b>{cert.partnerName}</b> dictado
                         en la plataforma Hidden Security, validando sus competencias mediante las evaluaciones del curso,

@@ -1,4 +1,5 @@
 import { useState, useEffect, type JSX } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Soc1Course from "../courses/paidCourses/soc1/Soc1Course";
 import { UseSession } from "../contexts/SessionContext"; // ajustá esta ruta si difiere
@@ -102,11 +103,45 @@ interface CourseProgressSummary {
   isCompleted:    boolean;
   startedAt:      string;
   completedAt:    string | null;
+  // Resultado (lo calcula el backend con la mejor nota de cada quiz)
+  quizzesTotal?:  number;
+  quizzesTaken?:  number;
+  quizzesPassed?: number;
+  score?:         number | null;
+  passingScore?:  number;
+}
+
+// Certificado público del usuario (GET /api/certificates/mine)
+interface MyCertificate {
+  certId?:      string;
+  credentialId: string;
+  status:       "active" | "revoked";
+  url:          string;
+}
+
+type Filter = "all" | "progress" | "completed";
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: "all",       label: "TODOS" },
+  { id: "progress",  label: "EN PROCESO" },
+  { id: "completed", label: "COMPLETADOS" },
+];
+
+const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+// El link del certificado es absoluto (dominio público): adentro del sitio se navega por su ruta
+function certPath(url: string): string | null {
+  try { return new URL(url, window.location.origin).pathname; } catch { return null; }
 }
 
 export default function CourseCatalog() {
   const { user } = UseSession();
+  const navigate = useNavigate();
   const [activeCourse, setActiveCourse] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+
+  // Certificado: qué card lo está buscando y error por card
+  const [certLoading, setCertLoading] = useState<string | null>(null);
+  const [certError,   setCertError]   = useState<Record<string, string>>({});
 
   // ── Progreso del usuario para todos los cursos que ya empezó ──────────────
   const [progressMap, setProgressMap] = useState<Record<string, CourseProgressSummary>>({});
@@ -128,6 +163,51 @@ export default function CourseCatalog() {
       })
       .finally(() => setProgressLoaded(true));
   }, [user]);
+
+  // Busca el certificado de finalización del alumno y abre su página pública.
+  // 1) /api/certificates/mine (no necesita plan activo)
+  // 2) si todavía no existe, GET /progress del curso lo emite (alumnos que
+  //    terminaron antes de que hubiera certificados)
+  // Si al CV le falta el nombre, se abre el curso: la pantalla final lo pide.
+  const openCertificate = async (course: CourseMeta, e: React.MouseEvent) => {
+    e.stopPropagation(); // no abrir el curso
+    if (certLoading) return;
+    setCertLoading(course.id);
+    setCertError(prev => ({ ...prev, [course.id]: "" }));
+    try {
+      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/certificates/mine`, { withCredentials: true });
+      const list: MyCertificate[] = Array.isArray(data?.certificates) ? data.certificates : [];
+      let found = list.find(c => c.certId === `course:${course.id}`);
+
+      if (!found) {
+        const { data: prog } = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/course/${course.id}/progress`,
+          { withCredentials: true },
+        );
+        if (prog?.certificate && !prog.certificate.hasHolderName) {
+          setActiveCourse(course.id); // la pantalla final pide nombre y apellido
+          return;
+        }
+        if (prog?.certificate) found = { ...prog.certificate, status: "active" };
+      }
+
+      if (!found) {
+        setCertError(prev => ({ ...prev, [course.id]: "Todavía no encontramos tu certificado. Probá de nuevo en unos minutos." }));
+        return;
+      }
+      if (found.status === "revoked") {
+        setCertError(prev => ({ ...prev, [course.id]: "Este certificado fue revocado. Contactanos si creés que es un error." }));
+        return;
+      }
+      const path = certPath(found.url);
+      if (!path) throw new Error("url inválida");
+      navigate(path);
+    } catch {
+      setCertError(prev => ({ ...prev, [course.id]: "No pudimos obtener tu certificado. Probá de nuevo." }));
+    } finally {
+      setCertLoading(null);
+    }
+  };
 
   const selected = activeCourse ? CATALOG.find(c => c.id === activeCourse) : null;
 
@@ -159,11 +239,22 @@ export default function CourseCatalog() {
     return c.status === "available" && !!p && p.completedCount > 0 && !p.isCompleted;
   });
 
-  const hasInProgress = progressLoaded && inProgressCourses.length > 0;
+  const completedCourses = CATALOG.filter((c) => c.status === "available" && !!progressMap[c.id]?.isCompleted);
 
-  const remainingCourses = hasInProgress
-    ? CATALOG.filter((c) => !inProgressCourses.some((ip) => ip.id === c.id))
-    : CATALOG;
+  const counts: Record<Filter, number> = {
+    all:       CATALOG.length,
+    progress:  inProgressCourses.length,
+    completed: completedCourses.length,
+  };
+
+  const hasInProgress = filter === "all" && progressLoaded && inProgressCourses.length > 0;
+
+  const remainingCourses =
+    filter === "progress"  ? inProgressCourses
+    : filter === "completed" ? completedCourses
+    : hasInProgress
+      ? CATALOG.filter((c) => !inProgressCourses.some((ip) => ip.id === c.id))
+      : CATALOG;
 
   // ── Card de curso -- reutilizada tanto en "continuar" como en el resto ────
   // Si hay progreso para ese curso, muestra la barra + badge de porcentaje
@@ -176,13 +267,17 @@ export default function CourseCatalog() {
 
     let ctaLabel = "INICIAR →";
     if (hasProgress) {
-      ctaLabel = progress.isCompleted ? "VER CURSO →" : "CONTINUAR →";
+      ctaLabel = progress.isCompleted ? "REPASAR CURSO →" : "CONTINUAR →";
     }
+
+    const score   = hasProgress ? progress.score ?? null : null;
+    const minimum = progress?.passingScore ?? 0.7;
+    const quizzes = progress?.quizzesTotal ?? 0;
 
     return (
       <div
         key={course.id}
-        className={`cc-card${isSoon ? " cc-card--soon" : ""}`}
+        className={`cc-card${isSoon ? " cc-card--soon" : ""}${hasProgress && progress.isCompleted ? " cc-card--completed" : ""}`}
         onClick={() => !isSoon && setActiveCourse(course.id)}
       >
         {/* Badge de estado */}
@@ -205,7 +300,7 @@ export default function CourseCatalog() {
           )}
           {hasProgress && progress!.isCompleted && (
             <span className="cc-badge cc-badge--completed">
-              ✓ COMPLETADO
+              ✓ APROBADO
             </span>
           )}
           {hasProgress && !progress!.isCompleted && (
@@ -224,12 +319,56 @@ export default function CourseCatalog() {
         {/* Descripción */}
         <p className="cc-card-description">{course.description}</p>
 
-        {/* Barra de progreso -- solo si hay progreso real */}
-        {hasProgress && (
-          <div className="cc-progress-bar-wrap">
-            <div className="cc-progress-bar">
-              <div className="cc-progress-fill" style={{ width: `${progress!.percent}%` }} />
+        {/* En proceso: avance de etapas y quizzes */}
+        {hasProgress && !progress.isCompleted && (
+          <div className="cc-status">
+            <div className="cc-status-head">
+              <span className="cc-status-label">// TU AVANCE</span>
+              <span className="cc-status-pct">{progress.percent}%</span>
             </div>
+            <div className="cc-progress-bar">
+              <div className="cc-progress-fill" style={{ width: `${progress.percent}%` }} />
+            </div>
+            <span className="cc-status-meta">
+              {progress.completedCount} de {progress.totalSteps} etapas
+              {quizzes > 0 && ` · ${progress.quizzesPassed ?? 0}/${quizzes} quizzes aprobados`}
+              {score !== null && ` · promedio ${pct(score)}`}
+            </span>
+          </div>
+        )}
+
+        {/* Completado: nota final + certificado */}
+        {hasProgress && progress.isCompleted && (
+          <div className="cc-result">
+            <div className="cc-status-head">
+              <span className="cc-status-label">// TU RESULTADO</span>
+              <span className="cc-result-pct">{score !== null ? pct(score) : "✓"}</span>
+            </div>
+            <div className="cc-result-bar">
+              <i style={{ width: score !== null ? pct(score) : "100%" }} />
+              <b style={{ left: pct(minimum) }} />
+            </div>
+            <span className="cc-status-meta">
+              {quizzes > 0 && `${progress.quizzesPassed ?? quizzes}/${quizzes} quizzes aprobados · `}mínimo {pct(minimum)}
+              {progress.completedAt && ` · ${new Date(progress.completedAt).toLocaleDateString("es-AR")}`}
+            </span>
+
+            <button
+              type="button"
+              className="cc-cert-btn"
+              onClick={(e) => openCertificate(course, e)}
+              disabled={certLoading === course.id}
+              aria-busy={certLoading === course.id}
+            >
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="10" cy="8" r="5" />
+                <path d="M7 12l-1.5 6L10 16l4.5 2L13 12" />
+              </svg>
+              {certLoading === course.id ? "BUSCANDO CERTIFICADO…" : "VER MI CERTIFICADO →"}
+            </button>
+            {certError[course.id] && (
+              <span className="cc-cert-error" role="alert">{certError[course.id]}</span>
+            )}
           </div>
         )}
 
@@ -273,6 +412,31 @@ export default function CourseCatalog() {
           Todos los cursos incluidos en tu membresía. Avanzá a tu ritmo, tu progreso se guarda automáticamente.
         </p>
       </div>
+
+      {/* Filtros: solo si el alumno ya empezó algún curso */}
+      {progressLoaded && (counts.progress > 0 || counts.completed > 0) && (
+        <div className="cc-filters" role="tablist" aria-label="Filtrar cursos">
+          {FILTERS.map(f => (
+            <button
+              key={f.id}
+              role="tab"
+              aria-selected={filter === f.id}
+              className={`cc-filter${filter === f.id ? " active" : ""} cc-filter--${f.id}`}
+              onClick={() => setFilter(f.id)}
+            >
+              {f.label}
+              <span className="cc-filter-count">{counts[f.id]}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {remainingCourses.length === 0 && (
+        <div className="cc-empty">
+          <span className="cc-eyebrow">// SIN_RESULTADOS</span>
+          <p>{filter === "completed" ? "Todavía no completaste ningún curso." : "No tenés cursos en proceso."}</p>
+        </div>
+      )}
 
       {/* ── Sección "continuá donde lo dejaste" -- solo si hay algo en progreso ── */}
       {hasInProgress && (
