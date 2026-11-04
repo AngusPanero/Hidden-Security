@@ -97,6 +97,8 @@ export interface CourseApproval {
     score: number | null;
     basis: "FINAL_EXAM" | "ALL_QUIZZES";
     minScore: number;
+    // Evaluaciones que no llegan al mínimo (la nota guardada es la mejor)
+    pending: { stepId: string; title: string; bestScore: number }[];
     certificate: CourseCertificate | null;
 }
 

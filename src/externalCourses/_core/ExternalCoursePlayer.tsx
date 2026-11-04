@@ -65,6 +65,7 @@ function CompletionScreen({
     approval,
     busy,
     onReview,
+    onGoToStep,
     onRefresh,
 }: {
     courseTitle: string;
@@ -74,6 +75,7 @@ function CompletionScreen({
     approval: CourseApproval;
     busy: boolean;
     onReview: () => void;
+    onGoToStep: (stepId: string) => void;
     onRefresh: () => Promise<unknown>;
 }) {
     const navigate = useNavigate();
@@ -221,9 +223,23 @@ function CompletionScreen({
             {!approval.approved && (
                 <div className="xs-completion-msg">
                     <p>
-                        Para aprobar el curso necesitás {Math.round(approval.minScore * 100)}% o más en el {basisLabel}.
-                        Podés volver a rendirlo las veces que quieras: siempre se guarda tu mejor nota.
+                        {approval.basis === "FINAL_EXAM"
+                            ? `Para aprobar el curso necesitás ${Math.round(approval.minScore * 100)}% o más en el examen final.`
+                            : `Para aprobar el curso, cada evaluación necesita ${Math.round(approval.minScore * 100)}% o más (no alcanza con el promedio).`}{" "}
+                        Podés rendirlas las veces que quieras: siempre se guarda tu mejor nota.
                     </p>
+                    {approval.pending.length > 0 && (
+                        <div className="xs-pending">
+                            <span className="xs-completion-date-label">// TE FALTA LLEGAR AL {Math.round(approval.minScore * 100)}% EN</span>
+                            {approval.pending.map((p) => (
+                                <button key={p.stepId} className="xs-pending-item" onClick={() => onGoToStep(p.stepId)}>
+                                    <span>{p.title}</span>
+                                    <strong>{Math.round(p.bestScore * 100)}%</strong>
+                                    <em>REINTENTAR →</em>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -356,6 +372,10 @@ const ExternalCoursePlayer = () => {
                     approval={progress.approval}
                     busy={busy}
                     onReview={() => setReviewing(true)}
+                    onGoToStep={(stepId) => {
+                        setSelectedId(stepId);
+                        setReviewing(true);
+                    }}
                     onRefresh={course.refreshProgress}
                 />
             </div>
