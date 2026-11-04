@@ -18,6 +18,8 @@ interface Props {
 // Mismo quiz que Soc1Course (QuizViewer). La corrección es 100% del backend:
 // acá solo se eligen opciones y se muestra el resultado. El orden de las
 // preguntas y el de las opciones se mezcla en cada intento.
+// Se aprueba con 80% y los reintentos son ilimitados (también después de
+// aprobar): el backend guarda siempre la mejor nota.
 
 // Fisher–Yates — mezcla sin sesgo y sin mutar el original
 function shuffle<T>(items: T[]): T[] {
@@ -55,8 +57,6 @@ const QuizStep = ({ step, result, busy, onSubmit }: Props) => {
     const attempts = response?.attempts ?? result?.attempts ?? 0;
     const answeredCount = questions.filter((q) => answers[q.id] !== undefined).length;
     const allAnswered = questions.length > 0 && answeredCount === questions.length;
-    const noAttemptsLeft =
-        !result?.passed && !response?.passed && quiz.maxAttempts != null && attempts >= quiz.maxAttempts;
 
     const handleSelect = (questionId: string, optionId: string) => {
         if (response) return;
@@ -94,21 +94,8 @@ const QuizStep = ({ step, result, busy, onSubmit }: Props) => {
                     Intentos: {result.attempts} · Podés continuar al siguiente módulo.
                 </p>
                 <button className="xs-btn xs-btn--ghost" onClick={handleRetry}>
-                    Reintentar de todas formas
+                    REINTENTAR PARA MEJORAR LA NOTA
                 </button>
-            </div>
-        );
-    }
-
-    // ─── Sin intentos ────────────────────────────────────────────────
-    if (noAttemptsLeft && !response) {
-        return (
-            <div className="xs-quiz-result xs-quiz-result--failed">
-                <span className="xs-quiz-result-icon">✗</span>
-                <p className="xs-quiz-result-score">SIN INTENTOS DISPONIBLES</p>
-                <p className="xs-quiz-result-sub">
-                    Usaste los {quiz.maxAttempts} intentos de esta evaluación. Contactá a soporte de Hidden Security.
-                </p>
             </div>
         );
     }
@@ -116,23 +103,30 @@ const QuizStep = ({ step, result, busy, onSubmit }: Props) => {
     // ─── Resultado del intento ───────────────────────────────────────
     if (response) {
         const passed = response.passed;
-        const canRetry = !passed && (response.attemptsLeft == null || response.attemptsLeft > 0);
+        // Reintento de una evaluación ya aprobada: sigue aprobada con la mejor nota
+        const keptApproval = response.alreadyPassed && !passed;
+        const improved = response.alreadyPassed && passed && response.score >= response.bestScore;
+        const ok = passed || keptApproval;
         return (
-            <div className={`xs-quiz-result${passed ? " xs-quiz-result--passed" : " xs-quiz-result--failed"}`}>
-                <span className="xs-quiz-result-icon">{passed ? "✓" : "✗"}</span>
+            <div className={`xs-quiz-result${ok ? " xs-quiz-result--passed" : " xs-quiz-result--failed"}`}>
+                <span className="xs-quiz-result-icon">{ok ? "✓" : "✗"}</span>
                 <p className="xs-quiz-result-score">
-                    {pct(response.score)} — {passed ? "APROBADO" : "NO APROBADO"}
+                    {pct(response.score)} — {passed ? "APROBADO" : keptApproval ? "NO ALCANZÓ EL MÍNIMO" : "NO APROBADO"}
                 </p>
                 <p className="xs-quiz-result-sub">
-                    {passed
-                        ? "¡Excelente! Podés continuar al siguiente módulo."
-                        : `Necesitás al menos ${pct(quiz.passScore)} para aprobar. Intentá de nuevo.`}
+                    {keptApproval
+                        ? `La evaluación sigue aprobada con tu mejor nota (${pct(response.bestScore)}). Ese valor no se pierde.`
+                        : improved
+                        ? `¡Mejoraste tu nota! Tu mejor nota ahora es ${pct(response.bestScore)}.`
+                        : passed
+                        ? "¡Excelente! Podés continuar con el siguiente paso."
+                        : `Necesitás al menos ${pct(quiz.passScore)} para aprobar. Podés intentarlo las veces que quieras.`}
                 </p>
                 <p className="xs-quiz-attempts">
                     Intento #{attempts}
                     {response.correctCount != null && response.total != null &&
                         ` · ${response.correctCount}/${response.total} correctas`}
-                    {!passed && response.attemptsLeft != null && ` · Te quedan ${response.attemptsLeft} intentos`}
+                    {` · Mejor nota: ${pct(response.bestScore)}`}
                 </p>
 
                 {/* Revisión — muestra lo elegido, nunca la correcta (vive en el backend) */}
@@ -149,11 +143,9 @@ const QuizStep = ({ step, result, busy, onSubmit }: Props) => {
                     ))}
                 </div>
 
-                {canRetry && (
-                    <button className="xs-btn xs-btn--accent" onClick={handleRetry}>
-                        REINTENTAR
-                    </button>
-                )}
+                <button className={`xs-btn ${ok ? "xs-btn--ghost" : "xs-btn--accent"}`} onClick={handleRetry}>
+                    {ok ? "REINTENTAR PARA MEJORAR LA NOTA" : "REINTENTAR"}
+                </button>
             </div>
         );
     }
@@ -164,9 +156,7 @@ const QuizStep = ({ step, result, busy, onSubmit }: Props) => {
             <p className="xs-quiz-subtitle">
                 Respondé todas las preguntas para aprobar. Mínimo {pct(quiz.passScore)}.
                 {attempts > 0 && <span className="xs-quiz-attempts"> · Intentos anteriores: {attempts}</span>}
-                {quiz.maxAttempts != null && (
-                    <span className="xs-quiz-attempts"> · Máximo {quiz.maxAttempts} intentos</span>
-                )}
+                <span className="xs-quiz-attempts"> · Intentos ilimitados</span>
             </p>
 
             {questions.map((q, qIdx) => (

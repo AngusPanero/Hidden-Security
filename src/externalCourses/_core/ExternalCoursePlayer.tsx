@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useExternalCourse } from "./hooks/useExternalCourse";
 import { getCourseCover, getPartnerBranding } from "./registry";
-import { apiErrorMessage, type CourseStep, type StepType } from "./api/externalCoursesApi";
+import { apiErrorMessage, externalCoursesApi, type CourseApproval, type CourseStep, type StepType } from "./api/externalCoursesApi";
 import PdfStep from "./steps/PdfStep";
 import VideoStep from "./steps/VideoStep";
 import QuizStep from "./steps/QuizStep";
@@ -53,17 +53,35 @@ function ProgressBar({ completed, total, pct }: { completed: number; total: numb
 }
 
 // ── Pantalla de finalización ──────────────────────────────────────────
+// Muestra si aprobó (lo decide el backend), la nota y el certificado.
+// Si el CV no tiene nombre y apellido, los pide para emitir el certificado.
+const NAME_RE = /^[\p{L}][\p{L}' -]{1,59}$/u;
+
 function CompletionScreen({
     courseTitle,
     partnerName,
     startedAt,
     completedAt,
+    approval,
+    busy,
+    onReview,
+    onRefresh,
 }: {
     courseTitle: string;
     partnerName: string;
     startedAt: string | null;
     completedAt: string | null;
+    approval: CourseApproval;
+    busy: boolean;
+    onReview: () => void;
+    onRefresh: () => Promise<unknown>;
 }) {
+    const navigate = useNavigate();
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState("");
+
     const start = startedAt ? new Date(startedAt) : null;
     const end = completedAt ? new Date(completedAt) : null;
     const fmt = (d: Date) => d.toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
@@ -79,13 +97,48 @@ function CompletionScreen({
                 : [days > 0 && `${days} días`, hours > 0 && `${hours} horas`].filter(Boolean).join(" y ");
     }
 
+    const scoreLabel = approval.score == null ? null : `${Math.round(approval.score * 100)}%`;
+    const basisLabel = approval.basis === "FINAL_EXAM" ? "examen final" : "promedio de las evaluaciones";
+    const cert = approval.certificate;
+
+    // El link del certificado es absoluto (dominio público); se navega por su ruta
+    const certPath = cert ? new URL(cert.url).pathname : null;
+
+    const validName = NAME_RE.test(firstName.trim()) && NAME_RE.test(lastName.trim());
+
+    const saveName = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validName || saving) return;
+        setSaving(true);
+        setFormError("");
+        try {
+            await externalCoursesApi.saveHolderName(firstName.trim(), lastName.trim());
+            await onRefresh(); // el backend completa el titular del certificado
+        } catch (err) {
+            setFormError(apiErrorMessage(err, "No se pudo guardar tu nombre. Intentá de nuevo."));
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="xs-completion">
-            <div className="xs-completion-badge">✓</div>
-            <h2 className="xs-completion-title">¡CURSADA COMPLETADA!</h2>
+            <div className={`xs-completion-badge${approval.approved ? "" : " xs-completion-badge--pending"}`}>
+                {approval.approved ? "✓" : "!"}
+            </div>
+            <h2 className="xs-completion-title">{approval.approved ? "¡CURSO APROBADO!" : "CURSO COMPLETADO"}</h2>
             <p className="xs-completion-sub">
-                Completaste el curso <strong>{courseTitle}</strong> de {partnerName} en Hidden Security.
+                {approval.approved ? "Aprobaste" : "Completaste"} el curso <strong>{courseTitle}</strong> de {partnerName}{" "}
+                en Hidden Security.
             </p>
+
+            {scoreLabel && (
+                <div className="xs-completion-score">
+                    <span className="xs-completion-date-label">// NOTA ({basisLabel.toUpperCase()})</span>
+                    <span className="xs-completion-score-value">{scoreLabel}</span>
+                </div>
+            )}
+
             {start && end && (
                 <>
                     <div className="xs-completion-dates">
@@ -104,6 +157,79 @@ function CompletionScreen({
                     </p>
                 </>
             )}
+
+            {/* ── Certificado ── */}
+            {approval.approved && cert && cert.hasHolderName && certPath && (
+                <div className="xs-completion-msg">
+                    <p>
+                        Tu certificado ya está disponible. Es público y verificable: podés compartirlo, descargarlo o
+                        sumarlo a LinkedIn. El curso y sus skills validadas ya figuran en tu CV.
+                    </p>
+                    <button className="xs-btn xs-btn--accent xs-btn--lg" onClick={() => navigate(certPath)}>
+                        VER MI CERTIFICADO →
+                    </button>
+                </div>
+            )}
+
+            {approval.approved && cert && !cert.hasHolderName && (
+                <form className="xs-name-form" onSubmit={saveName}>
+                    <span className="xs-eyebrow">// DATOS_DEL_CERTIFICADO</span>
+                    <p className="xs-name-form-text">
+                        Para emitir tu certificado necesitamos tu nombre y apellido tal como querés que aparezcan.
+                        También se guardan en tu CV.
+                    </p>
+                    <div className="xs-name-form-row">
+                        <label className="xs-field">
+                            <span>Nombre</span>
+                            <input
+                                className="xs-input"
+                                value={firstName}
+                                maxLength={60}
+                                autoComplete="given-name"
+                                onChange={(e) => setFirstName(e.target.value)}
+                                disabled={saving}
+                            />
+                        </label>
+                        <label className="xs-field">
+                            <span>Apellido</span>
+                            <input
+                                className="xs-input"
+                                value={lastName}
+                                maxLength={60}
+                                autoComplete="family-name"
+                                onChange={(e) => setLastName(e.target.value)}
+                                disabled={saving}
+                            />
+                        </label>
+                    </div>
+                    {formError && <p className="xs-quiz-error">{formError}</p>}
+                    <button type="submit" className="xs-btn xs-btn--accent xs-btn--lg" disabled={!validName || saving}>
+                        {saving ? "GENERANDO..." : "GENERAR CERTIFICADO"}
+                    </button>
+                </form>
+            )}
+
+            {approval.approved && !cert && (
+                <div className="xs-completion-msg">
+                    <p>Estamos generando tu certificado. Si no aparece en unos segundos, actualizá.</p>
+                    <button className="xs-btn xs-btn--ghost" onClick={() => onRefresh()} disabled={busy}>
+                        {busy ? "ACTUALIZANDO..." : "↻ ACTUALIZAR"}
+                    </button>
+                </div>
+            )}
+
+            {!approval.approved && (
+                <div className="xs-completion-msg">
+                    <p>
+                        Para aprobar el curso necesitás {Math.round(approval.minScore * 100)}% o más en el {basisLabel}.
+                        Podés volver a rendirlo las veces que quieras: siempre se guarda tu mejor nota.
+                    </p>
+                </div>
+            )}
+
+            <button className="xs-btn xs-btn--ghost" onClick={onReview}>
+                {approval.approved ? "VOLVER A VER EL CURSO" : "VOLVER AL CURSO"}
+            </button>
         </div>
     );
 }
@@ -133,6 +259,8 @@ const ExternalCoursePlayer = () => {
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [actionError, setActionError] = useState<string | null>(null);
     const [showIntro, setShowIntro] = useState(true);
+    // Con el curso terminado, el alumno puede volver a entrar a repasar o a reintentar
+    const [reviewing, setReviewing] = useState(false);
 
     const stageRef = useRef<HTMLDivElement>(null);
 
@@ -217,7 +345,7 @@ const ExternalCoursePlayer = () => {
     const eyebrow = toEyebrow(info.title);
 
     // ─── Curso completado ────────────────────────────────────────────
-    if (progress.isCompleted) {
+    if (progress.isCompleted && !reviewing) {
         return (
             <div className={wrapClass}>
                 <CompletionScreen
@@ -225,6 +353,10 @@ const ExternalCoursePlayer = () => {
                     partnerName={partnerName}
                     startedAt={progress.startedAt}
                     completedAt={progress.completedAt}
+                    approval={progress.approval}
+                    busy={busy}
+                    onReview={() => setReviewing(true)}
+                    onRefresh={course.refreshProgress}
                 />
             </div>
         );
@@ -375,6 +507,19 @@ const ExternalCoursePlayer = () => {
                 />
                 {info.description && <p className="xs-header-desc">{info.description}</p>}
             </div>
+
+            {progress.isCompleted && (
+                <div className={`xs-result-banner${progress.approval.approved ? "" : " xs-result-banner--pending"}`}>
+                    <span>
+                        {progress.approval.approved ? "✓ CURSO APROBADO" : "CURSO COMPLETADO"}
+                        {progress.approval.score != null && ` · NOTA ${Math.round(progress.approval.score * 100)}%`}
+                        <small> · Podés repasar y reintentar las evaluaciones: se guarda siempre tu mejor nota.</small>
+                    </span>
+                    <button className="xs-btn xs-btn--ghost" onClick={() => setReviewing(false)}>
+                        VER RESULTADO{progress.approval.approved ? " Y CERTIFICADO" : ""}
+                    </button>
+                </div>
+            )}
 
             <div className="xs-modules">
                 {structure.modules.map((mod) => {

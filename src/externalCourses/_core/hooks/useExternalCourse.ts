@@ -104,6 +104,18 @@ export function useExternalCourse(partnerSlug?: string, courseSlug?: string) {
         [partnerSlug, courseSlug, withBusy]
     );
 
+    // Vuelve a pedir el progreso (por ejemplo, después de cargar el nombre en el CV
+    // para que el backend complete el certificado)
+    const refreshProgress = useCallback(
+        () =>
+            withBusy(async () => {
+                const p = await externalCoursesApi.progress(partnerSlug!, courseSlug!);
+                setProgress(p);
+                return p;
+            }),
+        [partnerSlug, courseSlug, withBusy]
+    );
+
     const submitQuiz = useCallback(
         (quizId: string, answers: QuizAnswers) =>
             withBusy(async () => {
@@ -128,6 +140,7 @@ export function useExternalCourse(partnerSlug?: string, courseSlug?: string) {
         start,
         completeStep,
         submitQuiz,
+        refreshProgress,
     };
 }
 

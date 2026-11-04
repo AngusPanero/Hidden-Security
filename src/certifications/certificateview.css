@@ -204,3 +204,14 @@
   .hcv-page .hcv-verify-id{width:100%; padding-left:44px; white-space:normal; word-break:break-all}
   .hcv-page .hcv-btn{flex:1 1 calc(50% - 10px); text-align:center; padding:14px 10px; font-size:11px}
 }
+/* ═══ Cursos de empresas partner ═══
+   En lugar de la insignia de Hidden va el logo de la empresa (logoUrl de
+   partner.config.js). Si no tiene logo, se muestra su nombre. */
+.hcv-page .hci-logo--partner{height:auto; max-height:150px; max-width:220px; object-fit:contain; margin-bottom:6px}
+.hcv-page .hci-partner-name{width:220px; min-height:120px; display:grid; place-items:center; text-align:center;
+  border:1px solid rgba(204,255,0,.35); color:#ccff00; font-size:18px; font-weight:900; letter-spacing:.14em; padding:16px; margin-bottom:6px}
+.hcv-page .hcv-m-partner{display:flex; justify-content:center; margin-top:18px}
+.hcv-page .hcv-m-partner img{max-height:72px; max-width:200px; object-fit:contain}
+.hcv-page .hcv-m-partner span{border:1px solid rgba(204,255,0,.35); color:#ccff00; font-size:14px; font-weight:900; letter-spacing:.14em; padding:12px 18px}
+/* Títulos de cursos (más largos que "SOC ANALYST"): que entren en pantallas chicas */
+.hcv-page .hcv-m-title--course{font-size:clamp(22px,7.4vw,32px); overflow-wrap:anywhere; hyphens:auto}

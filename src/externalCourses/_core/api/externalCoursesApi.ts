@@ -65,6 +65,8 @@ export interface CourseStructure {
         status: "ACTIVE" | "DRAFT" | "INACTIVE";
         estimatedDurationMinutes: number | null;
         sequential: boolean;
+        hasFinalExam: boolean;
+        minPassScore: number; // 0.8: mínimo para aprobar cada evaluación y el curso
         moduleCount: number;
         totalSteps: number;
         totalEligibleSteps: number;
@@ -79,6 +81,23 @@ export interface QuizResult {
     attempts: number;
     lastAttemptAt: string | null;
     passedAt: string | null;
+}
+
+// Aprobación del curso (la decide el backend). Con examen final cuenta su
+// mejor nota; sin examen final, todas las evaluaciones aprobadas.
+export interface CourseCertificate {
+    credentialId: string;
+    url: string;
+    hasHolderName: boolean; // false → falta nombre y apellido en el CV
+}
+
+export interface CourseApproval {
+    completed: boolean;
+    approved: boolean;
+    score: number | null;
+    basis: "FINAL_EXAM" | "ALL_QUIZZES";
+    minScore: number;
+    certificate: CourseCertificate | null;
 }
 
 export interface CourseProgress {
@@ -97,18 +116,28 @@ export interface CourseProgress {
     quizResults: Record<string, QuizResult>;
     isCompleted: boolean;
     completedAt: string | null;
+    approval: CourseApproval;
 }
 
 export interface QuizSubmitResponse {
-    passed: boolean;
-    alreadyPassed: boolean;
-    score: number;
+    passed: boolean;        // este intento llegó al mínimo
+    alreadyPassed: boolean; // ya estaba aprobada antes (es un reintento)
+    score: number;          // nota de este intento
+    bestScore: number;      // mejor nota guardada (nunca baja)
     correctCount?: number;
     total?: number;
     passScore?: number;
     attempts: number;
     attemptsLeft: number | null;
+    courseApproval: CourseApproval;
     progress: CourseProgress;
+}
+
+// Nombre y apellido del CV (para el titular del certificado)
+export interface CvPersonalInfo {
+    firstName?: string;
+    lastName?: string;
+    [key: string]: unknown;
 }
 
 export interface CatalogCourse {
@@ -169,6 +198,21 @@ export const externalCoursesApi = {
             { answers }
         );
         return data;
+    },
+
+    // ── CV (rutas existentes del back: GET y PUT /api/cv/me) ─────────
+    async myPersonalInfo(): Promise<CvPersonalInfo> {
+        const { data } = await http.get<{ data: { personalInfo?: CvPersonalInfo } | null }>(`${API_URL}/api/cv/me`);
+        return data.data?.personalInfo ?? {};
+    },
+
+    // Guarda nombre y apellido conservando el resto de los datos personales
+    // (PUT /api/cv/me reemplaza personalInfo entero, por eso se manda completo)
+    async saveHolderName(firstName: string, lastName: string): Promise<void> {
+        const current = await externalCoursesApi.myPersonalInfo();
+        await http.put(`${API_URL}/api/cv/me`, {
+            personalInfo: { ...current, firstName, lastName },
+        });
     },
 
     // Devuelve una URL blob: (hay que liberarla con URL.revokeObjectURL)

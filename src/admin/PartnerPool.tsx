@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import "./partnerPool.css";
+import "./PartnerPool.css";
 import { UseTheme } from "../contexts/ThemeContext";
 
 // ══════════════════════════════════════════════════════════════════════
@@ -90,13 +90,16 @@ interface PeriodDoc {
         enabledPoolAmount: number | null;
     };
     revenueBreakdown?: {
-        paymentsCount: number;
+        activePlans: number;
+        planCounts: Record<string, number>;
+        discountedPlans: number;
+        excludedFreePayments: number;
+        excludedStaffPlans: number;
+        basePlan: string;
+        basePlanPrice: number | null;
+        mpFeeRate: number | null;
         grossAmount: number | null;
         feesAmount: number | null;
-        estimatedFeePayments: number;
-        mixedPayments: number;
-        mixedPaymentsAmount: number | null;
-        excludedEnterprisePayments: number;
     };
     metrics?: {
         eligibleSubscriptions: number;
@@ -723,26 +726,27 @@ function SettlementsView() {
                                     <Stat label="POOL HABILITADO" value={fmtMoney(p.financials.enabledPoolAmount)} accent />
                                 </div>
 
-                                <p className="pp-note">
-                                    {fmtInt(p.revenueBreakdown?.paymentsCount)} pagos aprobados · bruto{" "}
-                                    {fmtMoney(p.revenueBreakdown?.grossAmount)} · comisiones MP{" "}
-                                    {fmtMoney(p.revenueBreakdown?.feesAmount)}
-                                    {!!p.revenueBreakdown?.estimatedFeePayments &&
-                                        ` · ${p.revenueBreakdown.estimatedFeePayments} con comisión estimada`}
-                                    {!!p.revenueBreakdown?.excludedEnterprisePayments &&
-                                        ` · ${p.revenueBreakdown.excludedEnterprisePayments} pagos de empresa excluidos`}
-                                    {" · "}
-                                    {fmtInt(p.metrics.uniqueEligibleConsumers)} alumnos con consumo ·{" "}
-                                    {fmtInt(p.metrics.participatingCourses)} cursos ·{" "}
-                                    {fmtInt(p.metrics.participatingPartners)} empresas.
-                                </p>
-
-                                {!!p.revenueBreakdown?.mixedPayments && (
-                                    <div className="pp-warning">
-                                        {p.revenueBreakdown.mixedPayments} pagos mezclan un plan con items que no son
-                                        formación (ej. voucher) y se sumaron completos (
-                                        {fmtMoney(p.revenueBreakdown.mixedPaymentsAmount)}). Revisalos antes de aprobar.
-                                    </div>
+                                {p.revenueBreakdown && (
+                                    <p className="pp-note">
+                                        {fmtInt(p.revenueBreakdown.activePlans)} alumnos con plan vigente en el mes (
+                                        {["starter", "pro", "elite"]
+                                            .map((pl) => `${fmtInt(p.revenueBreakdown!.planCounts?.[pl] ?? 0)} ${pl}`)
+                                            .join(" · ")}
+                                        ), todos valuados como {p.revenueBreakdown.basePlan} (
+                                        {fmtMoney(p.revenueBreakdown.basePlanPrice)}) y prorrateados por día · bruto{" "}
+                                        {fmtMoney(p.revenueBreakdown.grossAmount)} · comisión Mercado Pago{" "}
+                                        {fmtPct(p.revenueBreakdown.mpFeeRate)} ({fmtMoney(p.revenueBreakdown.feesAmount)})
+                                        {!!p.revenueBreakdown.discountedPlans &&
+                                            ` · ${p.revenueBreakdown.discountedPlans} con cupón`}
+                                        {!!p.revenueBreakdown.excludedFreePayments &&
+                                            ` · ${p.revenueBreakdown.excludedFreePayments} con cupón 100% (no cuentan)`}
+                                        {!!p.revenueBreakdown.excludedStaffPlans &&
+                                            ` · ${p.revenueBreakdown.excludedStaffPlans} de cuentas admin/partner/enterprise (no cuentan)`}
+                                        {" · "}
+                                        {fmtInt(p.metrics.uniqueEligibleConsumers)} alumnos con consumo ·{" "}
+                                        {fmtInt(p.metrics.participatingCourses)} cursos ·{" "}
+                                        {fmtInt(p.metrics.participatingPartners)} empresas.
+                                    </p>
                                 )}
                             </>
                         )}

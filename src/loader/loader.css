@@ -29,16 +29,13 @@
 .loader-bg-grid {
     position: absolute;
     inset: 0;
-    /* background-image: linear-gradient(rgba(204, 255, 0, 0.03) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(204, 255, 0, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px; */
+    background-image: none !important;
     z-index: 1;
 }
 
-/* .hs-loader-overlay.light .loader-bg-grid {
-    background-image: linear-gradient(rgba(255, 85, 0, 0.03) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255, 85, 0, 0.03) 1px, transparent 1px);
-} */
+.hs-loader-overlay.light .loader-bg-grid {
+    background-image: none !important;
+}
 
 /* --- CONTENIDO --- */
 .loader-content {

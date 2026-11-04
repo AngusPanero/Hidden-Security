@@ -42,6 +42,7 @@ const MOBILE_MQ = "(max-width: 720px)";
  
 type PublicCertificate = {
   credentialId: string;
+  kind:         "hidden" | "external";
   slug:         string;
   holderName:   string | null;
   title:        string;
@@ -51,6 +52,12 @@ type PublicCertificate = {
   status:       "active" | "revoked";
   revokedAt:    string | null;
   url:          string;
+  // Solo cursos de empresas partner (kind = "external")
+  partnerSlug?:    string;
+  partnerName?:    string;
+  partnerLogoUrl?: string | null;
+  courseSlug?:     string;
+  facts?:          string[];
 };
  
 type LoadState = "loading" | "ready" | "notfound" | "error";
@@ -62,9 +69,19 @@ const formatDate = (iso: string) =>
   });
  
 const nameSize = (name: string) => (name.length > 38 ? 38 : name.length > 28 ? 46 : 56);
+
+// Títulos largos de cursos ("FUNDAMENTOS DE CIBERSEGURIDAD") tienen que entrar en el certificado
+const titleSize = (title: string) => (title.length > 34 ? 34 : title.length > 24 ? 42 : title.length > 16 ? 50 : 58);
+
+// Solo se muestran logos de partners servidos por https (los carga el admin en partner.config.js)
+const safeLogo = (url?: string | null) => (url && /^https:\/\//i.test(url) ? url : null);
  
+// Sirve para dos rutas:
+//   /certifications/:slug/:credentialId                          → certificaciones de Hidden
+//   /cursos/:partnerSlug/:courseSlug/certificado/:credentialId   → cursos de empresas partner
 const CertificateView = () => {
-  const { slug = "", credentialId = "" } = useParams();
+  const { slug = "", credentialId = "", partnerSlug = "", courseSlug = "" } = useParams();
+  const isExternalRoute = !!partnerSlug && !!courseSlug;
   const { theme } = UseTheme();
  
   const [cert, setCert]       = useState<PublicCertificate | null>(null);
@@ -90,8 +107,12 @@ const CertificateView = () => {
       .get<PublicCertificate>(`${API_URL}/api/public-certificates/${encodeURIComponent(credentialId)}`)
       .then(({ data }) => {
         if (cancel) return;
-        // El slug de la URL tiene que coincidir con la certificación real
-        if (data.slug !== slug) { setState("notfound"); return; }
+        // La URL tiene que coincidir con la credencial real (que nadie arme un link
+        // de un curso con el certificado de otro)
+        const matches = isExternalRoute
+          ? data.kind === "external" && data.partnerSlug === partnerSlug && data.courseSlug === courseSlug
+          : data.kind !== "external" && data.slug === slug;
+        if (!matches) { setState("notfound"); return; }
         setCert(data);
         setState("ready");
       })
@@ -101,7 +122,7 @@ const CertificateView = () => {
       });
  
     return () => { cancel = true; };
-  }, [slug, credentialId]);
+  }, [slug, credentialId, partnerSlug, courseSlug, isExternalRoute]);
  
   // ─── QR permanente (apunta a la URL pública) ─────────────────────────────
   useEffect(() => {
@@ -205,6 +226,13 @@ const CertificateView = () => {
   };
  
   const revoked = cert?.status === "revoked";
+  const external = cert?.kind === "external";
+  const partnerLogo = external ? safeLogo(cert?.partnerLogoUrl) : null;
+  const facts = external ? (cert?.facts ?? []) : (cert ? EXAM_FACTS[cert.slug] ?? [] : []);
+  const kicker = external ? "CERTIFICADO DE CURSO APROBADO" : "CERTIFICADO DE APROBACIÓN";
+  const verifyPath = cert
+    ? external ? `${ISSUER.web}/cursos/${cert.partnerSlug}/${cert.courseSlug}` : `${ISSUER.web}/certifications/${cert.slug}`
+    : "";
  
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
@@ -264,19 +292,34 @@ const CertificateView = () => {
                 </div>
               </div>
  
-              <span className="hcv-m-kicker">CERTIFICADO DE APROBACIÓN</span>
+              <span className="hcv-m-kicker">{kicker}</span>
               <span className="hcv-m-lead">Se certifica que</span>
               <h1 className="hcv-m-name">{cert.holderName ?? "Titular de la credencial"}</h1>
               <span className="hcv-m-bar" />
-              <p className="hcv-m-desc">
-                aprobó el examen final de certificación del programa <b>{cert.program}</b>,
-                acreditando las competencias profesionales de
-              </p>
-              <div className="hcv-m-title">{cert.title.toUpperCase()}</div>
- 
-              {!!EXAM_FACTS[cert.slug]?.length && (
+              {external ? (
+                <p className="hcv-m-desc">
+                  completó y aprobó el curso de <b>{cert.partnerName}</b> dictado en la plataforma
+                  Hidden Security, validando sus competencias mediante las evaluaciones del curso
+                </p>
+              ) : (
+                <p className="hcv-m-desc">
+                  aprobó el examen final de certificación del programa <b>{cert.program}</b>,
+                  acreditando las competencias profesionales de
+                </p>
+              )}
+              <div className={`hcv-m-title${external ? " hcv-m-title--course" : ""}`}>{cert.title.toUpperCase()}</div>
+
+              {external && (
+                <div className="hcv-m-partner">
+                  {partnerLogo
+                    ? <img src={partnerLogo} alt={cert.partnerName} crossOrigin="anonymous" />
+                    : <span>{cert.partnerName?.toUpperCase()}</span>}
+                </div>
+              )}
+
+              {!!facts.length && (
                 <div className="hcv-m-facts">
-                  {EXAM_FACTS[cert.slug].map(f => <span key={f}>{f}</span>)}
+                  {facts.map(f => <span key={f}>{f}</span>)}
                 </div>
               )}
  
@@ -335,19 +378,29 @@ const CertificateView = () => {
                 {/* Cuerpo */}
                 <div className="hcv-body">
                   <div className="hcv-main">
-                    <span className="hcv-kicker">CERTIFICADO DE APROBACIÓN</span>
+                    <span className="hcv-kicker">{kicker}</span>
                     <span className="hcv-lead">Se certifica que</span>
                     <h2 className="hcv-name" style={{ fontSize: nameSize(cert.holderName ?? "") }}>
                       {cert.holderName ?? "Titular de la credencial"}
                     </h2>
                     <span className="hcv-name-bar" />
-                    <p className="hcv-desc">
-                      Esto certifica que el destinatario ha completado con éxito y ha validado sus competencias prácticas en operaciones de SOC, triage de alertas, análisis de incidentes, criterios de escalado y fundamentos de monitorización de seguridad, mediante una evaluación práctica de «Hidden Security».
-                    </p>
-                    <div className="hcv-title">{cert.title.toUpperCase()}</div>
-                    {!!EXAM_FACTS[cert.slug]?.length && (
+                    {external ? (
+                      <p className="hcv-desc">
+                        Esto certifica que el destinatario completó y aprobó el curso de <b>{cert.partnerName}</b> dictado
+                        en la plataforma Hidden Security, validando sus competencias mediante las evaluaciones del curso,
+                        con una aprobación mínima del 80%.
+                      </p>
+                    ) : (
+                      <p className="hcv-desc">
+                        Esto certifica que el destinatario ha completado con éxito y ha validado sus competencias prácticas en operaciones de SOC, triage de alertas, análisis de incidentes, criterios de escalado y fundamentos de monitorización de seguridad, mediante una evaluación práctica de «Hidden Security».
+                      </p>
+                    )}
+                    <div className="hcv-title" style={external ? { fontSize: titleSize(cert.title) } : undefined}>
+                      {cert.title.toUpperCase()}
+                    </div>
+                    {!!facts.length && (
                       <div className="hcv-facts">
-                        {EXAM_FACTS[cert.slug].map(f => <span key={f}>{f}</span>)}
+                        {facts.map(f => <span key={f}>{f}</span>)}
                       </div>
                     )}
                   </div>
@@ -367,7 +420,16 @@ const CertificateView = () => {
                       <path d="M88 100 L97 109 L113 91" fill="none" stroke="#050505" strokeWidth="5" strokeLinecap="square" />
                     </svg> */}
 
-                    <img src={insigniaSoc} className="hci-logo" alt="Insignia SOC" />
+                    {/* Hidden: insignia de la certificación · Partner: logo de partner.config.js */}
+                    {external ? (
+                      partnerLogo ? (
+                        <img src={partnerLogo} className="hci-logo hci-logo--partner" alt={cert.partnerName} crossOrigin="anonymous" />
+                      ) : (
+                        <div className="hci-partner-name">{cert.partnerName?.toUpperCase()}</div>
+                      )
+                    ) : (
+                      <img src={insigniaSoc} className="hci-logo" alt="Insignia SOC" />
+                    )}
  
                     <div className="hcv-qr">
                       {qr && <img src={qr} alt="QR de verificación" />}
@@ -390,7 +452,7 @@ const CertificateView = () => {
                     <div>
                       <span className="hcv-label">VERIFICACIÓN</span>
                       <span className="hcv-meta-val hcv-meta-val--sm">
-                        {ISSUER.web}/certifications/{cert.slug}
+                        {verifyPath}
                       </span>
                     </div>
                   </div>
@@ -424,14 +486,17 @@ const CertificateView = () => {
               <button className="hcv-btn" onClick={downloadPng} disabled={!!busy}>
                 {busy === "png" ? "GENERANDO…" : "DESCARGAR IMAGEN"}
               </button>
-              {/* Insignia: se descarga el PNG original, tal cual está en public/insignias */}
-              <a
-                className="hcv-btn"
-                href={insigniaSoc}
-                download={`HiddenSecurity-${cert.title.replace(/\s+/g, "")}-Insignia.png`}
-              >
-                DESCARGAR INSIGNIA
-              </a>
+              {/* Insignia: se descarga el PNG original, tal cual está en public/insignias
+                  (solo certificaciones de Hidden: los cursos de partners no tienen insignia) */}
+              {!external && (
+                <a
+                  className="hcv-btn"
+                  href={insigniaSoc}
+                  download={`HiddenSecurity-${cert.title.replace(/\s+/g, "")}-Insignia.png`}
+                >
+                  DESCARGAR INSIGNIA
+                </a>
+              )}
               <a className="hcv-btn hcv-btn--in" href={linkedInUrl} target="_blank" rel="noopener noreferrer">
                 AGREGAR A LINKEDIN
               </a>

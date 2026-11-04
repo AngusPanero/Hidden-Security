@@ -55,6 +55,7 @@ const AppRouter = () => {
                                 <Route path="/certifications"           element={<Certifications />} />
                                 <Route path="/certifications/:certSlug" element={<CertificationsRelative />} />
                                 <Route path="/certifications/:slug/:credentialId" element={<CertificateView />} />
+                                <Route path="/cursos/:partnerSlug/:courseSlug/certificado/:credentialId" element={<CertificateView />} />
                                 <Route path="/*" element={<Error404Minimal />} />
                             </Routes>
                             <FooterMinimal />
