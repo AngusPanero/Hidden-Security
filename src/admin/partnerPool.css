@@ -741,3 +741,6 @@ select.pp-input option { background: #000; color: #fff; }
 @media (max-width: 768px) {
   .pp-search { min-width: 0; width: 100%; }
 }
+
+/* Clave de firma (signPin) al aprobar / heredar / confirmar una duración */
+.pp-input--pin { width: 110px; letter-spacing: 6px; text-align: center; font-weight: 800; }

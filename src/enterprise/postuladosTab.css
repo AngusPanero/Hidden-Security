@@ -883,6 +883,9 @@
 }
 .pp-course-info   { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .pp-course-kicker { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--pp-sky); }
+.pp-course-kicker b { font-weight: 900; color: var(--pp-text); }
+.pp-course + .pp-course { margin-top: 2px; }
+.pp-course-head--static { cursor: default; }
 .pp-course-title  { font-size: 0.92rem; font-weight: 900; text-transform: uppercase; }
 .pp-course-meta   { font-size: 0.7rem; font-weight: 600; color: var(--pp-dim); }
 .pp-course-body {

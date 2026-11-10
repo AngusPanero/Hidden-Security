@@ -1471,3 +1471,10 @@
   .udb-filter-group-label { margin: 6px 0 -2px; }
   .udb-legend        { flex-direction: column; gap: 8px; }
 }
+/* ==================================================================
+   ADICIONALES -- Cursos externos (empresas partner) dentro de
+   VALIDADO POR HIDDEN. Solo agrega estilos nuevos, no modifica nada existente.
+================================================================== */
+.udb-vcourse-kicker b { font-weight: 900; color: var(--udb-text); }
+.udb-vcourse-head--static { cursor: default; }
+.udb-vcourse-head--static:hover { background: transparent; }

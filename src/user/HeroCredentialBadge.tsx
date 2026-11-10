@@ -7,6 +7,8 @@ export interface CompletedCourse {
   id:           string;
   title:        string;
   completedAt?: string | null;
+  provider?:    string | null;   // empresa partner que dicta el curso (solo externos)
+  score?:       number | null;   // mejor nota 0..1 (solo externos)
 }
 
 // Claves = valores de la claim completedCourses (completionClaimId de cada
@@ -32,6 +34,40 @@ function getCompletedCourses(user: any): CompletedCourse[] {
     title:       COURSE_TITLES[id] ?? prettifyId(id),
     completedAt: null, // la claim no guarda fecha
   }));
+}
+
+// ─── Cursos externos (empresas partner) ───────────────────────────────────────
+// Salen del propio CV: GET /api/cv/me → data.externalCourses. El uid lo toma el
+// back del token, así que solo trae los del usuario logueado. Los escribe solo
+// el servidor al terminar un curso; acá se muestran únicamente los APROBADOS
+// (igual que lo que ven las empresas). Se valida la forma igual: el campo es
+// Mixed en Mongo y el front no confía en nada que no haya chequeado.
+const EXT_TEXT_MAX = 120;
+const cleanText = (v: unknown): string => (typeof v === "string" ? v.trim().slice(0, EXT_TEXT_MAX) : "");
+const isPlainObject = (v: unknown): v is Record<string, any> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+
+async function fetchExternalCourses(): Promise<CompletedCourse[]> {
+  const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/cv/me`, { withCredentials: true });
+  const ext = data?.data?.externalCourses;
+  if (!isPlainObject(ext)) return [];
+
+  const out: CompletedCourse[] = [];
+  for (const [partnerSlug, partner] of Object.entries(ext)) {
+    if (!isPlainObject(partner) || !isPlainObject(partner.courses)) continue;
+    const provider = cleanText(partner.partnerName) || cleanText(partnerSlug);
+    for (const [courseSlug, c] of Object.entries(partner.courses)) {
+      if (!isPlainObject(c) || c.approved !== true) continue;
+      out.push({
+        id:          `ext-${partnerSlug}-${courseSlug}`,
+        title:       cleanText(c.title) || cleanText(courseSlug),
+        provider:    provider || null,
+        score:       typeof c.score === "number" && c.score >= 0 && c.score <= 1 ? c.score : null,
+        completedAt: cleanText(c.approvedAt) || cleanText(c.completedAt) || null,
+      });
+    }
+  }
+  return out.sort((a, b) => a.title.localeCompare(b.title));
 }
 
 export interface Certification {
@@ -81,13 +117,16 @@ export default function HeroCredentialBadge({ user, theme }: Props) {
   const [examCerts, setExamCerts] = useState<Certification[]>([]);
   const [freshSkills, setFreshSkills] = useState<string[] | null>(null); // null = todavía no llegó
   const [modal, setModal] = useState<ModalKind>(null);
+  const [externalCourses, setExternalCourses] = useState<CompletedCourse[]>([]);
 
-  const courses = getCompletedCourses(user);
+  // Primero los de Hidden (claim), después los externos aprobados
+  const courses = [...getCompletedCourses(user), ...externalCourses];
 
   useEffect(() => {
     if (!user?.uid) return;
     fetchCertifiedSkills().then(setFreshSkills).catch(() => setFreshSkills(null));
     fetchPassedCertifications().then(setExamCerts).catch(() => setExamCerts([]));
+    fetchExternalCourses().then(setExternalCourses).catch(() => setExternalCourses([]));
   }, [user?.uid]);
 
   // Cerrar con Escape
@@ -205,7 +244,16 @@ export default function HeroCredentialBadge({ user, theme }: Props) {
                         <span className="hcb-item-icon">✓</span>
                         <div className="hcb-item-body">
                           <strong>{c.title}</strong>
-                          <span>{fmtDate(c.completedAt) ? `Completado el ${fmtDate(c.completedAt)}` : "Completado"}</span>
+                          {c.provider && <span>Dictado por {c.provider}</span>}
+                          <span>
+                            {[
+                              typeof c.score === "number" ? `Nota ${Math.round(c.score * 100)}%` : null,
+                              c.provider
+                                ? (fmtDate(c.completedAt) ? `Aprobado el ${fmtDate(c.completedAt)}` : "Aprobado")
+                                : (fmtDate(c.completedAt) ? `Completado el ${fmtDate(c.completedAt)}` : "Completado"),
+                            ].filter(Boolean).join(" · ")}
+                          </span>
+                          {c.provider && <span className="hcb-item-note">Las empresas lo ven en tu CV con sus skills validadas</span>}
                         </div>
                       </li>
                     ))}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import "./partnerPool.css";
-import { UseTheme } from "../contexts/ThemeContext"; 
+import "./PartnerPool.css";
+import { UseTheme } from "../contexts/ThemeContext";
 
 // ══════════════════════════════════════════════════════════════════════
 //  PartnerPool — AdminDashboard
@@ -1204,6 +1204,9 @@ function DurationCard({
     const [justification, setJustification] = useState("");
     const [reason, setReason] = useState("");
     const [mode, setMode] = useState<"approve" | "reject" | "inherit" | "confirm" | null>(null);
+    // Clave de firma: solo vive en este estado y se borra después de cada intento
+    const [signPin, setSignPin] = useState("");
+    const pinOk = /^\d{4}$/.test(signPin);
 
     const path = `${BASE}/durations/${encodeURIComponent(summary.courseId)}/${summary.version}`;
 
@@ -1247,16 +1250,33 @@ function DurationCard({
         } catch (err) {
             setError(errMsg(err, "No se pudo completar la acción."));
         } finally {
+            setSignPin("");
             setBusy(false);
         }
     };
+
+    const pinField = (
+        <label className="pp-field">
+            <span className="pp-field-label">// CLAVE DE FIRMA</span>
+            <input
+                className="pp-input pp-input--pin"
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={4}
+                placeholder="••••"
+                value={signPin}
+                onChange={(e) => setSignPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            />
+        </label>
+    );
 
     const d = detail ?? summary;
     const est = d.estimate || ({} as DurationEstimate);
     const hoursValue = Number(hours.replace(",", "."));
     const differs = est.totalHours == null || Math.abs(hoursValue - est.totalHours) > 0.005;
     const canApprove =
-        Number.isFinite(hoursValue) && hoursValue >= 0.25 && (!differs || justification.trim().length >= 10);
+        Number.isFinite(hoursValue) && hoursValue >= 0.25 && (!differs || justification.trim().length >= 10) && pinOk;
 
     return (
         <div className={`pp-partner${isOpen ? " expanded" : ""}`}>
@@ -1470,6 +1490,7 @@ function DurationCard({
                                                     placeholder="Ej: el laboratorio del módulo 3 lleva más tiempo del medido"
                                                 />
                                             </label>
+                                            {pinField}
                                             <div className="pp-inline-form">
                                                 <button
                                                     className="pp-btn pp-btn--accent"
@@ -1477,14 +1498,20 @@ function DurationCard({
                                                     onClick={() =>
                                                         act(
                                                             "approve",
-                                                            { hours: hoursValue, justification: justification.trim() },
+                                                            { hours: hoursValue, justification: justification.trim(), signPin },
                                                             `¿Aprobar ${fmtHours(hoursValue)} para ${d.title} v${d.version}?`
                                                         )
                                                     }
                                                 >
-                                                    CONFIRMAR {fmtHours(Number.isFinite(hoursValue) ? hoursValue : null)}
+                                                    FIRMAR Y APROBAR {fmtHours(Number.isFinite(hoursValue) ? hoursValue : null)}
                                                 </button>
-                                                <button className="pp-btn pp-btn--ghost" onClick={() => setMode(null)}>
+                                                <button
+                                                    className="pp-btn pp-btn--ghost"
+                                                    onClick={() => {
+                                                        setMode(null);
+                                                        setSignPin("");
+                                                    }}
+                                                >
                                                     CANCELAR
                                                 </button>
                                             </div>
@@ -1506,19 +1533,31 @@ function DurationCard({
                                                 value={reason}
                                                 onChange={(e) => setReason(e.target.value)}
                                             />
+                                            {/* Heredar y confirmar dejan una duración aprobada: piden firma */}
+                                            {mode !== "reject" && pinField}
                                             <button
                                                 className={`pp-btn ${mode === "reject" ? "pp-btn--danger" : "pp-btn--accent"}`}
-                                                disabled={busy || reason.trim().length < (mode === "reject" ? 5 : 10)}
+                                                disabled={
+                                                    busy ||
+                                                    reason.trim().length < (mode === "reject" ? 5 : 10) ||
+                                                    (mode !== "reject" && !pinOk)
+                                                }
                                                 onClick={() =>
                                                     act(
                                                         mode === "reject" ? "reject" : mode === "inherit" ? "inherit" : "confirm-content",
-                                                        { reason: reason.trim() }
+                                                        mode === "reject" ? { reason: reason.trim() } : { reason: reason.trim(), signPin }
                                                     )
                                                 }
                                             >
-                                                CONFIRMAR
+                                                {mode === "reject" ? "CONFIRMAR" : "FIRMAR Y CONFIRMAR"}
                                             </button>
-                                            <button className="pp-btn pp-btn--ghost" onClick={() => setMode(null)}>
+                                            <button
+                                                className="pp-btn pp-btn--ghost"
+                                                onClick={() => {
+                                                    setMode(null);
+                                                    setSignPin("");
+                                                }}
+                                            >
                                                 CANCELAR
                                             </button>
                                         </div>

@@ -73,6 +73,9 @@ interface CandidateCV {
   // Distinto de skillsCertifiedByHidden: esto es "vio el curso y aprobo
   // los quizzes", no un examen controlado de certificacion.
   modernSocSkills:         string[];
+  // Cursos externos de empresas partner, tal cual los guarda el servidor en
+  // cv.externalCourses (solo aprobados). Se valida su forma en readExternalCourses.
+  externalCourses?:        unknown;
 }
 
 interface ApiResponse {
@@ -575,6 +578,72 @@ const HIDDEN_COURSES: { id: string; title: string; getSkills: (c: CandidateCV) =
   { id: "modern-soc", title: "Modern SOC Operations", getSkills: c => c.modernSocSkills ?? [] },
 ];
 
+// Curso validado listo para mostrar (propio de Hidden o externo de una empresa partner)
+interface ValidatedCourseData {
+  id:       string;
+  title:    string;
+  provider: string | null;                              // empresa que dicta el curso (solo externos)
+  skills:   string[];
+  groups:   { name: string; skills: string[] }[] | null; // árbol propio del curso externo
+  score:    number | null;                              // mejor nota 0..1 (solo externos)
+}
+
+// -- Cursos externos (empresas partner) --------------------------------------
+// Forma: { <partnerSlug>: { partnerName, courses: { <courseSlug>: { title, approved, score, skills: { grupo: [skills] } } } } }
+// Los escribe solo el servidor al aprobar el curso y el back filtra los no
+// aprobados para empresas. Igual se valida la forma: el campo es Mixed en
+// Mongo y el front no confía en nada que no haya chequeado.
+const EXT_TEXT_MAX = 120;
+const cleanText = (v: unknown): string => (typeof v === "string" ? v.trim().slice(0, EXT_TEXT_MAX) : "");
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+const strArr = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
+
+function readExternalCourses(ext: unknown): ValidatedCourseData[] {
+  if (!isPlainObject(ext)) return [];
+  const out: ValidatedCourseData[] = [];
+  for (const [partnerSlug, partner] of Object.entries(ext)) {
+    if (!isPlainObject(partner) || !isPlainObject(partner.courses)) continue;
+    const provider = cleanText(partner.partnerName) || cleanText(partnerSlug);
+
+    for (const [courseSlug, course] of Object.entries(partner.courses)) {
+      if (!isPlainObject(course) || course.approved !== true) continue;
+
+      const tree   = isPlainObject(course.skills) ? course.skills : {};
+      const groups = Object.entries(tree)
+        .map(([name, list]) => ({
+          name:   cleanText(name),
+          skills: [...new Set(strArr(list).map(s => cleanText(s)).filter(Boolean))],
+        }))
+        .filter(g => g.name && g.skills.length > 0);
+
+      out.push({
+        id:       `ext-${partnerSlug}-${courseSlug}`,
+        title:    cleanText(course.title) || cleanText(courseSlug),
+        provider: provider || null,
+        skills:   [...new Set(groups.flatMap(g => g.skills))],
+        groups,
+        score:    typeof course.score === "number" && course.score >= 0 && course.score <= 1 ? course.score : null,
+      });
+    }
+  }
+  return out.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+// Todos los cursos validados del candidato: primero los de Hidden, después los externos
+function getValidatedCourses(c: CandidateCV): ValidatedCourseData[] {
+  const hidden: ValidatedCourseData[] = HIDDEN_COURSES
+    .map(h => ({ id: h.id, title: h.title, provider: null, skills: strArr(h.getSkills(c)), groups: null, score: null }))
+    .filter(h => h.skills.length > 0);
+  return [...hidden, ...readExternalCourses(c.externalCourses)];
+}
+
+// Skills validadas por cualquier curso (para pintar en celeste las autodeclaradas)
+const courseSkillSet = (c: CandidateCV) => new Set(getValidatedCourses(c).flatMap(x => x.skills));
+
+const pct = (score: number) => `${Math.round(score * 100)}%`;
+
 // Cuantas skills validadas por curso se muestran por pagina en el arbol
 const COURSE_PAGE_SIZE = 24;
 
@@ -624,50 +693,91 @@ function segmentByGroup(skills: string[]) {
 //  Sub-componente: curso de Hidden con su arbol de skills validadas
 //  Boton desplegable con el nombre del curso -> arbol paginado.
 // ==============================================================================
-function ValidatedCourse({ title, skills }: { title: string; skills: string[] }) {
+// Bloques del árbol propio de un curso externo (respeta el orden de sus grupos)
+function segmentByCourseGroups(groups: { name: string; skills: string[] }[], from: number, to: number) {
+  const flat = groups.flatMap(g => g.skills.map(skill => ({ skill, group: g.name })));
+  const segments: { branchLabel: string; group: string; skills: string[] }[] = [];
+  flat.slice(from, to).forEach(({ skill, group }) => {
+    const last = segments[segments.length - 1];
+    if (last && last.group === group) last.skills.push(skill);
+    else segments.push({ branchLabel: "", group, skills: [skill] });
+  });
+  return segments;
+}
+
+// Cursos de Hidden: skills ubicadas en el catálogo HS_SKILLS.
+// Cursos externos: se usan los grupos que define la empresa en su curso.
+function ValidatedCourse({ course }: { course: ValidatedCourseData }) {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
 
-  const sorted     = sortByCatalog(skills);
-  const totalPages = Math.max(1, Math.ceil(sorted.length / COURSE_PAGE_SIZE));
-  const pageItems  = sorted.slice(page * COURSE_PAGE_SIZE, (page + 1) * COURSE_PAGE_SIZE);
-  const segments   = segmentByGroup(pageItems);
+  const { title, provider, skills, groups, score } = course;
+  const isExternal = !!groups;
+  const hasSkills  = skills.length > 0;
 
-  // Resumen por rama para el boton cerrado: "12 roles · 30 habilidades · 8 herramientas"
-  const branchCounts = CATEGORY_ORDER
-    .map(cat => ({ cat, n: skills.filter(s => locateSkill(s).branch === cat).length }))
-    .filter(x => x.n > 0);
+  const totalPages = Math.max(1, Math.ceil(skills.length / COURSE_PAGE_SIZE));
+  const from = page * COURSE_PAGE_SIZE;
+  const to   = from + COURSE_PAGE_SIZE;
+  const segments = groups
+    ? segmentByCourseGroups(groups, from, to)
+    : segmentByGroup(sortByCatalog(skills).slice(from, to));
+
+  // Resumen para el boton cerrado: "14 skills validadas · 4 áreas · Nota 92%"
+  const metaParts = [
+    hasSkills ? `${skills.length} skill${skills.length === 1 ? "" : "s"} validada${skills.length === 1 ? "" : "s"}` : "Curso aprobado",
+    ...(groups
+      ? (groups.length > 0 ? [`${groups.length} área${groups.length === 1 ? "" : "s"}`] : [])
+      : CATEGORY_ORDER
+          .map(cat => ({ cat, n: skills.filter(s => locateSkill(s).branch === cat).length }))
+          .filter(x => x.n > 0)
+          .map(b => `${b.n} ${CATEGORY_LABELS[b.cat].toLowerCase()}`)),
+    ...(score !== null ? [`Nota ${pct(score)}`] : []),
+  ];
+
+  const info = (
+    <span className="udb-vcourse-info">
+      <span className="udb-vcourse-kicker">
+        {isExternal
+          ? <>CURSO DE <b>{(provider ?? "empresa partner").toUpperCase()}</b> · APROBADO EN HIDDEN SECURITY</>
+          : "CURSO COMPLETADO EN HIDDEN SECURITY"}
+      </span>
+      <span className="udb-vcourse-title">{title}</span>
+      <span className="udb-vcourse-meta">{metaParts.join(" · ")}</span>
+    </span>
+  );
 
   let lastBranch = "";
 
   return (
-    <div className={`udb-vcourse${open ? " open" : ""}`}>
-      <button
-        type="button"
-        className="udb-vcourse-head"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-      >
-        <span className="udb-vcourse-icon" aria-hidden="true">▸</span>
-        <span className="udb-vcourse-info">
-          <span className="udb-vcourse-kicker">CURSO COMPLETADO EN HIDDEN SECURITY</span>
-          <span className="udb-vcourse-title">{title}</span>
-          <span className="udb-vcourse-meta">
-            {skills.length} skills validadas
-            {branchCounts.length > 0 && " · " + branchCounts.map(b => `${b.n} ${CATEGORY_LABELS[b.cat].toLowerCase()}`).join(" · ")}
-          </span>
-        </span>
-        <span className="udb-vcourse-action">{open ? "OCULTAR" : "VER SKILLS"}</span>
-      </button>
+    <div className={`udb-vcourse${open ? " open" : ""}${isExternal ? " udb-vcourse--ext" : ""}`}>
+      {hasSkills ? (
+        <button
+          type="button"
+          className="udb-vcourse-head"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+        >
+          <span className="udb-vcourse-icon" aria-hidden="true">▸</span>
+          {info}
+          <span className="udb-vcourse-action">{open ? "OCULTAR" : "VER SKILLS"}</span>
+        </button>
+      ) : (
+        <div className="udb-vcourse-head udb-vcourse-head--static">
+          <span className="udb-vcourse-icon" aria-hidden="true">✓</span>
+          {info}
+        </div>
+      )}
 
-      {open && (
+      {open && hasSkills && (
         <div className="udb-vcourse-body">
           <p className="udb-vcourse-note">
-            Skills que el candidato demostró al completar el curso y aprobar sus evaluaciones.
+            {isExternal
+              ? `Skills que el candidato demostró al aprobar el curso de ${provider ?? "la empresa partner"} y sus evaluaciones.`
+              : "Skills que el candidato demostró al completar el curso y aprobar sus evaluaciones."}
           </p>
 
           {segments.map((seg, i) => {
-            const showBranch = seg.branchLabel !== lastBranch;
+            const showBranch = !!seg.branchLabel && seg.branchLabel !== lastBranch;
             lastBranch = seg.branchLabel;
             return (
               <div key={`${seg.branchLabel}-${seg.group}-${i}`} className="udb-vcourse-seg">
@@ -716,7 +826,7 @@ function DeclaredBranch({
   const shown     = sorted.slice(0, visible);
   const remaining = sorted.length - visible;
   const segments  = segmentByGroup(shown);
-  const validated = new Set([...candidate.skillsCertifiedByHidden, ...(candidate.modernSocSkills ?? [])]);
+  const validated = new Set([...candidate.skillsCertifiedByHidden, ...courseSkillSet(candidate)]);
 
   return (
     <div className={`udb-dbranch${open ? " open" : ""}`}>
@@ -773,16 +883,15 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
   const p = candidate.personalInfo;
 
   const certs   = candidate.skillsCertifiedByHidden ?? [];
-  const courses = HIDDEN_COURSES
-    .map(c => ({ ...c, skills: c.getSkills(candidate) }))
-    .filter(c => c.skills.length > 0);
+  const courses = getValidatedCourses(candidate);
   const hasValidated = certs.length > 0 || courses.length > 0;
+  const fromCourses  = new Set(courses.flatMap(c => c.skills));
 
   const declaredBranches = CATEGORY_ORDER
     .map(cat => ({ cat, items: candidate.skills[cat] ?? [] }))
     .filter(b => b.items.length > 0);
   const hasValidatedInDeclared = declaredBranches.some(b =>
-    b.items.some(s => certs.includes(s) || (candidate.modernSocSkills ?? []).includes(s))
+    b.items.some(s => certs.includes(s) || fromCourses.has(s))
   );
 
   return (
@@ -834,7 +943,7 @@ function CandidateDetail({ candidate, onDownload }: { candidate: CandidateCV; on
                   Cursos completados · skills validadas por evaluaciones
                 </span>
                 {courses.map(c => (
-                  <ValidatedCourse key={c.id} title={c.title} skills={c.skills} />
+                  <ValidatedCourse key={c.id} course={c} />
                 ))}
               </div>
             )}
@@ -1050,7 +1159,7 @@ function CandidateRow({ candidate, isExpanded, onToggle, onDownload }: {
         <div className="udb-row-cert-skills">
           {(() => {
             const certs   = candidate.skillsCertifiedByHidden ?? [];
-            const courses = HIDDEN_COURSES.filter(c => c.getSkills(candidate).length > 0);
+            const courses = getValidatedCourses(candidate);
             return (
               <>
                 {certs.length > 0 && (
@@ -1064,7 +1173,7 @@ function CandidateRow({ candidate, isExpanded, onToggle, onDownload }: {
                 {courses.length > 0 && (
                   <span
                     className="udb-skill-chip udb-skill-chip--course udb-skill-chip--sm"
-                    title={`Cursos: ${courses.map(c => c.title).join(", ")}`}
+                    title={`Cursos: ${courses.map(c => c.provider ? `${c.title} (${c.provider})` : c.title).join(", ")}`}
                   >
                     CURSOS COMPLETADOS
                   </span>
@@ -1227,13 +1336,13 @@ export default function UsersDatabase() {
 
     // ── Validado por Hidden ──────────────────────────────────────────────
     const certs   = candidate.skillsCertifiedByHidden ?? [];
-    const courses = HIDDEN_COURSES
-      .map(c => ({ title: c.title, skills: c.getSkills(candidate) }))
-      .filter(c => c.skills.length > 0);
+    const courses = getValidatedCourses(candidate);
 
-    const courseAreas = (skills: string[]) => {
+    // Externos: los grupos propios del curso. Hidden: grupos del catálogo HS_SKILLS.
+    const courseAreas = (c: ValidatedCourseData) => {
       const counts = new Map<string, number>();
-      skills.forEach(s => {
+      if (c.groups) c.groups.forEach(g => counts.set(g.name, g.skills.length));
+      else c.skills.forEach(s => {
         const g = locateSkill(s).group;
         counts.set(g, (counts.get(g) ?? 0) + 1);
       });
@@ -1257,8 +1366,12 @@ export default function UsersDatabase() {
           <div class="vrow">
             <span class="vtag vtag--course">CURSO</span>
             <div>
-              <strong>${esc(c.title)}</strong><span class="vdesc">${c.skills.length} skills validadas por evaluaciones</span>
-              <div class="vareas">${courseAreas(c.skills)}</div>
+              <strong>${esc(c.title)}</strong><span class="vdesc">${[
+                c.provider ? `Dictado por ${esc(c.provider)}` : "",
+                c.skills.length ? `${c.skills.length} skills validadas por evaluaciones` : "Curso aprobado",
+                c.score !== null ? `Nota ${pct(c.score)}` : "",
+              ].filter(Boolean).join(" · ")}</span>
+              ${c.skills.length ? `<div class="vareas">${courseAreas(c)}</div>` : ""}
             </div>
           </div>`).join("")}
       </div>` : "";

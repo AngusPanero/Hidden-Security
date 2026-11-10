@@ -138,11 +138,68 @@ const HIDDEN_COURSES: { id: string; title: string; getSkills: (cv: any) => strin
   { id: "modern-soc", title: "Modern SOC Operations", getSkills: cv => strArr(cv?.modernSocSkills) },
 ];
 
+// Curso validado listo para mostrar (propio de Hidden o externo de una empresa partner)
+interface ValidatedCourseData {
+  id:       string;
+  title:    string;
+  provider: string | null;                              // empresa que dicta el curso (solo externos)
+  skills:   string[];
+  groups:   { name: string; skills: string[] }[] | null; // árbol propio del curso externo
+  score:    number | null;                              // mejor nota 0..1 (solo externos)
+}
+
+// ─── Cursos externos (empresas partner) ───────────────────────────────────────
+// Llegan en cv.externalCourses desde GET /api/cv/user/:userId:
+//   { <partnerSlug>: { partnerName, courses: { <courseSlug>: { title, approved, score, skills: { grupo: [skills] } } } } }
+// Los escribe solo el servidor al aprobar el curso y, para empresas, el back ya
+// filtra los no aprobados. Igual se valida la forma: el campo es Mixed en Mongo
+// y el front no confía en nada que no haya chequeado.
+const EXT_TEXT_MAX = 120;
+const cleanText = (v: unknown): string => (typeof v === "string" ? v.trim().slice(0, EXT_TEXT_MAX) : "");
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+
+function readExternalCourses(cv: any): ValidatedCourseData[] {
+  const ext = cv?.externalCourses;
+  if (!isPlainObject(ext)) return [];
+
+  const out: ValidatedCourseData[] = [];
+  for (const [partnerSlug, partner] of Object.entries(ext)) {
+    if (!isPlainObject(partner) || !isPlainObject(partner.courses)) continue;
+    const provider = cleanText(partner.partnerName) || cleanText(partnerSlug);
+
+    for (const [courseSlug, course] of Object.entries(partner.courses)) {
+      if (!isPlainObject(course) || course.approved !== true) continue;
+
+      const tree   = isPlainObject(course.skills) ? course.skills : {};
+      const groups = Object.entries(tree)
+        .map(([name, list]) => ({
+          name:   cleanText(name),
+          skills: [...new Set(strArr(list).map(s => cleanText(s)).filter(Boolean))],
+        }))
+        .filter(g => g.name && g.skills.length > 0);
+
+      out.push({
+        id:       `ext-${partnerSlug}-${courseSlug}`,
+        title:    cleanText(course.title) || cleanText(courseSlug),
+        provider: provider || null,
+        skills:   [...new Set(groups.flatMap(g => g.skills))],
+        groups,
+        score:    typeof course.score === "number" && course.score >= 0 && course.score <= 1 ? course.score : null,
+      });
+    }
+  }
+  return out.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+const pct = (score: number) => `${Math.round(score * 100)}%`;
+
 function getValidations(cv: any) {
   const certified = strArr(cv?.skillsCertifiedByHidden);
-  const courses   = HIDDEN_COURSES
-    .map(c => ({ id: c.id, title: c.title, skills: c.getSkills(cv) }))
+  const hiddenCourses: ValidatedCourseData[] = HIDDEN_COURSES
+    .map(c => ({ id: c.id, title: c.title, provider: null, skills: c.getSkills(cv), groups: null, score: null }))
     .filter(c => c.skills.length > 0);
+  const courses      = [...hiddenCourses, ...readExternalCourses(cv)];
   const courseSkills = new Set(courses.flatMap(c => c.skills));
   return { certified, courses, courseSkills };
 }
@@ -162,41 +219,82 @@ function CvChip({ label, kind }: { label: string; kind: "plain" | "cert" | "cour
   return <span className={`pp-chip pp-chip--${kind}`}>{kind === "cert" ? "✓ " : ""}{label}</span>;
 }
 
+// Bloques del árbol propio de un curso externo (respeta el orden de sus grupos)
+function segmentByCourseGroups(groups: { name: string; skills: string[] }[], from: number, to: number) {
+  const flat = groups.flatMap(g => g.skills.map(skill => ({ skill, group: g.name })));
+  const segments: { branchLabel: string; group: string; skills: string[] }[] = [];
+  flat.slice(from, to).forEach(({ skill, group }) => {
+    const last = segments[segments.length - 1];
+    if (last && last.group === group) last.skills.push(skill);
+    else segments.push({ branchLabel: "", group, skills: [skill] });
+  });
+  return segments;
+}
+
 // ─── Curso validado: botón con el nombre → árbol de skills paginado ──────────
-function ValidatedCourse({ title, skills }: { title: string; skills: string[] }) {
+// Cursos de Hidden: skills ubicadas en el catálogo HS_SKILLS.
+// Cursos externos: se usan los grupos que define la empresa en su curso.
+function ValidatedCourse({ course }: { course: ValidatedCourseData }) {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
 
-  const sorted     = sortByCatalog(skills);
-  const totalPages = Math.max(1, Math.ceil(sorted.length / COURSE_PAGE_SIZE));
-  const segments   = segmentByGroup(sorted.slice(page * COURSE_PAGE_SIZE, (page + 1) * COURSE_PAGE_SIZE));
+  const { title, provider, skills, groups, score } = course;
+  const isExternal = !!groups;
+  const hasSkills  = skills.length > 0;
 
-  const branchCounts = CATEGORY_ORDER
-    .map(cat => ({ cat, n: skills.filter(s => locateSkill(s).branch === cat).length }))
-    .filter(x => x.n > 0);
+  const totalPages = Math.max(1, Math.ceil(skills.length / COURSE_PAGE_SIZE));
+  const from = page * COURSE_PAGE_SIZE;
+  const to   = from + COURSE_PAGE_SIZE;
+  const segments = groups
+    ? segmentByCourseGroups(groups, from, to)
+    : segmentByGroup(sortByCatalog(skills).slice(from, to));
+
+  const metaParts = [
+    hasSkills ? `${skills.length} skill${skills.length === 1 ? "" : "s"} validada${skills.length === 1 ? "" : "s"}` : "Curso aprobado",
+    ...(groups
+      ? (groups.length > 0 ? [`${groups.length} área${groups.length === 1 ? "" : "s"}`] : [])
+      : CATEGORY_ORDER
+          .map(cat => ({ cat, n: skills.filter(s => locateSkill(s).branch === cat).length }))
+          .filter(x => x.n > 0)
+          .map(b => `${b.n} ${CATEGORY_LABELS[b.cat].toLowerCase()}`)),
+    ...(score !== null ? [`Nota ${pct(score)}`] : []),
+  ];
+
+  const info = (
+    <span className="pp-course-info">
+      <span className="pp-course-kicker">
+        {isExternal
+          ? <>Curso de <b>{provider ?? "empresa partner"}</b> · aprobado en Hidden Security</>
+          : "Curso completado en Hidden Security"}
+      </span>
+      <span className="pp-course-title">{title}</span>
+      <span className="pp-course-meta">{metaParts.join(" · ")}</span>
+    </span>
+  );
 
   let lastBranch = "";
 
   return (
-    <div className={`pp-course${open ? " open" : ""}`}>
-      <button type="button" className="pp-course-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="pp-course-info">
-          <span className="pp-course-kicker">Curso completado en Hidden Security</span>
-          <span className="pp-course-title">{title}</span>
-          <span className="pp-course-meta">
-            {skills.length} skills validadas
-            {branchCounts.length > 0 && " · " + branchCounts.map(b => `${b.n} ${CATEGORY_LABELS[b.cat].toLowerCase()}`).join(" · ")}
-          </span>
-        </span>
-        <span className="pp-toggle">{open ? "Ocultar" : "Ver skills"}<span className="pp-chevron" aria-hidden="true" /></span>
-      </button>
+    <div className={`pp-course${open ? " open" : ""}${isExternal ? " pp-course--ext" : ""}`}>
+      {hasSkills ? (
+        <button type="button" className="pp-course-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+          {info}
+          <span className="pp-toggle">{open ? "Ocultar" : "Ver skills"}<span className="pp-chevron" aria-hidden="true" /></span>
+        </button>
+      ) : (
+        <div className="pp-course-head pp-course-head--static">{info}</div>
+      )}
 
-      {open && (
+      {open && hasSkills && (
         <div className="pp-course-body">
-          <p className="pp-note">Skills que el postulante demostró al completar el curso y aprobar sus evaluaciones.</p>
+          <p className="pp-note">
+            {isExternal
+              ? `Skills que el postulante demostró al aprobar el curso de ${provider ?? "la empresa partner"} y sus evaluaciones.`
+              : "Skills que el postulante demostró al completar el curso y aprobar sus evaluaciones."}
+          </p>
 
           {segments.map((seg, i) => {
-            const showBranch = seg.branchLabel !== lastBranch;
+            const showBranch = !!seg.branchLabel && seg.branchLabel !== lastBranch;
             lastBranch = seg.branchLabel;
             return (
               <div key={`${seg.branchLabel}-${seg.group}-${i}`} className="pp-seg">
@@ -292,9 +390,11 @@ function buildCvHtml(cv: any, name: string): string {
       ${content}
     </section>`;
 
-  const courseAreas = (skills: string[]) => {
+  // Externos: los grupos propios del curso. Hidden: grupos del catálogo HS_SKILLS.
+  const courseAreas = (c: ValidatedCourseData) => {
     const counts = new Map<string, number>();
-    skills.forEach(s => {
+    if (c.groups) c.groups.forEach(g => counts.set(g.name, g.skills.length));
+    else c.skills.forEach(s => {
       const g = locateSkill(s).group;
       counts.set(g, (counts.get(g) ?? 0) + 1);
     });
@@ -318,8 +418,12 @@ function buildCvHtml(cv: any, name: string): string {
         <div class="vrow">
           <span class="vtag vtag--course">CURSO</span>
           <div>
-            <strong>${esc(c.title)}</strong><span class="vdesc">${c.skills.length} skills validadas por evaluaciones</span>
-            <div class="vareas">${courseAreas(c.skills)}</div>
+            <strong>${esc(c.title)}</strong><span class="vdesc">${[
+              c.provider ? `Dictado por ${esc(c.provider)}` : "",
+              c.skills.length ? `${c.skills.length} skills validadas por evaluaciones` : "Curso aprobado",
+              c.score !== null ? `Nota ${pct(c.score)}` : "",
+            ].filter(Boolean).join(" · ")}</span>
+            ${c.skills.length ? `<div class="vareas">${courseAreas(c)}</div>` : ""}
           </div>
         </div>`).join("")}
     </div>` : "";
@@ -1207,7 +1311,7 @@ export default function PostuladosTab() {
                       {v.courses.length > 0 && (
                         <div className="pp-vgroup">
                           <span className="pp-vlabel pp-vlabel--course">Cursos completados · skills validadas por evaluaciones</span>
-                          {v.courses.map(c => <ValidatedCourse key={c.id} title={c.title} skills={c.skills} />)}
+                          {v.courses.map(c => <ValidatedCourse key={c.id} course={c} />)}
                         </div>
                       )}
                     </>
