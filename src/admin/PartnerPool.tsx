@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import "./PartnerPool.css";
+import "./partnerPool.css";
 import { UseTheme } from "../contexts/ThemeContext";
 
 // ══════════════════════════════════════════════════════════════════════
