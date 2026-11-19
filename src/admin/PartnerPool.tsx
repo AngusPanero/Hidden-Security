@@ -43,6 +43,7 @@ interface PartnerMetrics {
     status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
     poolEnabled: boolean;
     students: number;
+    sharedStudents?: number; // de sus alumnos, cuántos también hicieron cursos de otra empresa
     started: number;
     stepsCompleted: number;
     eligibleSteps: number;
@@ -62,7 +63,9 @@ interface MetricsResponse {
     totals: {
         partners: number;
         activePartners: number;
-        students: number;
+        students: number;              // suma de los alumnos de cada empresa (repite personas)
+        uniqueStudents?: number;       // personas distintas
+        multiPartnerStudents?: number; // personas con cursos de más de una empresa
         eligibleSteps: number;
         weightedUnits: number;
         completions: number;
@@ -421,6 +424,13 @@ function MetricsView() {
             return next;
         });
 
+    // Alumnos: personas distintas vs. suma por empresa (una persona con cursos de
+    // varias empresas cuenta en cada una). Si el back es viejo, se usa la suma.
+    const unique = data?.totals.uniqueStudents ?? data?.totals.students ?? 0;
+    const appearances = data?.totals.students ?? 0;
+    const multi = data?.totals.multiPartnerStudents ?? 0;
+    const repeated = Math.max(0, appearances - unique);
+
     const visiblePartners = (data?.partners ?? []).filter(
         (p) =>
             matchesSearch(search, p.name, p.code, p.slug) ||
@@ -472,9 +482,26 @@ function MetricsView() {
                                 <small>/{data.totals.partners}</small>
                             </span>
                         </div>
+                        <div className="pp-kpi pp-kpi--accent">
+                            <span className="pp-kpi-label">// ALUMNOS (PERSONAS)</span>
+                            <span className="pp-kpi-value">{fmtInt(unique)}</span>
+                            <span className="pp-kpi-hint">Cada persona cuenta una vez, aunque haya hecho varios cursos</span>
+                        </div>
                         <div className="pp-kpi">
-                            <span className="pp-kpi-label">// ALUMNOS</span>
-                            <span className="pp-kpi-value">{fmtInt(data.totals.students)}</span>
+                            <span className="pp-kpi-label">// EN VARIAS EMPRESAS</span>
+                            <span className="pp-kpi-value">
+                                {fmtInt(multi)}
+                                {unique > 0 && <small> · {fmtPct(multi / unique)}</small>}
+                            </span>
+                            <span className="pp-kpi-hint">Hicieron cursos de más de una empresa</span>
+                        </div>
+                        <div className="pp-kpi">
+                            <span className="pp-kpi-label">// ALUMNOS POR EMPRESA (SUMA)</span>
+                            <span className="pp-kpi-value">
+                                {fmtInt(appearances)}
+                                {repeated > 0 && <small> · +{fmtInt(repeated)} repetidos</small>}
+                            </span>
+                            <span className="pp-kpi-hint">Suma de las tarjetas de cada empresa</span>
                         </div>
                         <div className="pp-kpi">
                             <span className="pp-kpi-label">// PASOS ELEGIBLES</span>
@@ -485,6 +512,17 @@ function MetricsView() {
                             <span className="pp-kpi-value">{fmtInt(data.totals.completions)}</span>
                         </div>
                     </div>
+
+                    {repeated > 0 && (
+                        <p className="pp-note pp-note--info">
+                            <strong>{fmtInt(unique)} personas</strong> hicieron cursos este mes. Cada empresa cuenta como
+                            alumnos a todos los que hicieron sus cursos, así que las{" "}
+                            <strong>{fmtInt(multi)} personas que cursaron en varias empresas</strong> aparecen en más de
+                            una tarjeta: por eso la suma da {fmtInt(appearances)} (
+                            {fmtInt(repeated)} apariciones repetidas). No es un duplicado: cada empresa suma sus propios
+                            puntos por ese alumno.
+                        </p>
+                    )}
 
                     <p className="pp-note">
                         Vista en vivo para seguir el mes. La participación se aproxima por pasos elegibles; el monto
@@ -539,7 +577,17 @@ function MetricsView() {
                                         </button>
 
                                         <div className="pp-stats">
-                                            <Stat label="ALUMNOS" value={fmtInt(p.students)} />
+                                            <Stat
+                                                label="ALUMNOS"
+                                                value={fmtInt(p.students)}
+                                                hint={
+                                                    p.sharedStudents
+                                                        ? `${fmtInt(p.sharedStudents)} también en otras empresas`
+                                                        : p.students
+                                                          ? "solo en esta empresa"
+                                                          : undefined
+                                                }
+                                            />
                                             <Stat label="INSCRIPCIONES" value={fmtInt(p.started)} />
                                             <Stat
                                                 label="PASOS ELEGIBLES"
@@ -618,13 +666,26 @@ function MetricsView() {
     );
 }
 
-const Stat = ({ label, value, small, accent }: { label: string; value: string; small?: string; accent?: boolean }) => (
+const Stat = ({
+    label,
+    value,
+    small,
+    hint,
+    accent,
+}: {
+    label: string;
+    value: string;
+    small?: string;
+    hint?: string;
+    accent?: boolean;
+}) => (
     <div className={`pp-stat${accent ? " pp-stat--accent" : ""}`}>
         <span className="pp-stat-label">// {label}</span>
         <span className="pp-stat-value">
             {value}
             {small && <small>{small}</small>}
         </span>
+        {hint && <span className="pp-stat-hint">{hint}</span>}
     </div>
 );
 
