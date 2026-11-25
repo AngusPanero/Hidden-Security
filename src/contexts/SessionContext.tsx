@@ -13,8 +13,10 @@ interface ProviderProps {
 
 interface SessionContextType {
     handleRegister: (email: string, password: string, loginOpen: any, registerOpen: any, acceptedLegal: boolean) => Promise<void>;
-    handleLogin: (email: string, password: string, acceptedLegal?: boolean) => Promise<boolean | undefined>; 
+    handleLogin: (email: string, password: string, acceptedLegal?: boolean, adminPin?: string) => Promise<boolean | undefined>;
     legalRequired: boolean;
+    // El backend pide la clave de firma (solo cuentas admin, después de validar la contraseña)
+    adminPinRequired: boolean;
     handleLogout: () => Promise<void>;
     // silent = true → no muestra alerts (para mostrar el estado en la UI). Devuelve si se envió.
     handleResetPassword: (email: string, opts?: { silent?: boolean }) => Promise<boolean>;
@@ -50,6 +52,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     const [ isAdmin,          setIsAdmin ]          = useState<boolean | null>(null)
     const [ emailNotVerified, setEmailNotVerified ] = useState(false)
     const [legalRequired, setLegalRequired] = useState<boolean>(false);
+    const [adminPinRequired, setAdminPinRequired] = useState<boolean>(false);
         // Refresh de claims — un solo pedido en vuelo + mínimo entre refrescos
     const refreshInFlight = useRef<Promise<void> | null>(null);
     const lastRefreshAt   = useRef(0);
@@ -94,7 +97,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         } catch (error: any) {
             setLoading(false)
             if(error.response?.status === 409){
-                setError("EMAIL_YA_REGISTRADO") 
+                setError("EMAIL_YA_REGISTRADO")
                 return
             }
             setError(true)
@@ -102,15 +105,15 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     }
 
     // Login
-    const handleLogin = async (email: string, password: string, acceptedLegal?: boolean) => {
+    const handleLogin = async (email: string, password: string, acceptedLegal?: boolean, adminPin?: string) => {
         try {
             setLoading(true);
             setError(null);
             setEmailNotVerified(false);
 
             const response = await axios.post(
-                `${import.meta.env.VITE_API_URL}/login`, 
-                { email, password, acceptedLegal }, 
+                `${import.meta.env.VITE_API_URL}/login`,
+                { email, password, acceptedLegal, adminPin },
                 { withCredentials: true }
             );
 
@@ -118,14 +121,15 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 const { user, isAdmin, isEnterprise, partner } = response.data;
                 const mergedUser = { ...user, isEnterprise, admin: isAdmin, partner };
                 setLegalRequired(false);
+                setAdminPinRequired(false);
                 setUser(mergedUser);
 
                 setLoading(false);
 
                 if (isAdmin) {
                     navigate("/admin");
-                } else if (isEnterprise === true) { 
-                    navigate("/enterprise");                 
+                } else if (isEnterprise === true) {
+                    navigate("/enterprise");
                 } else if (partner === true) {
                     navigate("/partner");
                 } else {
@@ -136,10 +140,39 @@ export const SessionProvider = ({ children }: ProviderProps) => {
 
         } catch (error: any) {
             console.log("LOGIN ERROR FAILED", error);
-            
+
             const serverData = error.response?.data;
             const serverCode = serverData?.code;
             const attempts   = serverData?.attempts;
+
+            // ── Clave de firma del admin (van antes que el 401 genérico) ────────
+            if (serverCode === "auth/admin-pin-required") {
+                setAdminPinRequired(true);
+                return;
+            }
+
+            if (serverCode === "auth/admin-pin-format") {
+                setAdminPinRequired(true);
+                setError("La clave de firma son 4 dígitos.");
+                return;
+            }
+
+            if (serverCode === "auth/admin-pin-invalid") {
+                setAdminPinRequired(true);
+                const remaining = serverData?.remaining;
+                setError(
+                    typeof remaining === "number"
+                        ? `Clave de firma incorrecta. Te quedan ${remaining} intento${remaining === 1 ? "" : "s"}.`
+                        : "Clave de firma incorrecta."
+                );
+                return;
+            }
+
+            if (serverCode === "auth/admin-pin-locked") {
+                setAdminPinRequired(true);
+                setError("Clave de firma bloqueada. Probá de nuevo en 15 minutos.");
+                return;
+            }
 
             // ── Documentos legales no aceptados ────────────────────────────────
             if (serverCode === "auth/legal-not-accepted") {
@@ -181,7 +214,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
 
             console.error("LOG_CRITICAL // Login failure:", error);
             setError(texts[language].sessionErrors.loginGeneralError);
-            
+
         } finally {
             setLoading(false);
         }
@@ -202,7 +235,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             setLoading(false);
         }
     };
-    
+
     // Logout
     const handleLogout = async () => {
         try {
@@ -211,6 +244,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/logout`, { }, { withCredentials: true });
             if (response.status === 200) {
                 setUser(null)
+                setAdminPinRequired(false)
                 navigate("/");
             }
         } catch (error: any) {
@@ -371,7 +405,7 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 user, setUser,
                 handleUnbanUser, verifyIsAdmin, isAdmin, handleBanUser,
                 emailNotVerified, setEmailNotVerified, refreshClaims,
-                legalRequired,
+                legalRequired, adminPinRequired,
             }}>
             { children }
         </SessionContext.Provider>
@@ -381,5 +415,5 @@ export const SessionProvider = ({ children }: ProviderProps) => {
 export const UseSession = () => {
   const context = useContext(SessionContext);
   if (!context) throw new Error("useSession debe ser usado dentro de un SessionProvider");
-  return context; 
+  return context;
 };

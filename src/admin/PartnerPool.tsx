@@ -6,7 +6,7 @@ import { UseTheme } from "../contexts/ThemeContext";
 // ══════════════════════════════════════════════════════════════════════
 //  PartnerPool — AdminDashboard
 //  · MÉTRICAS: consumo en vivo de cursos externos por empresa
-//  · LIQUIDACIONES: cálculo mensual PP_V1.2, aprobación, ajustes, pagos y auditoría
+//  · LIQUIDACIONES: cálculo mensual PP_V1.2.1, aprobación, ajustes, pagos y auditoría
 //  · DURACIONES: duración formativa por versión de curso (la estima el código,
 //    la aprueba Hidden). Define la ponderación de cada curso en el reparto.
 //  Todo lo calcula el backend; acá solo se muestra y se disparan acciones.
@@ -77,9 +77,16 @@ interface MetricsResponse {
 type PeriodStatus = "OPEN" | "CALCULATING" | "CALCULATED" | "APPROVED" | "CLOSED";
 type SettlementStatus = "DRAFT" | "CALCULATED" | "APPROVED" | "PAID" | "CANCELLED";
 
+// Se recalculó un mes anterior después de calcular este: hay que recalcularlo
+interface NeedsRecalculation {
+    since: string;
+    causedBy: string; // "2026-09"
+}
+
 interface PeriodDoc {
     period: string;
     status: PeriodStatus;
+    needsRecalculation?: NeedsRecalculation | null;
     formulaVersion?: string;
     range: { from: string; to: string };
     configuration?: {
@@ -194,6 +201,8 @@ interface AuditLog {
 interface PeriodDetail {
     period: PeriodDoc;
     canCalculate: boolean;
+    // Orden de los meses: por qué no se puede calcular / aprobar / cerrar (lo decide el back)
+    blockedReasons?: { calculate: string | null; approve: string | null; close: string | null };
     settlements: Settlement[];
     auditLogs: AuditLog[];
     warnings?: {
@@ -211,6 +220,7 @@ interface PeriodSummary {
     settlements: number;
     paid: number;
     totalFinal: number | null;
+    needsRecalculation?: NeedsRecalculation | null;
 }
 
 // ─── Tipos: duraciones ────────────────────────────────────────────────
@@ -779,6 +789,8 @@ function SettlementsView() {
         [detail]
     );
     const totalFinal = activeSettlements.reduce((acc, s) => acc + s.finalAmount, 0);
+    // Orden de los meses: motivos que manda el back (el front solo los muestra)
+    const blocked = detail?.blockedReasons ?? { calculate: null, approve: null, close: null };
     const visibleSettlements = (detail?.settlements ?? []).filter(
         (s) =>
             matchesSearch(search, s.partnerSnapshot.name, s.partnerSnapshot.code, s.settlementId) ||
@@ -796,7 +808,7 @@ function SettlementsView() {
     return (
         <>
             <div className="pp-toolbar">
-                <p className="pp-sub">Liquidación mensual del Partner Pool · fórmula PP_V1.2 (ponderación por duración formativa)</p>
+                <p className="pp-sub">Liquidación mensual del Partner Pool · fórmula PP_V1.2.1 (ponderación por duración, tope de 1 punto por curso y meses en orden)</p>
                 <div className="pp-controls">
                     <label className="pp-field">
                         <span className="pp-field-label">// PERÍODO</span>
@@ -835,6 +847,7 @@ function SettlementsView() {
                         >
                             <span className="pp-history-month">{monthLabel(h.period)}</span>
                             <span className={`pp-chip pp-chip--${h.status.toLowerCase()}`}>{PERIOD_STATUS[h.status]}</span>
+                            {h.needsRecalculation && <span className="pp-chip pp-chip--stale">RECALCULAR</span>}
                             <span className="pp-history-amount">{fmtMoney(h.totalFinal)}</span>
                             {h.settlements > 0 && (
                                 <span className="pp-muted pp-history-paid">
@@ -872,7 +885,8 @@ function SettlementsView() {
                                 {(p.status === "OPEN" || p.status === "CALCULATED") && (
                                     <button
                                         className="pp-btn pp-btn--accent"
-                                        disabled={busy || !detail?.canCalculate}
+                                        disabled={busy || !detail?.canCalculate || !!blocked.calculate}
+                                        title={blocked.calculate ?? undefined}
                                         onClick={() => run(`periods/${p.period}/calculate`)}
                                     >
                                         {busy ? "PROCESANDO..." : p.status === "OPEN" ? "CALCULAR PERÍODO" : "RECALCULAR"}
@@ -881,11 +895,20 @@ function SettlementsView() {
                                 {p.status === "CALCULATED" && (
                                     <button
                                         className="pp-btn pp-btn--ghost"
-                                        disabled={busy || !!p.durationWeighting?.requiresReview}
+                                        disabled={
+                                            busy ||
+                                            !!p.durationWeighting?.requiresReview ||
+                                            !!p.needsRecalculation ||
+                                            !!blocked.approve
+                                        }
                                         title={
-                                            p.durationWeighting?.requiresReview
-                                                ? "Hay cursos con consumo sin duración aprobada"
-                                                : undefined
+                                            p.needsRecalculation
+                                                ? "Recalculá este mes antes de aprobarlo"
+                                                : blocked.approve
+                                                  ? blocked.approve
+                                                  : p.durationWeighting?.requiresReview
+                                                    ? "Hay cursos con consumo sin duración aprobada"
+                                                    : undefined
                                         }
                                         onClick={() =>
                                             run(
@@ -901,7 +924,8 @@ function SettlementsView() {
                                 {p.status === "APPROVED" && (
                                     <button
                                         className="pp-btn pp-btn--accent"
-                                        disabled={busy}
+                                        disabled={busy || !!blocked.close}
+                                        title={blocked.close ?? undefined}
                                         onClick={() =>
                                             run(
                                                 `periods/${p.period}/close`,
@@ -924,6 +948,26 @@ function SettlementsView() {
                         {p.status === "OPEN" && !detail?.canCalculate && (
                             <p className="pp-note">El mes todavía no terminó. El período se calcula cuando cierra el mes.</p>
                         )}
+
+                        {p.needsRecalculation && (
+                            <div className="pp-warning">
+                                Este mes quedó desactualizado: después de calcularlo se recalculó{" "}
+                                {monthLabel(p.needsRecalculation.causedBy)}, y el tope de 1 punto por curso usa lo pagado en
+                                los meses anteriores. Recalculalo antes de aprobarlo.
+                            </div>
+                        )}
+                        {(() => {
+                            // Orden de los meses: el motivo del bloqueo que corresponde al estado actual
+                            const reason =
+                                p.status === "CALCULATED" && !p.needsRecalculation
+                                    ? blocked.approve ?? blocked.calculate
+                                    : p.status === "APPROVED"
+                                      ? blocked.close
+                                      : p.status === "OPEN"
+                                        ? blocked.calculate
+                                        : null;
+                            return reason ? <div className="pp-warning pp-warning--order">{reason}</div> : null;
+                        })()}
 
                         {reopening && (
                             <div className="pp-inline-form">

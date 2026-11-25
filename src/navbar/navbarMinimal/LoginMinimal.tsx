@@ -28,6 +28,7 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
         emailNotVerified,
         resendVerificationEmail,
         legalRequired,
+        adminPinRequired,
     } = UseSession();
     const loginRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +39,9 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
     const [resendLoading,    setResendLoading]    = useState(false);
     const [resendSuccess,    setResendSuccess]    = useState(false);
     const [acceptedLegal,    setAcceptedLegal]    = useState(false);
+    const [adminPin,         setAdminPin]         = useState("");
+
+    const pinIncomplete = adminPinRequired && !/^\d{4}$/.test(adminPin);
 
     const handleClose = () => {
         setExit(true);
@@ -57,7 +61,15 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
     const loginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (legalRequired && !acceptedLegal) return;
-        const response = await handleLogin(email, password, legalRequired ? acceptedLegal : undefined); 
+        if (pinIncomplete) return;
+        const response = await handleLogin(
+            email,
+            password,
+            legalRequired ? acceptedLegal : undefined,
+            adminPinRequired ? adminPin : undefined,
+        );
+        // El PIN no queda en memoria: si falló, se vuelve a tipear
+        setAdminPin("");
         if (response) { closeLogin(); }
     };
 
@@ -158,6 +170,32 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
                                 </button>
                             </div>
 
+                            {/* ── Clave de firma (solo admin, la pide el backend) ── */}
+                            {adminPinRequired && (
+                                <div className="auth-field">
+                                    <div className="field-label-group">
+                                        <label className="auth-label">CLAVE DE FIRMA:</label>
+                                        <span className="field-index">03</span>
+                                    </div>
+                                    <div className="auth-input-wrapper">
+                                        <input
+                                            type="password"
+                                            className="auth-input"
+                                            placeholder="••••"
+                                            inputMode="numeric"
+                                            pattern="\d{4}"
+                                            maxLength={4}
+                                            autoComplete="off"
+                                            autoFocus
+                                            value={adminPin}
+                                            onChange={(e) => setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                            required
+                                        />
+                                        <div className="input-focus-border"></div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* ── Aceptación legal (solo si el backend la pide) ── */}
                             {legalRequired && (
                                 <div className="auth-legal-block">
@@ -247,10 +285,10 @@ const LoginMinimal = ({ closeLogin, openRegister }: LoginProps) => {
                             <button
                                 type="submit"
                                 className="auth-primary-btn"
-                                disabled={legalRequired && !acceptedLegal}
+                                disabled={(legalRequired && !acceptedLegal) || pinIncomplete}
                             >
                                 <span className="btn-label">
-                                    {legalRequired ? "ACEPTAR E INGRESAR" : "INGRESAR"}
+                                    {legalRequired ? "ACEPTAR E INGRESAR" : adminPinRequired ? "FIRMAR E INGRESAR" : "INGRESAR"}
                                 </span>
                                 <span className="btn-arrow">→</span>
                                 <div className="btn-fill"></div>

@@ -781,3 +781,20 @@ select.pp-input option { background: #000 !important; color: #fff !important; }
   .pp-kpi  { padding: 14px 16px !important; }
   .pp-kpi-value { font-size: 1.4rem !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADICIONALES — Orden de los meses y meses para recalcular
+   (todo con !important por las herencias de este CSS)
+══════════════════════════════════════════════════════════════ */
+.pp-chip--stale {
+  border-color: #f59e0b !important;
+  color:        #f59e0b !important;
+  background:   rgba(245,158,11,0.08) !important;
+}
+.pp-history-item .pp-chip + .pp-chip { margin-top: -2px !important; }
+.pp-warning--order {
+  border-color: var(--pp-border) !important;
+  background:   var(--pp-surface) !important;
+  color:        var(--pp-text) !important;
+  border-left:  3px solid #f59e0b !important;
+}
