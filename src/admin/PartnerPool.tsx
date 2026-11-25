@@ -9,7 +9,6 @@ import { UseTheme } from "../contexts/ThemeContext";
 //  · LIQUIDACIONES: cálculo mensual PP_V1.2.1, aprobación, ajustes, pagos y auditoría
 //  · DURACIONES: duración formativa por versión de curso (la estima el código,
 //    la aprueba Hidden). Define la ponderación de cada curso en el reparto.
-//  Todo lo calcula el backend; acá solo se muestra y se disparan acciones.
 // ══════════════════════════════════════════════════════════════════════
 
 const API_URL = import.meta.env.VITE_API_URL;
