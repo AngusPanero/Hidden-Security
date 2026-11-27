@@ -12,7 +12,7 @@ interface ProviderProps {
 }
 
 interface SessionContextType {
-    handleRegister: (email: string, password: string, loginOpen: any, registerOpen: any, acceptedLegal: boolean) => Promise<void>;
+    handleRegister: (email: string, password: string, loginOpen: any, registerOpen: any, acceptedLegal: boolean, turnstileToken?: string) => Promise<void>;
     handleLogin: (email: string, password: string, acceptedLegal?: boolean, adminPin?: string) => Promise<boolean | undefined>;
     legalRequired: boolean;
     // El backend pide la clave de firma (solo cuentas admin, después de validar la contraseña)
@@ -80,14 +80,17 @@ export const SessionProvider = ({ children }: ProviderProps) => {
     }, [user, navigate]);
 
     // Register
-    const handleRegister = async ( email: string, password: string, loginOpen: React.Dispatch<React.SetStateAction<boolean>>, registerOpen: React.Dispatch<React.SetStateAction<boolean>>, acceptedLegal: boolean ) => {
+    // El backend responde 201 igual si el email es nuevo o ya tenía cuenta
+    // (no revela qué emails existen); ya no hay 409.
+    const handleRegister = async ( email: string, password: string, loginOpen: React.Dispatch<React.SetStateAction<boolean>>, registerOpen: React.Dispatch<React.SetStateAction<boolean>>, acceptedLegal: boolean, turnstileToken?: string ) => {
         try {
             setError(null)
             setLoading(true)
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/register`, {
                 email,
                 password,
-                acceptedLegal
+                acceptedLegal,
+                turnstileToken,
             })
             if(response.status === 201){
                 setLoading(false)
@@ -96,8 +99,14 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             }
         } catch (error: any) {
             setLoading(false)
-            if(error.response?.status === 409){
-                setError("EMAIL_YA_REGISTRADO")
+            const status = error.response?.status;
+            const code   = error.response?.data?.code;
+            if (status === 429) {
+                setError("Demasiados intentos de registro. Probá de nuevo en un rato.")
+                return
+            }
+            if (code === "auth/captcha-failed") {
+                setError("No pudimos verificar que seas una persona. Probá de nuevo.")
                 return
             }
             setError(true)
@@ -139,11 +148,13 @@ export const SessionProvider = ({ children }: ProviderProps) => {
             }
 
         } catch (error: any) {
-            console.log("LOGIN ERROR FAILED", error);
-
             const serverData = error.response?.data;
             const serverCode = serverData?.code;
-            const attempts   = serverData?.attempts;
+            const status     = error.response?.status;
+
+            // Solo el código: el error completo de axios trae el body del
+            // pedido (con la contraseña) y quedaría impreso en la consola
+            console.error("LOGIN ERROR FAILED", serverCode || status || error.message);
 
             // ── Clave de firma del admin (van antes que el 401 genérico) ────────
             if (serverCode === "auth/admin-pin-required") {
@@ -187,13 +198,8 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 return;
             }
 
-            // ── Email no registrado ────────────────────────────────────────────
-            if (serverCode === "auth/user-not-found" || error.response?.status === 404) {
-                setError("No existe ninguna cuenta registrada con ese email.");
-                return;
-            }
-
-            if (serverCode === "auth/too-many-attempts" || serverData?.banned) {
+            // ── Bloqueo temporal (5 fallos = 15 min) o rate limit por IP ───────
+            if (serverCode === "auth/too-many-attempts" || serverCode === "auth/too-many-requests" || status === 429) {
                 setError(texts[language].sessionErrors.loginTooManyAttempts);
                 return;
             }
@@ -203,12 +209,10 @@ export const SessionProvider = ({ children }: ProviderProps) => {
                 return;
             }
 
-            if (serverCode === "auth/invalid-credential" || error.response?.status === 401) {
-                if (attempts && attempts < 5) {
-                    setError(`${texts[language].sessionErrors.loginAttemptsLeft} ${5 - attempts} ${texts[language].sessionErrors.loginAttemptsLeftAfter}`);
-                } else {
-                    setError(texts[language].sessionErrors.loginInvalidCredentials);
-                }
+            // ── Credenciales inválidas: un solo mensaje, exista o no la cuenta ─
+            // (sin "no existe la cuenta" ni "te quedan X intentos")
+            if (serverCode === "auth/invalid-credential" || status === 401) {
+                setError(texts[language].sessionErrors.loginInvalidCredentials);
                 return;
             }
 
@@ -225,11 +229,14 @@ export const SessionProvider = ({ children }: ProviderProps) => {
         try {
             setLoading(true);
             setError(null);
+            // Respuesta genérica del backend: no confirma si la cuenta existe
             await axios.post(`${import.meta.env.VITE_API_URL}/resend-verification`, { email });
             setEmailNotVerified(false);
-            alert("Email de verificación reenviado. Revisá tu casilla.");
+            alert("Si la cuenta está pendiente de verificación, te reenviamos el email. Revisá tu casilla.");
         } catch (err: any) {
-            const msg = err.response?.data?.message || "Error al reenviar el email.";
+            const msg = err.response?.status === 429
+                ? "Demasiados reenvíos. Probá de nuevo en un rato."
+                : "Error al reenviar el email.";
             setError(msg);
         } finally {
             setLoading(false);

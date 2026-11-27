@@ -15,6 +15,12 @@ const LEGAL_LINKS = {
     terms: "/terms-and-conditions",
 };
 
+// Cloudflare Turnstile (anti-bot del registro). La site key es pública por
+// diseño; el secreto vive solo en el backend (TURNSTILE_SECRET).
+// Sin VITE_TURNSTILE_SITE_KEY (local) el widget no se muestra.
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
 const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
     const { language, texts } = UseLanguage();  
     const { handleRegister, loading, error } = UseSession();
@@ -30,6 +36,8 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
     const [showRequirements, setShowRequirements] = useState(false);
     const [visiblePassword, setVisiblePassword] = useState<boolean>(false);
     const [acceptedLegal, setAcceptedLegal] = useState<boolean>(false);
+    const [turnstileToken, setTurnstileToken] = useState<string>("");
+    const turnstileRef = useRef<HTMLDivElement>(null);
 
     const handleClose = () => {
         setExit(true);
@@ -48,7 +56,8 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
         password.length >= 10 &&
         password === password2 &&
         !passwordError &&
-        acceptedLegal;
+        acceptedLegal &&
+        (!TURNSTILE_SITE_KEY || !!turnstileToken);
     
     const validatePassword = (pass: string) => {
         const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+=[\]{};':"\\|,.<>/?`~-]).{10,}$/;
@@ -70,8 +79,53 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // ── Widget de Turnstile: carga el script una sola vez y lo monta en el form.
+    // Se vuelve a montar si el form reaparece después del loader.
+    useEffect(() => {
+        if (!TURNSTILE_SITE_KEY || registered || loading) return;
+
+        let widgetId: string | undefined;
+        let cancelled = false;
+
+        const renderWidget = () => {
+            const ts = (window as any).turnstile;
+            if (cancelled || !ts || !turnstileRef.current || widgetId) return;
+            widgetId = ts.render(turnstileRef.current, {
+                sitekey: TURNSTILE_SITE_KEY,
+                theme: theme === "light" ? "light" : "dark",
+                callback: (token: string) => setTurnstileToken(token),
+                "expired-callback": () => setTurnstileToken(""),
+                "error-callback": () => setTurnstileToken(""),
+            });
+        };
+
+        let script = document.querySelector<HTMLScriptElement>(`script[src="${TURNSTILE_SRC}"]`);
+        if ((window as any).turnstile) {
+            renderWidget();
+        } else {
+            if (!script) {
+                script = document.createElement("script");
+                script.src = TURNSTILE_SRC;
+                script.async = true;
+                script.defer = true;
+                document.head.appendChild(script);
+            }
+            script.addEventListener("load", renderWidget);
+        }
+
+        return () => {
+            cancelled = true;
+            script?.removeEventListener("load", renderWidget);
+            if (widgetId) {
+                try { (window as any).turnstile?.remove(widgetId); } catch { /* el nodo ya no existe */ }
+            }
+            setTurnstileToken("");
+        };
+    }, [registered, loading, theme]);
+
     if(loading) return <Loader />
-    if(error === "EMAIL_YA_REGISTRADO") return (<Error processMessage="Este email ya está registrado." />)
+    // Mensajes concretos del context (límite de intentos, captcha) o el genérico
+    if(typeof error === "string" && error) return <Error processMessage={error} />
     if(error) return <Error processMessage={`${texts[language].register.errorRegister}`} />
 
     return (
@@ -102,8 +156,8 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
                             <div className="k-reg-success">
                                 <h2 className="k-reg-title">¡CUENTA CREADA!</h2>
                                 <p className="k-reg-success-text">
-                                    Te enviamos un email de verificación a <strong>{email}</strong>.
-                                    Hacé click en el link para activar tu cuenta.
+                                    Te enviamos un email a <strong>{email}</strong> con los pasos para continuar.
+                                    Hacé click en el link que te llegue para activar tu cuenta.
                                 </p>
                                 <p className="k-reg-success-spam">
                                     Si no lo ves en unos minutos, revisá también tu carpeta de SPAM o correo no deseado.
@@ -127,13 +181,15 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
                                 <form className="k-reg-form" onSubmit={(e) => {
                                     e.preventDefault(); 
                                     if (!acceptedLegal) return;
-                                    if (!validatePassword(password)) return; 
+                                    if (!validatePassword(password)) return;
+                                    if (TURNSTILE_SITE_KEY && !turnstileToken) return;
                                     handleRegister(
                                         email,
                                         password,
                                         () => setRegistered(true),
                                         () => setRegistered(true),
-                                        acceptedLegal
+                                        acceptedLegal,
+                                        turnstileToken || undefined
                                     );
                                 }}>
                                     
@@ -257,6 +313,11 @@ const RegisterMinimal = ({ openLogin, closeRegister }: any) => {
                                             {" "}de Hidden Security.
                                         </span>
                                     </label>
+
+                                    {/* ANTI-BOT (Cloudflare Turnstile) */}
+                                    {TURNSTILE_SITE_KEY && (
+                                        <div ref={turnstileRef} className="k-reg-turnstile" />
+                                    )}
 
                                     <div className="k-reg-feedback">
                                         {(password !== password2 && password2 !== "") && <span className="k-reg-error">Las contraseñas no coinciden!</span>}
